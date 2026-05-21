@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lem-in Rust - Visualiseur Interactif</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --text-primary: #c9d1d9;
+            --accent: #58a6ff;
+            --success: #2ea043;
+            --border: #30363d;
+            --danger: #da3633;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 1rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        h1 { color: var(--accent); margin-bottom: 0.5rem; }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+        
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 250px;
+            background: #0d1117;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.8rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-primary:hover { background: #268537; }
+        
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover { background: var(--border); }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .output {
+            height: 250px;
+            overflow-y: auto;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.8rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 400px;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-primary);
+            padding: 0.8rem;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #8b949e;
+            margin-top: 0.2rem;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+        
+        input[type="range"] {
+            width: 100px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🐜 Lem-in Rust Visualiseur</h1>
+        <p>Exécute ton algorithme de fourmis directement dans le navigateur grâce à WebAssembly</p>
+    </div>
+    
+    <div class="container">
+        <div class="panel">
+            <h3>📝 Carte d'entrée</h3>
+            <textarea id="inputMap" placeholder="Colle ta carte ici...">4
+
+##start
+1 0 0
+2 1 0
+3 0 1
+4 1 1
+##end
+5 2 0
+
+1-2
+1-3
+2-4
+3-4
+4-5</textarea>
+            
+            <div class="controls">
+                <button class="btn-primary" onclick="runSimulation()">▶️ Résoudre</button>
+                <button class="btn-secondary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
+                <button class="btn-danger" onclick="reset()">🔄 Reset</button>
+                
+                <div class="speed-control">
+                    <span>Vitesse:</span>
+                    <input type="range" id="speedRange" min="10" max="1000" value="200">
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 1rem;">📊 Sortie</h3>
+            <div class="output" id="output"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>🎨 Visualisation</h3>
+            <canvas id="visCanvas"></canvas>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="turnCount">0</div>
+                    <div class="stat-label">Tours</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="antsMoved">0</div>
+                    <div class="stat-label">Fourmis déplacées</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="antsArrived">0/0</div>
+                    <div class="stat-label">Arrivées</div>
+                </div>
+            </div>
+            
+            <div id="loadingMsg" class="loading">
+                Chargement du module WASM...
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, { parse_and_solve } from './lem_in_rust.js';
+        
+        let wasmReady = false;
+        let isPaused = false;
+        let animationId = null;
+        let moves = [];
+        let currentMoveIndex = 0;
+        let rooms = [];
+        let links = [];
+        
+        async function loadWasm() {
+            try {
+                await init();
+                wasmReady = true;
+                document.getElementById('loadingMsg').style.display = 'none';
+                console.log('✅ WASM chargé avec succès');
+            } catch (error) {
+                document.getElementById('loadingMsg').innerHTML = `❌ Erreur WASM: ${error}`;
+                console.error('Erreur chargement WASM:', error);
+            }
+        }
+        
+        loadWasm();
+        
+        window.runSimulation = async function() {
+            if (!wasmReady) {
+                alert('WASM pas encore chargé, patientez...');
+                return;
+            }
+            
+            const input = document.getElementById('inputMap').value;
+            const outputDiv = document.getElementById('output');
+            outputDiv.textContent = '';
+            
+            try {
+                const result = parse_and_solve(input);
+                const lines = result.split('\n');
+                
+                // Parser la sortie pour extraire les mouvements et la carte
+                let inMoves = false;
+                moves = [];
+                rooms = [];
+                links = [];
+                
+                for (const line of lines) {
+                    if (line.trim() === '') continue;
+                    
+                    if (line.startsWith('L') || line.match(/^\d+-/)) {
+                        inMoves = true;
+                        moves.push(line);
+                        outputDiv.textContent += line + '\n';
+                    } else if (!inMoves) {
+                        // C'est la carte originale
+                        if (line.match(/^[^-]+ \d+ \d+$/)) {
+                            const parts = line.split(' ');
+                            rooms.push({
+                                name: parts[0],
+                                x: parseInt(parts[1]),
+                                y: parseInt(parts[2])
+                            });
+                        } else if (line.includes('-')) {
+                            links.push(line.split('-'));
+                        }
+                        outputDiv.textContent += line + '\n';
+                    }
+                }
+                
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+                currentMoveIndex = 0;
+                drawFrame();
+                animate();
+                
+            } catch (error) {
+                outputDiv.textContent += `\n❌ Erreur: ${error}`;
+            }
+        };
+        
+        window.togglePause = function() {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Reprendre' : '⏸️ Pause';
+        };
+        
+        window.reset = function() {
+            isPaused = false;
+            currentMoveIndex = 0;
+            moves = [];
+            document.getElementById('output').textContent = '';
+            document.getElementById('pauseBtn').textContent = '⏸️ Pause';
+            const canvas = document.getElementById('visCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateStats(0, 0, 0);
+        };
+        
+        function animate() {
+            if (isPaused || currentMoveIndex >= moves.length) return;
+            
+            const speed = 1010 - document.getElementById('speedRange').value;
+            
+            setTimeout(() => {
+                if (!isPaused && currentMoveIndex < moves.length) {
+                    currentMoveIndex++;
+                    drawFrame();
+                    animationId = requestAnimationFrame(animate);
+                }
+            }, speed);
+        }
+        
+        function drawFrame() {
+            const canvas = document.getElementById('visCanvas');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (rooms.length === 0) return;
+            
+            // Calculer les bounds
+            const minX = Math.min(...rooms.map(r => r.x));
+            const maxX = Math.max(...rooms.map(r => r.x));
+            const minY = Math.min(...rooms.map(r => r.y));
+            const maxY = Math.max(...rooms.map(r => r.y));
+            
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const padding = 40;
+            const scaleX = (canvas.width - 2 * padding) / rangeX;
+            const scaleY = (canvas.height - 2 * padding) / rangeY;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Fonction de conversion
+            const toScreen = (x, y) => ({
+                x: padding + (x - minX) * scale,
+                y: padding + (y - minY) * scale
+            });
+            
+            // Dessiner les liens
+            ctx.strokeStyle = '#30363d';
+            ctx.lineWidth = 2;
+            for (const [room1, room2] of links) {
+                const r1 = rooms.find(r => r.name === room1);
+                const r2 = rooms.find(r => r.name === room2);
+                if (r1 && r2) {
+                    const p1 = toScreen(r1.x, r1.y);
+                    const p2 = toScreen(r2.x, r2.y);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+            
+            // Parser l'état actuel des fourmis
+            const antPositions = {};
+            for (let i = 0; i <= currentMoveIndex && i < moves.length; i++) {
+                const move = moves[i];
+                const match = move.match(/L(\d+)-([^\s]+)/);
+                if (match) {
+                    const antId = match[1];
+                    const roomName = match[2];
+                    antPositions[antId] = roomName;
+                }
+            }
+            
+            // Dessiner les salles
+            for (const room of rooms) {
+                const pos = toScreen(room.x, room.y);
+                
+                // Cercle
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
+                
+                if (room.name.includes('start')) {
+                    ctx.fillStyle = '#2ea043';
+                } else if (room.name.includes('end')) {
+                    ctx.fillStyle = '#da3633';
+                } else {
+                    ctx.fillStyle = '#58a6ff';
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = '#c9d1d9';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Nom
+                ctx.fillStyle = '#c9d1d9';
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(room.name, pos.x, pos.y - 20);
+                
+                // Fourmis dans la salle
+                const antsHere = Object.entries(antPositions)
+                    .filter(([_, roomName]) => roomName === room.name)
+                    .map(([antId, _]) => antId);
+                
+                if (antsHere.length > 0) {
+                    ctx.fillStyle = '#f0f6fc';
+                    ctx.font = 'bold 14px monospace';
+                    ctx.fillText(`🐜${antsHere.length}`, pos.x, pos.y + 5);
+                }
+            }
+            
+            // Mettre à jour les stats
+            const totalAnts = Object.keys(antPositions).length;
+            const endRoom = rooms.find(r => r.name.includes('end'));
+            let arrived = 0;
+            if (endRoom) {
+                arrived = Object.values(antPositions).filter(name => name === endRoom.name).length;
+            }
+            updateStats(currentMoveIndex + 1, totalAnts, arrived);
+        }
+        
+        function updateStats(turns, moved, arrived) {
+            document.getElementById('turnCount').textContent = turns;
+            document.getElementById('antsMoved').textContent = moved;
+            
+            // Estimer le total de fourmis depuis l'input
+            const input = document.getElementById('inputMap').value;
+            const antMatch = input.match(/^(\d+)/m);
+            const totalAnts = antMatch ? antMatch[1] : '?';
+            document.getElementById('antsArrived').textContent = `${arrived}/${totalAnts}`;
+        }
+    </script>
+</body>
+</html>

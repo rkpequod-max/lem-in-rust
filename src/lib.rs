@@ -77,7 +77,8 @@ pub fn parse_and_solve(input: &str) -> String {
     
     let mut output = String::new();
     
-    for line in lines {
+    // Première passe: parsing
+    for line in &lines {
         let line = line.trim();
         
         if line.is_empty() {
@@ -145,7 +146,7 @@ pub fn parse_and_solve(input: &str) -> String {
         
         // Section 2: Liens
         if section == 2 {
-            if let Some(dash_pos) = line.find('-') {
+            if let Some(_dash_pos) = line.find('-') {
                 let parts: Vec<&str> = line.split('-').collect();
                 if parts.len() == 2 && parts[0] != parts[1] {
                     if let (Some(room1), Some(room2)) = (room_map.get(parts[0]), room_map.get(parts[1])) {
@@ -180,7 +181,7 @@ pub fn parse_and_solve(input: &str) -> String {
     }
     
     // Affichage de la carte originale
-    for line in lines {
+    for line in &lines {
         output.push_str(line);
         output.push('\n');
     }
@@ -204,7 +205,7 @@ fn find_end(rooms: &[RoomRef]) -> Option<RoomRef> {
     rooms.iter().find(|r| r.borrow().end).cloned()
 }
 
-fn bfs_find_path(start: &RoomRef, end: &RoomRef, ignore_flow: bool) -> Option<Vec<RoomRef>> {
+fn bfs_find_path(start: &RoomRef, end: &RoomRef, all_rooms: &[RoomRef], ignore_flow: bool) -> Option<Vec<RoomRef>> {
     use std::collections::VecDeque;
     
     let mut visited: HashSet<usize> = HashSet::new();
@@ -225,7 +226,7 @@ fn bfs_find_path(start: &RoomRef, end: &RoomRef, ignore_flow: bool) -> Option<Ve
             
             loop {
                 // Trouver la room correspondant au ptr
-                let room = rooms.iter().find(|r| Rc::as_ptr(r) as usize == ptr).unwrap().clone();
+                let room = all_rooms.iter().find(|r| Rc::as_ptr(r) as usize == ptr).unwrap().clone();
                 path.push(room.clone());
                 
                 if Rc::ptr_eq(&room, start) {
@@ -331,7 +332,7 @@ fn solve(farm: &mut Farm, output: &mut String) {
     let mut paths: Vec<Vec<RoomRef>> = Vec::new();
     
     // Premier chemin
-    if let Some(path) = bfs_find_path(&start, &end, true) {
+    if let Some(path) = bfs_find_path(&start, &end, &farm.rooms, true) {
         update_flow(&path);
         paths.push(path);
     } else {
@@ -341,7 +342,7 @@ fn solve(farm: &mut Farm, output: &mut String) {
     
     // Deuxième chemin (si possible)
     if farm.ants > 1 {
-        if let Some(path) = bfs_find_path(&start, &end, false) {
+        if let Some(path) = bfs_find_path(&start, &end, &farm.rooms, false) {
             update_flow(&path);
             paths.push(path);
         }
@@ -350,11 +351,11 @@ fn solve(farm: &mut Farm, output: &mut String) {
     // Simulation tour par tour
     let total_ants = farm.ants;
     let mut ants_sent = 0;
-    let mut turn = 0;
+    let mut _turn = 0;
     let mut ants_at_end = 0;
     
     while ants_at_end < total_ants {
-        turn += 1;
+        _turn += 1;
         let mut moved = false;
         
         // Déplacer les fourmis existantes

@@ -4,400 +4,477 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Lem-in Visualiseur</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v6.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#080b10;--panel:rgba(14,18,26,.92);--border:rgba(255,255,255,.08);
-  --text:#e8eaed;--dim:#6b7280;--accent:#3b82f6;--green:#10b981;
-  --red:#ef4444;--amber:#f59e0b;--ant:#fbbf24;
-}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
-canvas{display:block;cursor:grab}
+:root{--bg:#05080c;--surface:rgba(10,16,24,.88);--text:#eef2f5;--dim:rgba(255,255,255,.4);--border:rgba(255,255,255,.07);--input-bg:rgba(0,0,0,.4);--btn-bg:rgba(255,255,255,.06);--btn-hover:rgba(255,255,255,.12);--accent:#2ecc71;--warn:#f39c12;--danger:#e74c3c;--info:#3498db;--purp:#9b59b6;--stat-bg:rgba(0,0,0,.3);--hl-bg:rgba(15,23,42,.85);--hl-border:#38bdf8}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow:hidden}
+canvas{display:block;position:fixed;inset:0;cursor:grab}
 canvas:active{cursor:grabbing}
-
-/* Floating panels */
-.hud{position:absolute;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:var(--panel);border:1px solid var(--border);border-radius:12px;z-index:10}
-
-/* Top bar */
-.topbar{top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;border-radius:0;background:var(--panel);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);position:absolute;z-index:20}
-.brand{display:flex;align-items:center;gap:.6rem}
-.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
-.brand h1{font-size:.9rem;font-weight:600;letter-spacing:-.01em}
-.brand .sub{font-size:.65rem;color:var(--dim)}
-.gen-bar{display:flex;gap:.3rem}
-.gen-bar button{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--dim);padding:.3rem .65rem;border-radius:6px;font-size:.68rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .15s}
-.gen-bar button:hover{color:var(--text);border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.06)}
-.gen-bar button.active{color:var(--bg);background:var(--accent);border-color:var(--accent);font-weight:600}
-.topbar-right{display:flex;align-items:center;gap:.5rem}
-.btn-solve{background:var(--accent);color:#fff;border:none;padding:.4rem 1rem;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .15s}
-.btn-solve:hover{background:#2563eb}
-.gen-info{font-size:.62rem;color:var(--dim);font-family:'JetBrains Mono',monospace;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* Left panel — map + output */
-.left-panel{top:72px;left:12px;width:300px;max-height:calc(100vh - 84px);display:flex;flex-direction:column;gap:8px}
-.panel-section{padding:.7rem}
-.panel-section h3{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:.4rem;font-weight:600}
-.map-input{width:100%;height:100px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.4rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;resize:none;line-height:1.4}
-.map-input:focus{outline:none;border-color:var(--accent)}
-.output-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;padding:.4rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;height:120px;overflow-y:auto;white-space:pre;line-height:1.5;color:var(--dim)}
+#panel{position:fixed;top:18px;left:18px;z-index:100;background:var(--surface);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid var(--border);border-radius:18px;padding:18px 16px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,.15);max-height:calc(100vh - 36px);overflow-y:auto}
+.panel-title{margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--border)}
+.panel-header{font-size:1.05rem;font-weight:700;color:var(--accent);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gen-controls{display:flex;gap:6px;margin-top:10px}
+.ui-input{background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.75rem;outline:none;font-family:'Inter',sans-serif;transition:border-color .2s}
+.ui-input:focus{border-color:var(--accent)}
+.ui-btn{background:var(--btn-bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:.75rem;font-weight:600;transition:all .15s;white-space:nowrap}
+.ui-btn:hover{background:var(--btn-hover)}
+.ui-btn.primary{background:var(--info);border-color:var(--info);color:#fff}
+.ui-btn.primary:hover{background:#2980b9}
+button.active{background:var(--danger);color:#fff;border-color:var(--danger)}
+.status{display:flex;align-items:center;gap:8px;margin-bottom:13px;font-size:.8rem;color:var(--dim)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--danger);box-shadow:0 0 5px var(--danger)}
+.dot.ready{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.dot.loading{background:var(--info);box-shadow:0 0 8px var(--info);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:13px}
+.stat{background:var(--stat-bg);border-radius:10px;padding:9px 9px 7px;border-left:3px solid var(--accent)}
+.stat.warn{border-left-color:var(--warn)} .stat.info{border-left-color:var(--info)} .stat.purp{border-left-color:var(--purp)}
+.stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;color:var(--dim)}
+.stat-value{font-size:1.15rem;font-weight:700;margin-top:2px;font-family:'JetBrains Mono',monospace;color:var(--accent)}
+.stat-sub{font-size:.65rem;color:var(--dim);font-weight:400}
+.stat.warn .stat-value{color:var(--warn)} .stat.info .stat-value{color:var(--info)} .stat.purp .stat-value{color:var(--purp)}
+.prog-wrap{margin-bottom:13px} .prog-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--info),var(--accent));transition:width .4s ease}
+.section{margin-bottom:13px} .section-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);margin-bottom:7px}
+.btn-row{display:flex;gap:6px} .btn-row button{flex:1} .btn-row button.wide{flex:2}
+.ctrl{margin-bottom:9px} .ctrl label{display:flex;justify-content:space-between;font-size:.76rem;color:var(--dim);margin-bottom:5px}
+.ctrl label span{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.75rem}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;height:4px}
+.hints{font-size:.65rem;color:var(--dim);margin-top:11px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
+.hints kbd{background:var(--btn-bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:monospace;font-size:.65rem}
+#tooltip{position:fixed;background:var(--surface);border:1px solid var(--accent);padding:9px 12px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .12s;z-index:500;font-size:.8rem;transform:translate(-50%,calc(-100% - 12px));box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.tt-id{color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:700;margin-bottom:3px;font-size:.85rem}
+.tt-row{color:var(--dim);line-height:1.6} .tt-row span{color:var(--text);font-weight:600}
+#hud-right{position:fixed;top:18px;right:18px;z-index:100;background:var(--surface);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid var(--border);border-radius:18px;padding:18px 16px;width:280px;box-shadow:0 16px 48px rgba(0,0,0,.15);display:none;flex-direction:column}
+#rp-title{font-size:.9rem;font-weight:700;color:var(--info);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.path-list{max-height:350px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px;margin-bottom:10px}
+.path-list::-webkit-scrollbar{width:4px} .path-list::-webkit-scrollbar-thumb{background:var(--info);border-radius:4px}
+.path-node{background:var(--btn-bg);padding:8px 12px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.8rem;display:flex;align-items:center;justify-content:center;border:1px solid transparent;transition:all .2s;cursor:pointer;color:var(--text)}
+.path-node:hover{border-color:var(--info);background:var(--btn-hover);transform:translateX(-2px)}
+.path-node.is-target{border-color:var(--info);background:rgba(52,152,219,.2);font-weight:bold}
+.path-node.is-start{color:var(--accent);border-color:rgba(46,204,113,.3)}
+.path-node.is-end{color:var(--danger);border-color:rgba(231,76,60,.3)}
+.path-arrow{text-align:center;color:var(--dim);font-size:14px;margin:-2px 0}
+.loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--accent);font-size:.8rem;z-index:50}
+.output-box{background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:.4rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;height:100px;overflow-y:auto;white-space:pre;line-height:1.5;color:var(--dim);margin-top:6px}
 .output-box .current{color:var(--accent);background:rgba(59,130,246,.08);border-radius:2px}
-
-/* Right panel — stats */
-.right-panel{top:72px;right:12px;width:160px;padding:.7rem}
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--border)}
-.stat-row:last-child{border:none}
-.stat-lbl{font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
-.stat-val{font-size:1rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
-.stat-val.accent{color:var(--accent)}
-.stat-val.green{color:var(--green)}
-.stat-val.amber{color:var(--amber)}
-
-/* Bottom controls */
-.controls{bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:.4rem;padding:.5rem .8rem}
-.controls button{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.controls button:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
-.controls button.primary{background:var(--accent);border-color:var(--accent);width:auto;padding:0 1rem}
-.speed-wrap{display:flex;align-items:center;gap:.4rem;margin-left:.4rem;padding-left:.4rem;border-left:1px solid var(--border)}
-.speed-wrap span{font-size:.6rem;color:var(--dim)}
-.speed-wrap input{width:80px;accent-color:var(--accent)}
-
-/* Progress bar */
-.progress{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,.04);z-index:5}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .3s;width:0%}
-
-/* Turn badge */
-.turn-badge{position:absolute;top:72px;left:50%;transform:translateX(-50%);padding:.4rem 1rem;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;z-index:10;background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border)}
-.turn-badge .dim{color:var(--dim);font-weight:400}
-
-.loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--accent);font-size:.8rem;z-index:50}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="brand">
-    <div class="brand-dot"></div>
-    <div><h1>Lem-in</h1><div class="sub">Visualiseur · WASM</div></div>
+<div id="panel">
+  <div class="panel-title">
+    <div class="panel-header"><span>🐜 Lem-in Visualiseur</span></div>
+    <div class="gen-controls">
+      <select id="gen-mode" class="ui-input" style="flex:2">
+        <option value="flow-one">--flow-one</option>
+        <option value="flow-ten" selected>--flow-ten</option>
+        <option value="flow-thousand">--flow-thousand</option>
+        <option value="big">--big</option>
+        <option value="big-superposition">--big-superposition</option>
+      </select>
+      <button class="ui-btn primary" onclick="requestNewMap()">🎲 Générer</button>
+    </div>
   </div>
-  <div class="gen-bar">
-    <button onclick="genOfficial('flow-one',this)">--flow-one</button>
-    <button onclick="genOfficial('flow-ten',this)">--flow-ten</button>
-    <button onclick="genOfficial('flow-thousand',this)">--flow-thousand</button>
-    <button onclick="genOfficial('big',this)">--big</button>
-    <button onclick="genOfficial('big-superposition',this)">--big-superposition</button>
-    <span class="gen-info" id="genInfo"></span>
+  <div class="status"><span class="dot" id="conn-dot"></span><span id="conn-text">En attente…</span></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Fourmis</div><div class="stat-value" id="s-total">—</div></div>
+    <div class="stat warn"><div class="stat-label">En route</div><div class="stat-value" id="s-active">0</div></div>
+    <div class="stat info"><div class="stat-label">Tour</div><div class="stat-value" id="s-turn">0/0</div></div>
+    <div class="stat purp"><div class="stat-label">Chemins</div><div class="stat-value" id="s-paths">—</div></div>
+    <div class="stat" id="s-arrived-card"><div class="stat-label">Arrivées</div><div class="stat-value" id="s-arrived">0 <span class="stat-sub" id="s-pct">0%</span></div></div>
   </div>
-  <div class="topbar-right">
-    <button class="btn-solve" onclick="runSimulation()">▶ Résoudre</button>
+  <div class="prog-wrap"><div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div></div>
+  <div class="section"><div class="section-label">🔬 Outils</div>
+    <input type="text" id="focus-input" class="ui-input" style="width:100%;margin-bottom:6px" placeholder="Focus fourmi (ex: 1, 42…)">
+    <div class="btn-row"><button class="ui-btn" id="btn-heatmap" onclick="toggleHeatmap()">🔥 Heatmap</button></div>
   </div>
+  <div class="section">
+    <div class="ctrl"><label>📊 Timeline <span id="tl-label">0/0</span></label><input type="range" id="timeline" min="0" max="0" value="0" step="1"></div>
+    <div class="ctrl"><label>⚡ Vitesse <span id="spd-val">70</span></label><input type="range" id="speed" min="1" max="100" value="70" oninput="document.getElementById('spd-val').textContent=this.value"></div>
+  </div>
+  <div class="btn-row" style="margin-bottom:10px">
+    <button class="ui-btn" onclick="prevStep()" title="←">⏮</button>
+    <button class="ui-btn primary wide" id="play-btn" onclick="togglePlay()">▶ Play</button>
+    <button class="ui-btn" onclick="nextStep()" title="→">⏭</button>
+  </div>
+  <div class="section"><div class="section-label">Sortie</div><div class="output-box" id="output"></div></div>
+  <div class="hints"><span><kbd>Drag</kbd> Déplacer</span><span><kbd>Clic</kbd> Isoler</span><span><kbd>H</kbd> Heatmap</span></div>
 </div>
 
-<div class="turn-badge" id="turnBadge" style="display:none">
-  Tour <span id="turnNow">0</span><span class="dim"> / </span><span id="turnTotal">0</span>
+<div id="hud-right">
+  <div class="panel-title" style="margin-bottom:8px;padding-bottom:8px"><h1 id="rp-title">Détails</h1></div>
+  <div id="rp-content"></div>
+  <button id="btn-cycle-path" class="ui-btn primary" style="width:100%;display:none;margin-top:8px">Chemin suivant</button>
 </div>
 
-<canvas id="canvas"></canvas>
-
-<div class="hud left-panel">
-  <div class="panel-section">
-    <h3>Carte</h3>
-    <textarea class="map-input" id="inputMap" spellcheck="false">4
-##start
-1 0 0
-2 1 0
-3 0 1
-4 1 1
-##end
-5 2 0
-1-2
-1-3
-2-4
-3-4
-4-5</textarea>
-  </div>
-  <div class="panel-section">
-    <h3>Sortie</h3>
-    <div class="output-box" id="output"></div>
-  </div>
+<div id="tooltip">
+  <div class="tt-id" id="tt-name">—</div>
+  <div class="tt-row">Passages : <span id="tt-visits">0</span></div>
+  <div class="tt-row">Connexions : <span id="tt-degree">0</span></div>
+  <div class="tt-row">Type : <span id="tt-type">salle</span></div>
 </div>
 
-<div class="hud right-panel">
-  <div class="stat-row"><span class="stat-lbl">Fourmis</span><span class="stat-val" id="antCount">—</span></div>
-  <div class="stat-row"><span class="stat-lbl">Salles</span><span class="stat-val" id="roomCount">—</span></div>
-  <div class="stat-row"><span class="stat-lbl">Tours</span><span class="stat-val accent" id="turnCount">—</span></div>
-  <div class="stat-row"><span class="stat-lbl">Chemins</span><span class="stat-val amber" id="pathCount">—</span></div>
-  <div class="stat-row"><span class="stat-lbl">Arrivées</span><span class="stat-val green" id="arrivedCount">0/0</span></div>
-</div>
-
-<div class="hud controls">
-  <button onclick="reset()" title="Reset">↺</button>
-  <button onclick="stepBack()" title="Tour précédent">◀</button>
-  <button onclick="togglePause()" id="pauseBtn" title="Play/Pause">▶</button>
-  <button onclick="stepForward()" title="Tour suivant">▶</button>
-  <div class="speed-wrap">
-    <span>Vitesse</span>
-    <input type="range" id="speedRange" min="50" max="2000" value="600">
-  </div>
-</div>
-
-<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
 <div class="loading" id="loadingMsg">Chargement WASM…</div>
 
 <script type="module">
-import init,{parse_and_solve} from './lem_in_rust.js';
+import init, { parse_and_solve } from './lem_in_rust.js';
 
-let wasmReady=false,isPaused=true,animTimer=null;
-let moves=[],currentTurn=0,totalTurns=0,totalAnts=0;
-let rooms=[],links=[],roomMap={};
-let antPositions={}; // antId -> {room, x, y, prevX, prevY, progress}
-let canvas,ctx,cw,ch,dpr;
-let panX=0,panY=0,zoom=1,isDragging=false,dragSX=0,dragSY=0;
+// ═══ WASM ═══
+let wasmReady = false;
+(async () => { try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; } catch(e) { document.getElementById('loadingMsg').textContent = 'Erreur WASM: ' + e; } })();
 
-async function loadWasm(){try{await init();wasmReady=true;document.getElementById('loadingMsg').style.display='none'}catch(e){document.getElementById('loadingMsg').textContent='Erreur: '+e}}
-loadWasm();
-
-// === Maps pré-générées ===
-function mapFiles(opt){return Array.from({length:10},(_,i)=>`maps/${opt}_${i+1}.txt`)}
-const MAP_DESC={'flow-one':'1 fourmi','flow-ten':'~10 fourmis','flow-thousand':'~100 fourmis','big':'~300 fourmis','big-superposition':'~350 fourmis'};
-
-window.genOfficial=async function(opt,btn){
-  if(!MAP_DESC[opt])return;
-  document.querySelectorAll('.gen-bar button').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  const files=mapFiles(opt);const file=files[Math.floor(Math.random()*files.length)];
-  try{
-    const r=await fetch(file);if(!r.ok)throw new Error('HTTP '+r.status);
-    const t=await r.text();document.getElementById('inputMap').value=t;
-    const ls=t.split('\n');const a=ls[0];
-    const rm=ls.filter(l=>l.match(/^\S+ -?\d+ -?\d+$/)).length;
-    const lk=ls.filter(l=>l.includes('-')&&!l.startsWith('#')&&!l.match(/^\S+ -?\d+ -?\d+$/)).length;
-    const n=file.match(/_(\d+)\./)[1];
-    document.getElementById('genInfo').textContent=`${a} fourmis · ${rm} salles · ${lk} liens · #${n}/10`;
-  }catch(e){document.getElementById('genInfo').textContent='❌ '+e}
+// ═══ COULEURS (définies en premier pour éviter la TDZ) ═══
+const C = {
+  bg: '#05080c', grid: 'rgba(80,120,180,0.15)', text: 'rgba(255,255,255,',
+  link: 'rgba(80,130,200,0.18)', roomFill: '#1e3f6a', roomStroke: 'rgba(52,152,219,0.5)',
+  dimmed: 'rgba(255,255,255,0.05)', hlBg: '#0f1722', hlBorder: '#38bdf8'
 };
 
-// === Canvas setup ===
-function setupCanvas(){
-  canvas=document.getElementById('canvas');ctx=canvas.getContext('2d');
-  function resize(){dpr=window.devicePixelRatio||1;cw=window.innerWidth;ch=window.innerHeight;canvas.width=cw*dpr;canvas.height=ch*dpr;canvas.style.width=cw+'px';canvas.style.height=ch+'px';ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
-  window.addEventListener('resize',resize);resize();
-  canvas.addEventListener('mousedown',e=>{if(e.button!==0)return;isDragging=true;dragSX=e.clientX-panX;dragSY=e.clientY-panY});
-  window.addEventListener('mousemove',e=>{if(!isDragging)return;panX=e.clientX-dragSX;panY=e.clientY-dragSY;draw()});
-  window.addEventListener('mouseup',()=>isDragging=false);
-  canvas.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY>0?.9:1.1;zoom=Math.max(.1,Math.min(8,zoom*f));draw()},{passive:false});
-}
-setupCanvas();
+// ═══ Maps pré-générées ═══
+function mapFiles(opt) { return Array.from({length:10}, (_,i) => `maps/${opt}_${i+1}.txt`); }
 
-// === Layout : cercles concentriques ===
-function computeLayout(){
-  if(rooms.length===0)return;
-  const cx=cw/2,cy=ch/2;
-  const start=rooms.find(r=>r.isStart);
-  const end=rooms.find(r=>r.isEnd);
-  // Placer start au centre, end en haut
-  if(start){start.sx=cx;start.sy=cy}
-  if(end){end.sx=cx;end.sy=cy-Math.min(cw,ch)*0.35}
+window.requestNewMap = async function() {
+  if (!wasmReady) { alert('WASM en chargement…'); return; }
+  const opt = document.getElementById('gen-mode').value;
+  const files = mapFiles(opt);
+  const file = files[Math.floor(Math.random() * files.length)];
+  document.getElementById('conn-dot').className = 'dot loading';
+  document.getElementById('conn-text').textContent = 'Chargement map…';
+  try {
+    const r = await fetch(file); if (!r.ok) throw new Error('HTTP ' + r.status);
+    const mapText = await r.text();
+    document.getElementById('conn-text').textContent = 'Résolution WASM…';
+    const result = parse_and_solve(mapText);
+    loadData(mapText, result);
+  } catch(e) { document.getElementById('conn-text').textContent = '❌ ' + e; document.getElementById('conn-dot').className = 'dot'; }
+};
 
-  const others=rooms.filter(r=>!r.isStart&&!r.isEnd);
-  if(others.length<=200){
-    // Layout basé sur coordonnées originales (normalisées)
-    const xs=others.map(r=>r.x),ys=others.map(r=>r.y);
-    const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
-    const rx=maxX-minX||1,ry=maxY-minY||1;
-    const pad=80,s=Math.min((cw-2*pad)/rx,(ch-2*pad)/ry);
-    const ox=(cw-rx*s)/2,oy=(ch-ry*s)/2;
-    others.forEach(r=>{r.sx=ox+(r.x-minX)*s;r.sy=oy+(r.y-minY)*s});
-  }else{
-    // Layout circulaire pour grandes maps
-    const maxR=Math.min(cw,ch)*0.42;
-    others.forEach((r,i)=>{
-      const a=(i/others.length)*Math.PI*2;
-      const rad=maxR*(0.3+0.7*Math.sin(i*1.7));
-      r.sx=cx+Math.cos(a)*rad;r.sy=cy+Math.sin(a)*rad;
-    });
+// ═══ ÉTAT ═══
+let nodes = [], links = [], moves = [];
+let nodeMap = new Map(), startNode = null, endNode = null;
+let step = -1, playing = false, totalAnts = 0, arrived = 0;
+let roomVisits = new Map(), maxVisits = 1;
+let isHeatmap = false, focusedAntId = null, hoveredNodeId = null, lockedNodeId = null;
+let globalAntJourneys = new Map(), uniquePaths = [], currentPathDisplayIndex = 0;
+let globalEdgeUsage = new Map(), maxEdgeUsage = 1, currentTrackedAntPath = [];
+let isMassive = false;
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+document.body.insertBefore(canvas, document.body.firstChild);
+let W = window.innerWidth, H = window.innerHeight;
+canvas.width = W; canvas.height = H;
+
+let transform = d3.zoomIdentity.translate(W/2, H/2).scale(0.3);
+const ants = new Map();
+let suppressZoom = false;
+const particles = [];
+
+function spawnExplosion(x, y, hue) {
+  if (particles.length > 250) return;
+  const n = isMassive ? 3 : 8;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = Math.random() * 3 + 1;
+    particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: 1, color: `hsl(${hue},90%,60%)` });
   }
 }
 
-// === Draw ===
-function draw(){
-  ctx.clearRect(0,0,cw,ch);
-  if(rooms.length===0)return;
+function antHue(id) { let h = 0; for (const c of String(id)) h = (h*31 + c.charCodeAt(0)) & 0x7FFF; return (h/0x7FFF)*360; }
 
+const zoom = d3.zoom().scaleExtent([0.01, 15]).on('zoom', e => {
+  transform = e.transform;
+  if (!suppressZoom) { if (e.sourceEvent && e.sourceEvent.type !== 'wheel' && focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; renderRightPanel(); } render(); }
+});
+d3.select(canvas).call(zoom).call(zoom.transform, transform);
+
+// ═══ RENDU ═══
+function render() {
   ctx.save();
-  ctx.translate(panX,panY);
-  ctx.scale(zoom,zoom);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  if (!nodes.length) { ctx.fillStyle = C.text+'0.5)'; ctx.font = 'bold 18px Inter'; ctx.textAlign = 'center'; ctx.fillText('⏳ En attente de la carte…', W/2, H/2); ctx.restore(); return; }
 
-  const showLabels=rooms.length<=100;
-  const radius=Math.max(3,Math.min(16,500/Math.sqrt(rooms.length)));
+  // Grid
+  const gs = 60 * transform.k;
+  if (gs > 10) { ctx.fillStyle = C.grid; const ox = transform.x % gs, oy = transform.y % gs; ctx.beginPath(); for (let x = ox-gs; x < W+gs; x += gs) for (let y = oy-gs; y < H+gs; y += gs) ctx.fillRect(x, y, 1.5, 1.5); }
+
+  ctx.translate(transform.x, transform.y);
+  ctx.scale(transform.k, transform.k);
+
+  const rRoom = Math.max(5, 13/transform.k), rSpecial = Math.max(10, 24/transform.k), lw = 1.5/transform.k;
+  const vL = (-transform.x)/transform.k, vR = (W-transform.x)/transform.k, vT = (-transform.y)/transform.k, vB = (H-transform.y)/transform.k;
+  const pad = 60/transform.k;
+  const vis = (x,y) => x >= vL-pad && x <= vR+pad && y >= vT-pad && y <= vB+pad;
+
+  // Isolation
+  let isoNodes = new Set(), isoLinks = new Set(), isoActive = false;
+  if (focusedAntId && currentTrackedAntPath.length > 0) {
+    isoActive = true;
+    for (let i = 0; i < currentTrackedAntPath.length; i++) { isoNodes.add(currentTrackedAntPath[i]); if (i > 0) isoLinks.add([currentTrackedAntPath[i-1], currentTrackedAntPath[i]].sort().join('~')); }
+  } else if (lockedNodeId) {
+    isoActive = true;
+    const pp = uniquePaths.filter(p => p.includes(lockedNodeId));
+    if (pp.length > 0) { const p = pp[currentPathDisplayIndex]; for (let i = 0; i < p.length; i++) { isoNodes.add(p[i]); if (i > 0) isoLinks.add([p[i-1],p[i]].sort().join('~')); } }
+    else { isoNodes.add(lockedNodeId); links.forEach(l => { const k = [l.source.id,l.target.id].sort().join('~'); if (l.source.id === lockedNodeId || l.target.id === lockedNodeId) { isoLinks.add(k); isoNodes.add(l.source.id); isoNodes.add(l.target.id); } }); }
+  }
 
   // Links
-  ctx.strokeStyle='rgba(255,255,255,.06)';
-  ctx.lineWidth=Math.max(.5,radius*.15);
-  for(const[a,b]of links){
-    const r1=roomMap[a],r2=roomMap[b];
-    if(r1&&r2&&r1.sx!==undefined){
-      ctx.beginPath();ctx.moveTo(r1.sx,r1.sy);ctx.lineTo(r2.sx,r2.sy);ctx.stroke();
-    }
+  ctx.lineCap = 'round';
+  links.forEach(l => {
+    if (!vis(l.source.x, l.source.y) && !vis(l.target.x, l.target.y)) return;
+    const k = [l.source.id, l.target.id].sort().join('~');
+    const hov = hoveredNodeId && (l.source.id === hoveredNodeId || l.target.id === hoveredNodeId);
+    ctx.beginPath(); ctx.moveTo(l.source.x, l.source.y); ctx.lineTo(l.target.x, l.target.y);
+    if (isoActive) {
+      if (isoLinks.has(k) || hov) { ctx.strokeStyle = 'rgba(52,152,219,0.9)'; ctx.lineWidth = 3/transform.k; ctx.shadowColor = 'rgba(52,152,219,0.8)'; ctx.shadowBlur = 10/transform.k; ctx.stroke(); ctx.shadowBlur = 0; }
+      else { ctx.strokeStyle = C.dimmed; ctx.lineWidth = lw; ctx.stroke(); }
+    } else if (hov) { ctx.strokeStyle = 'rgba(52,152,219,0.9)'; ctx.lineWidth = 3/transform.k; ctx.stroke(); }
+    else if (isHeatmap && globalEdgeUsage.has(k)) {
+      const i = Math.min(1, globalEdgeUsage.get(k)/maxEdgeUsage);
+      ctx.strokeStyle = `hsla(${200-i*20},100%,${40+i*50}%,${0.4+i*0.6})`; ctx.lineWidth = lw*1.5 + i*6/transform.k;
+      if (i > 0.7) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 8/transform.k; } ctx.stroke(); ctx.shadowBlur = 0;
+    } else { ctx.strokeStyle = C.link; ctx.lineWidth = lw; ctx.stroke(); }
+  });
+  ctx.lineCap = 'butt';
+
+  // Nodes
+  nodes.forEach(n => {
+    if (!vis(n.x, n.y)) return;
+    const isS = n.type === 'start', isE = n.type === 'end';
+    const r = (isS || isE ? rSpecial : rRoom) * (1 + Math.min((n.degree||1)-1, 8) * 0.045);
+    let a = 1; if (isoActive && !isoNodes.has(n.id)) a = 0.05;
+    ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+    if (isS) { ctx.fillStyle = '#2ecc71'; ctx.fill(); ctx.strokeStyle = 'rgba(46,204,113,0.8)'; ctx.lineWidth = 2/transform.k; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, r*1.55, 0, Math.PI*2); ctx.stroke(); }
+    else if (isE) { ctx.fillStyle = '#e74c3c'; ctx.fill(); ctx.strokeStyle = 'rgba(231,76,60,0.8)'; ctx.lineWidth = 2/transform.k; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, r*1.55, 0, Math.PI*2); ctx.stroke(); }
+    else { ctx.fillStyle = C.roomFill; ctx.fill(); ctx.strokeStyle = C.roomStroke; ctx.lineWidth = 1.2/transform.k; ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    if (n.id === hoveredNodeId && (!isoActive || isoNodes.has(n.id))) { ctx.beginPath(); ctx.arc(n.x, n.y, r*2.8, 0, Math.PI*2); ctx.fillStyle = isS ? 'rgba(46,204,113,0.25)' : isE ? 'rgba(231,76,60,0.25)' : 'rgba(52,152,219,0.25)'; ctx.fill(); }
+  });
+
+  // Labels
+  if (transform.k > 0.1) {
+    const fs = Math.max(9, 12/transform.k), ga = Math.min(1, (transform.k-0.1)/0.1);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    nodes.forEach(n => {
+      if (!vis(n.x, n.y)) return;
+      const r = n.type === 'room' ? rRoom : rSpecial;
+      const y = n.y + r + fs * 0.85;
+      const tgt = isoActive && isoNodes.has(n.id), dim = isoActive && !isoNodes.has(n.id);
+      if (dim) { ctx.font = `600 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = C.text+`${ga*0.1})`; ctx.fillText(n.id, n.x, y); }
+      else if (tgt) { ctx.font = `700 ${fs*1.2}px 'JetBrains Mono',monospace`; const tw = ctx.measureText(n.id).width; ctx.fillStyle = C.hlBg; ctx.strokeStyle = C.hlBorder; ctx.lineWidth = 1.5/transform.k; ctx.beginPath(); ctx.roundRect(n.x-tw/2-6/transform.k, y-fs/2-2/transform.k, tw+12/transform.k, fs*1.2+4/transform.k, 4/transform.k); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.shadowColor = C.hlBorder; ctx.shadowBlur = 8/transform.k; ctx.fillText(n.id, n.x, y); ctx.shadowBlur = 0; }
+      else { ctx.font = `600 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = n.id === hoveredNodeId ? C.text+'0.95)' : C.text+`${ga*0.5})`; ctx.fillText(n.id, n.x, y); }
+    });
   }
 
-  // Rooms
-  for(const r of rooms){
-    if(r.sx===undefined)continue;
-    // Glow for start/end
-    if(r.isStart){ctx.shadowColor='#10b981';ctx.shadowBlur=20}
-    else if(r.isEnd){ctx.shadowColor='#ef4444';ctx.shadowBlur=20}
-    else ctx.shadowBlur=0;
+  // Particles
+  for (let i = particles.length-1; i >= 0; i--) { const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vx *= .92; p.vy *= .92; p.life -= .03; if (p.life <= 0) { particles.splice(i, 1); continue; } ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 3/transform.k, 3/transform.k); } ctx.globalAlpha = 1;
 
-    ctx.beginPath();ctx.arc(r.sx,r.sy,radius,0,Math.PI*2);
-    if(r.isStart)ctx.fillStyle='#10b981';
-    else if(r.isEnd)ctx.fillStyle='#ef4444';
-    else ctx.fillStyle='#1e293b';
-    ctx.fill();
-
-    ctx.shadowBlur=0;
-    ctx.strokeStyle=r.isStart?'#34d399':r.isEnd?'#f87171':'rgba(59,130,246,.4)';
-    ctx.lineWidth=r.isStart||r.isEnd?2:1;
-    ctx.stroke();
-
-    if(showLabels){
-      ctx.fillStyle='rgba(255,255,255,.5)';
-      ctx.font=`${Math.max(7,radius-3)}px JetBrains Mono,monospace`;
-      ctx.textAlign='center';
-      ctx.fillText(r.name,r.sx,r.sy+radius+9);
-    }
-  }
-
-  // Ants — positions interpolées
-  for(const[id,pos]of Object.entries(antPositions)){
-    const r=roomMap[pos.room];
-    if(!r||r.sx===undefined)continue;
-    // Interpolation
-    let ax=r.sx,ay=r.sy;
-    if(pos.prevX!==undefined&&pos.progress<1){
-      ax=pos.prevX+(r.sx-pos.prevX)*pos.progress;
-      ay=pos.prevY+(r.sy-pos.prevY)*pos.progress;
-    }
-
-    // Glow
-    ctx.shadowColor='#fbbf24';ctx.shadowBlur=8;
-    ctx.beginPath();ctx.arc(ax,ay,Math.max(2.5,radius*.5),0,Math.PI*2);
-    ctx.fillStyle='#fbbf24';ctx.fill();
-    ctx.shadowBlur=0;
-
-    if(rooms.length<=80){
-      ctx.fillStyle='#1a1500';
-      ctx.font=`bold ${Math.max(6,radius*.5)}px JetBrains Mono,monospace`;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(id,ax,ay);
-    }
-    ctx.textBaseline='alphabetic';
-  }
+  // Ants
+  const ar = Math.max(3, 7/transform.k);
+  ants.forEach((ant, id) => {
+    if (!vis(ant.x, ant.y)) return;
+    const f = id === focusedAntId, r = f ? ar*1.5 : ar;
+    ctx.beginPath(); ctx.arc(ant.x, ant.y, r, 0, Math.PI*2);
+    ctx.fillStyle = f ? '#f1c40f' : `hsl(${antHue(id)},85%,72%)`; ctx.fill();
+    if (!isMassive || f) { ctx.beginPath(); ctx.arc(ant.x, ant.y, r*0.35, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill(); }
+    if (f) { ctx.beginPath(); ctx.arc(ant.x, ant.y, r*2.5, 0, Math.PI*2); ctx.strokeStyle = 'rgba(241,196,15,0.8)'; ctx.lineWidth = 2/transform.k; ctx.stroke(); }
+  });
 
   ctx.restore();
 }
 
-// === Animation loop ===
-function animateLoop(){
-  let needsRedraw=false;
-  for(const pos of Object.values(antPositions)){
-    if(pos.progress<1){pos.progress=Math.min(1,pos.progress+0.08);needsRedraw=true}
-  }
-  if(needsRedraw)draw();
-  requestAnimationFrame(animateLoop);
-}
-animateLoop();
+// ═══ INTERACTIONS CANVAS ═══
+function smoothPanTo(x, y) { const tx = W/2 - x*transform.k, ty = H/2 - y*transform.k; d3.select(canvas).transition().duration(500).ease(d3.easeCubicOut).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(transform.k)); }
 
-// === Resolution ===
-window.runSimulation=async function(){
-  if(!wasmReady){alert('WASM en chargement…');return}
-  const input=document.getElementById('inputMap').value;
-  const out=document.getElementById('output');out.innerHTML='';
-  try{
-    const result=parse_and_solve(input);
-    const lines=result.split('\n');let inMoves=false;
-    moves=[];rooms=[];links=[];roomMap={};
-    for(const line of lines){
-      if(line.trim()==='')continue;
-      if(line.startsWith('L')){inMoves=true;moves.push(line);
-        const div=document.createElement('div');div.textContent=line;out.appendChild(div);
-      }else if(!inMoves){
-        if(line==='##start'||line==='##end')continue;
-        const rm=line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
-        if(rm){const r={name:rm[1],x:parseInt(rm[2]),y:parseInt(rm[3])};rooms.push(r);roomMap[rm[1]]=r}
-        else if(line.includes('-')&&!line.startsWith('#')){const p=line.split('-');if(p.length===2)links.push([p[0],p[1]])}
-      }
-    }
-    // Detect start/end
-    const il=input.split('\n');let ns=false,ne=false;
-    for(const line of il){
-      if(line.trim()==='##start'){ns=true;continue}
-      if(line.trim()==='##end'){ne=true;continue}
-      const m=line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
-      if(m){const r=roomMap[m[1]];if(r){if(ns){r.isStart=true;ns=false}if(ne){r.isEnd=true;ne=false}}}
-    }
-    totalAnts=parseInt(il[0])||0;totalTurns=moves.length;currentTurn=0;antPositions={};
-    document.getElementById('antCount').textContent=totalAnts;
-    document.getElementById('roomCount').textContent=rooms.length;
-    document.getElementById('turnCount').textContent=totalTurns;
-    document.getElementById('turnBadge').style.display='block';
-    document.getElementById('turnTotal').textContent=totalTurns;
-    // Count paths
-    if(moves.length>0){const s=new Set();for(const t of moves[0].trim().split(/\s+/)){const m=t.match(/L\d+-(\S+)/);if(m)s.add(m[1])}document.getElementById('pathCount').textContent=s.size}
-    panX=0;panY=0;zoom=1;computeLayout();updateTurn(0);
-    isPaused=false;document.getElementById('pauseBtn').textContent='⏸';startAnim();
-  }catch(e){out.innerHTML='<span style="color:#ef4444">Erreur: '+e+'</span>'}
+let dragNode = null, isDragging = false, dragStart = {x:0,y:0};
+d3.select(canvas).on('mousedown.drag', function(e) { if (hoveredNodeId) { e.stopImmediatePropagation(); dragNode = nodeMap.get(hoveredNodeId); isDragging = false; dragStart = {x: e.clientX, y: e.clientY}; } else if (lockedNodeId) { lockedNodeId = null; renderRightPanel(); render(); } }, {capture: true});
+
+canvas.addEventListener('mousemove', e => {
+  const mx = (e.clientX - transform.x) / transform.k, my = (e.clientY - transform.y) / transform.k;
+  if (dragNode) { if (Math.abs(e.clientX-dragStart.x) > 4 || Math.abs(e.clientY-dragStart.y) > 4) isDragging = true; if (isDragging) { dragNode.x = mx; dragNode.y = my; render(); } return; }
+  const thr = 34/transform.k; let best = null, bestD = Infinity;
+  for (const n of nodes) { const dx = n.x-mx, dy = n.y-my; if (Math.abs(dx) > thr || Math.abs(dy) > thr) continue; const d = dx*dx+dy*dy; if (d < thr*thr && d < bestD) { best = n; bestD = d; } }
+  const tt = document.getElementById('tooltip'), prev = hoveredNodeId;
+  hoveredNodeId = best ? best.id : null;
+  if (best) { tt.style.opacity = '1'; tt.style.left = e.clientX+'px'; tt.style.top = e.clientY+'px'; document.getElementById('tt-name').textContent = best.id; document.getElementById('tt-visits').textContent = roomVisits.get(best.id)||0; document.getElementById('tt-degree').textContent = best.degree||0; document.getElementById('tt-type').textContent = best.type === 'start' ? '🟢 Départ' : best.type === 'end' ? '🔴 Arrivée' : '🔵 Salle'; }
+  else tt.style.opacity = '0';
+  if (prev !== hoveredNodeId) render();
+});
+
+window.addEventListener('mouseup', () => {
+  if (dragNode) { if (!isDragging) { if (focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; } lockedNodeId = lockedNodeId === dragNode.id ? null : dragNode.id; currentPathDisplayIndex = 0; renderRightPanel(); } dragNode = null; isDragging = false; render(); }
+});
+canvas.addEventListener('mouseleave', () => { document.getElementById('tooltip').style.opacity = '0'; hoveredNodeId = null; render(); });
+
+// ═══ PANNEAU DROIT ═══
+function processUniquePaths() { let m = new Map(); globalAntJourneys.forEach(p => { const k = p.join(','); if (!m.has(k)) m.set(k, p); }); uniquePaths = Array.from(m.values()); }
+
+window.renderRightPanel = function() {
+  const panel = document.getElementById('hud-right'), content = document.getElementById('rp-content'), cycle = document.getElementById('btn-cycle-path'), title = document.getElementById('rp-title');
+  if (focusedAntId) {
+    panel.style.display = 'flex'; cycle.style.display = 'none';
+    title.innerHTML = `SUIVI FOURMI <span style="color:var(--warn);font-size:12px">#${focusedAntId}</span>`;
+    let h = '<div class="path-list">';
+    currentTrackedAntPath.forEach((nId, i) => { const isS = nId === startNode?.id, isE = nId === endNode?.id, cur = i === currentTrackedAntPath.length-1; let c = 'path-node'; if (cur) c += ' is-target'; if (isS) c += ' is-start'; if (isE) c += ' is-end'; h += `<div class="${c}" data-id="${nId}">${nId}</div>`; if (i < currentTrackedAntPath.length-1) h += '<div class="path-arrow">↓</div>'; });
+    if (!currentTrackedAntPath.length) h += '<div style="font-size:11px;text-align:center;color:var(--dim)">En attente…</div>';
+    content.innerHTML = h + '</div>'; attachPanelClicks(content); return;
+  }
+  if (!lockedNodeId) { panel.style.display = 'none'; return; }
+  panel.style.display = 'flex';
+  const pp = uniquePaths.filter(p => p.includes(lockedNodeId));
+  if (pp.length > 0) {
+    cycle.style.display = pp.length > 1 ? 'block' : 'none'; cycle.textContent = `Route alternative (${currentPathDisplayIndex+1}/${pp.length})`;
+    title.innerHTML = `CHEMIN <span style="color:var(--dim);font-size:10px">(${lockedNodeId})</span>`;
+    const p = pp[currentPathDisplayIndex]; let h = '<div class="path-list">';
+    p.forEach((nId, i) => { const isS = nId === startNode?.id, isE = nId === endNode?.id, tgt = nId === lockedNodeId; let c = 'path-node'; if (tgt) c += ' is-target'; if (isS) c += ' is-start'; if (isE) c += ' is-end'; h += `<div class="${c}" data-id="${nId}">${nId}</div>`; if (i < p.length-1) h += '<div class="path-arrow">↓</div>'; });
+    content.innerHTML = h + '</div>';
+  } else {
+    cycle.style.display = 'none'; title.innerHTML = `IMPASSE <span style="color:var(--dim);font-size:10px">(Voisins)</span>`;
+    let nb = []; links.forEach(l => { if (l.source.id === lockedNodeId) nb.push(l.target.id); else if (l.target.id === lockedNodeId) nb.push(l.source.id); });
+    let h = '<div class="path-list">'; nb.forEach(nId => { const isS = nId === startNode?.id, isE = nId === endNode?.id; let c = 'path-node'; if (isS) c += ' is-start'; if (isE) c += ' is-end'; h += `<div class="${c}" data-id="${nId}">${nId}</div>`; });
+    if (!nb.length) h += '<div style="font-size:11px;text-align:center;color:var(--dim)">Isolé</div>';
+    content.innerHTML = h + '</div>';
+  }
+  attachPanelClicks(content);
 };
 
-function updateTurn(turn){
-  currentTurn=turn;
-  // Build ant positions with interpolation
-  const newPositions={};
-  for(let t=0;t<=turn&&t<moves.length;t++){
-    for(const tok of moves[t].trim().split(/\s+/)){
-      const m=tok.match(/L(\d+)-(\S+)/);
-      if(m){
-        const antId=m[1],roomName=m[2];
-        const r=roomMap[roomName];
-        const prev=antPositions[antId];
-        if(prev&&prev.room!==roomName&&r){
-          // Moving to new room — interpolate from previous
-          newPositions[antId]={room:roomName,prevX:prev.prevX!==undefined&&prev.progress>=1?roomMap[prev.room]?.sx:prev.prevX,prevY:prev.prevY!==undefined&&prev.progress>=1?roomMap[prev.room]?.sy:prev.prevY,progress:0};
-        }else if(!prev&&r){
-          newPositions[antId]={room:roomName,prevX:r.sx,prevY:r.sy,progress:1};
-        }else{
-          newPositions[antId]={room:roomName,prevX:r?.sx,prevY:r?.sy,progress:1};
-        }
-      }
+function attachPanelClicks(c) { c.querySelectorAll('.path-node').forEach(el => el.addEventListener('click', e => { e.stopPropagation(); const n = nodeMap.get(el.getAttribute('data-id')); if (n) { if (focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; } smoothPanTo(n.x, n.y); } })); }
+document.getElementById('btn-cycle-path').addEventListener('click', () => { const pp = uniquePaths.filter(p => p.includes(lockedNodeId)); currentPathDisplayIndex = (currentPathDisplayIndex+1) % pp.length; renderRightPanel(); render(); });
+document.getElementById('focus-input').addEventListener('input', e => { focusedAntId = e.target.value.trim() || null; if (focusedAntId) lockedNodeId = null; rebuildEdgeUsageUpTo(step); renderRightPanel(); render(); });
+
+// ═══ ANIMATION ═══
+function animate() {
+  if (focusedAntId && ants.has(focusedAntId) && !isDragging) { const fa = ants.get(focusedAntId); const nX = transform.x + ((W/2 - fa.x*transform.k) - transform.x)*0.08, nY = transform.y + ((H/2 - fa.y*transform.k) - transform.y)*0.08; suppressZoom = true; d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(nX, nY).scale(transform.k)); suppressZoom = false; }
+  let moving = false;
+  ants.forEach((ant, id) => { if (ant.targetX === undefined) return; const dx = ant.targetX-ant.x, dy = ant.targetY-ant.y; if (dx*dx+dy*dy < 0.16) { ant.x = ant.targetX; ant.y = ant.targetY; delete ant.targetX; delete ant.targetY; if (ant.nid === endNode?.id && ant.justArrived) { spawnExplosion(ant.x, ant.y, antHue(id)); ant.justArrived = false; } } else { ant.x += dx*0.25; ant.y += dy*0.25; moving = true; } });
+  if (moving || particles.length > 0) render();
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// ═══ LOGIQUE DE NAVIGATION ═══
+function rebuildEdgeUsageUpTo(t) { globalEdgeUsage.clear(); maxEdgeUsage = 1; let h = new Map(); for (let i = 0; i <= t; i++) { if (!moves[i]) continue; moves[i].split(' ').forEach(tok => { if (!tok.startsWith('L')) return; const d = tok.indexOf('-', 1), id = tok.substring(1, d), tn = tok.substring(d+1); let hist = h.get(id); if (!hist) { hist = [startNode.id]; h.set(id, hist); } const pn = hist[hist.length-1]; const k = [pn, tn].sort().join('~'); const c = (globalEdgeUsage.get(k)||0)+1; globalEdgeUsage.set(k, c); maxEdgeUsage = Math.max(maxEdgeUsage, c); hist.push(tn); }); } currentTrackedAntPath = focusedAntId && h.has(focusedAntId) ? [...h.get(focusedAntId)] : []; }
+
+function parseStepMoves(line, fwd) {
+  line.split(' ').forEach(tok => {
+    if (!tok.startsWith('L')) return;
+    const d = tok.indexOf('-', 1); if (d < 0) return;
+    const id = tok.substring(1, d), tn = tok.substring(d+1), t = nodeMap.get(tn); if (!t) return;
+    if (fwd) { let a = ants.get(id); if (!a) { if (!startNode) return; a = {x: startNode.x, y: startNode.y, nid: startNode.id}; ants.set(id, a); } a.targetX = t.x; a.targetY = t.y; a.nid = tn; if (t.type === 'end') { arrived++; a.justArrived = true; } const v = (roomVisits.get(t.id)||0)+1; roomVisits.set(t.id, v); if (v > maxVisits && t.type === 'room') maxVisits = v; }
+    else { if (t.type === 'end') arrived = Math.max(0, arrived-1); roomVisits.set(t.id, Math.max(0, (roomVisits.get(t.id)||1)-1)); let pn = null; for (let i = step-1; i >= 0; i--) { const f = moves[i].split(' ').find(p => p.startsWith(`L${id}-`)); if (f) { pn = nodeMap.get(f.substring(f.indexOf('-')+1)); break; } } if (!pn) pn = startNode; if (pn && ants.has(id)) { ants.get(id).targetX = pn.x; ants.get(id).targetY = pn.y; } }
+  });
+}
+
+function executeStepForward() { if (step >= moves.length-1) return false; step++; parseStepMoves(moves[step], true); rebuildEdgeUsageUpTo(step); updateUI(); renderRightPanel(); render(); return true; }
+function executeStepBackward() { if (step < 0) return false; parseStepMoves(moves[step], false); maxVisits = roomVisits.size ? Math.max(1, ...roomVisits.values()) : 1; step--; rebuildEdgeUsageUpTo(step); updateUI(); renderRightPanel(); render(); return true; }
+function stepLoop() { if (!playing) return; if (executeStepForward()) setTimeout(stepLoop, 2000 - document.getElementById('speed').value*19); else togglePlay(); }
+
+window.togglePlay = function() { if (!moves.length) return; playing = !playing; setPlayBtn(playing); if (playing) stepLoop(); };
+window.nextStep = function() { if (playing) togglePlay(); executeStepForward(); };
+window.prevStep = function() { if (playing) togglePlay(); executeStepBackward(); };
+window.toggleHeatmap = function() { isHeatmap = !isHeatmap; document.getElementById('btn-heatmap').classList.toggle('active', isHeatmap); render(); };
+
+function setPlayBtn(on) { const b = document.getElementById('play-btn'); if (on) { b.innerHTML = '⏸ Pause'; b.className = 'ui-btn wide active'; } else { b.innerHTML = '▶ Play'; b.className = 'ui-btn primary wide'; } }
+
+function updateUI() {
+  const pct = totalAnts > 0 ? Math.round((arrived/totalAnts)*100) : 0, act = Math.max(0, ants.size - arrived);
+  document.getElementById('s-total').textContent = totalAnts || '—';
+  document.getElementById('s-active').textContent = act;
+  document.getElementById('s-turn').textContent = `${step+1}/${moves.length}`;
+  document.getElementById('s-arrived').innerHTML = `${arrived} <span class="stat-sub">${pct}%</span>`;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('tl-label').textContent = `${step+1}/${moves.length}`;
+  document.getElementById('timeline').max = moves.length;
+  document.getElementById('timeline').value = step + 1;
+  // Output highlight
+  const out = document.getElementById('output');
+  Array.from(out.children).forEach((l, i) => l.className = i === step ? 'current' : '');
+  if (out.children[step]) out.children[step].scrollIntoView({ block: 'nearest' });
+}
+
+document.getElementById('timeline').addEventListener('input', function() { const t = parseInt(this.value)-1; if (playing) togglePlay(); setTimeout(() => { if (t > step) while (step < t) executeStepForward(); else if (t < step) while (step > t) executeStepBackward(); }, 0); });
+window.addEventListener('keydown', e => { if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return; if (e.code === 'Space') { e.preventDefault(); togglePlay(); } if (e.code === 'ArrowRight') { e.preventDefault(); nextStep(); } if (e.code === 'ArrowLeft') { e.preventDefault(); prevStep(); } if (e.key.toLowerCase() === 'h') toggleHeatmap(); });
+window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; render(); });
+
+// ═══ CHARGEMENT DES DONNÉES ═══
+function loadData(mapText, result) {
+  // Reset
+  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null; roomVisits.clear(); particles.length = 0; startNode = null; endNode = null; step = -1; playing = false; totalAnts = 0; arrived = 0; maxVisits = 1; focusedAntId = null; hoveredNodeId = null; isMassive = false; document.getElementById('focus-input').value = ''; document.getElementById('hud-right').style.display = 'none'; setPlayBtn(false);
+
+  const lines = mapText.split('\n');
+  totalAnts = parseInt(lines[0]) || 0;
+  isMassive = totalAnts > 150;
+  document.getElementById('s-total').textContent = totalAnts;
+  document.getElementById('s-paths').textContent = '…';
+
+  let ns = false, ne = false;
+  const rawLinks = [];
+  for (const line of lines) {
+    if (line.trim() === '' || line.startsWith('#Here')) continue;
+    if (line === '##start') { ns = true; continue; }
+    if (line === '##end') { ne = true; continue; }
+    if (line.startsWith('#')) continue;
+    const rm = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+    if (rm) {
+      const n = { id: rm[1], x: parseInt(rm[2]), y: parseInt(rm[3]), type: 'room', degree: 0 };
+      if (ns) { n.type = 'start'; ns = false; startNode = n; }
+      if (ne) { n.type = 'end'; ne = false; endNode = n; }
+      nodes.push(n); nodeMap.set(n.id, n);
+    } else if (line.includes('-')) {
+      const p = line.split('-'); if (p.length === 2) rawLinks.push([p[0], p[1]]);
     }
   }
-  antPositions=newPositions;
 
-  // Stats
-  const endRoom=rooms.find(r=>r.isEnd);
-  const arrived=endRoom?Object.values(antPositions).filter(p=>p.room===endRoom.name).length:0;
-  document.getElementById('turnNow').textContent=turn+1;
-  document.getElementById('arrivedCount').textContent=`${arrived}/${totalAnts}`;
-  document.getElementById('progressFill').style.width=`${totalTurns>0?((turn+1)/totalTurns)*100:0}%`;
+  links = rawLinks.map(l => { const s = nodeMap.get(l[0]), t = nodeMap.get(l[1]); return s && t ? { source: s, target: t } : null; }).filter(l => l);
+  links.forEach(l => { l.source.degree = (l.source.degree||0)+1; l.target.degree = (l.target.degree||0)+1; });
 
-  // Output highlight
-  const lines=document.getElementById('output').children;
-  Array.from(lines).forEach((l,i)=>{l.className=i===turn?'current':''});
-  if(lines[turn])lines[turn].scrollIntoView({block:'nearest'});
-  draw();
+  // Parse moves from result
+  const resultLines = result.split('\n'); let inMoves = false;
+  const out = document.getElementById('output'); out.innerHTML = '';
+  for (const line of resultLines) {
+    if (line.trim() === '') continue;
+    if (line.startsWith('L')) { inMoves = true; moves.push(line); const d = document.createElement('div'); d.textContent = line; out.appendChild(d);
+      line.split(' ').forEach(tok => { if (!tok.startsWith('L')) return; const d2 = tok.indexOf('-'); const id = tok.substring(1, d2), tn = tok.substring(d2+1); if (!globalAntJourneys.has(id)) globalAntJourneys.set(id, [startNode.id]); globalAntJourneys.get(id).push(tn); });
+    }
+  }
+
+  processUniquePaths();
+
+  // Count paths
+  const firstRooms = new Set();
+  if (moves.length > 0) for (const tok of moves[0].split(' ')) { const m = tok.match(/L\d+-(\S+)/); if (m) firstRooms.add(m[1]); }
+  document.getElementById('s-paths').textContent = firstRooms.size;
+
+  // Layout : d3-force si beaucoup de salles, coordonnées sinon
+  if (nodes.length <= 200) {
+    const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const rx = maxX-minX || 1, ry = maxY-minY || 1;
+    const s = Math.min(800/rx, 600/ry);
+    const ox = -minX*s, oy = -minY*s;
+    nodes.forEach(n => { n.x = n.x*s + ox - 400; n.y = n.y*s + oy - 300; });
+  } else {
+    // Layout circulaire
+    const cx = 0, cy = 0, maxR = 500;
+    nodes.filter(n => n.type === 'room').forEach((n, i) => { const a = (i / nodes.filter(n => n.type === 'room').length) * Math.PI * 2; const r = maxR * (0.3 + 0.7 * Math.sin(i * 1.7)); n.x = cx + Math.cos(a) * r; n.y = cy + Math.sin(a) * r; });
+    if (startNode) { startNode.x = 0; startNode.y = 0; }
+    if (endNode) { endNode.x = 0; endNode.y = -400; }
+  }
+
+  document.getElementById('conn-dot').className = 'dot ready';
+  document.getElementById('conn-text').textContent = `Prêt ✅ — ${moves.length} tours`;
+  document.getElementById('s-turn').textContent = `0/${moves.length}`;
+  document.getElementById('tl-label').textContent = `0/${moves.length}`;
+  document.getElementById('timeline').max = moves.length;
+  document.getElementById('timeline').value = 0;
+
+  // Fit view
+  d3.select(canvas).transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(W/2, H/2).scale(Math.min(0.5, 300/Math.sqrt(nodes.length))));
+  render();
 }
-
-function startAnim(){
-  if(animTimer)clearTimeout(animTimer);
-  if(isPaused||currentTurn>=totalTurns-1)return;
-  updateTurn(currentTurn+1);
-  const speed=2100-parseInt(document.getElementById('speedRange').value);
-  animTimer=setTimeout(startAnim,speed);
-}
-
-window.togglePause=function(){isPaused=!isPaused;document.getElementById('pauseBtn').textContent=isPaused?'▶':'⏸';if(!isPaused)startAnim()};
-window.stepForward=function(){if(currentTurn<totalTurns-1){isPaused=true;document.getElementById('pauseBtn').textContent='▶';updateTurn(currentTurn+1)}};
-window.stepBack=function(){if(currentTurn>0){isPaused=true;document.getElementById('pauseBtn').textContent='▶';updateTurn(currentTurn-1)}};
-window.reset=function(){if(animTimer)clearTimeout(animTimer);isPaused=true;currentTurn=0;antPositions={};moves=[];document.getElementById('pauseBtn').textContent='▶';document.getElementById('output').innerHTML='';document.getElementById('turnBadge').style.display='none';document.getElementById('progressFill').style.width='0%';document.getElementById('arrivedCount').textContent='0/0';document.getElementById('turnCount').textContent='—';document.getElementById('pathCount').textContent='—';document.getElementById('antCount').textContent='—';document.getElementById('roomCount').textContent='—';rooms=[];links=[];roomMap={};draw()};
 </script>
 </body>
 </html>

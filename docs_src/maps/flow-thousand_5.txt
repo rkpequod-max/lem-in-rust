@@ -1,0 +1,804 @@
+148
+#Here is the number of lines required: 32
+##start
+Eyg2 1 1
+##end
+Skh7 4 4
+Jjk8 7 7
+Rzt9 9 9
+Cfu5 12 12
+Jst5 13 13
+Gxv2 16 16
+Mne8 18 18
+Ham2 22 22
+Zm_1 26 26
+Zlf9 30 30
+Qvr5 34 34
+Kfq4 35 35
+Eqq6 37 37
+Igu8 39 39
+Vqo9 43 43
+Mrd8 48 48
+Ecl4 53 53
+Uca9 56 56
+Uin4 61 61
+Bkr7 65 65
+Z_i3 67 67
+Ibt9 71 71
+G_b2 72 72
+Wpt9 74 74
+Ued4 77 77
+W_i2 79 79
+Ukv5 83 83
+Hv_9 86 86
+Zxb9 87 87
+Z_z6 89 89
+Jia0 93 93
+Cbu4 98 98
+Vw_3 101 101
+Nfo4 104 104
+Vyt1 108 108
+Y_v0 112 112
+Xbz3 116 116
+God6 121 121
+Nrl9 124 124
+Zuw1 127 127
+Zxd3 130 130
+Hel2 133 133
+X_p9 136 136
+Ufg8 140 140
+Pzu9 142 142
+Glj0 144 144
+Agx2 147 147
+Bmg3 149 149
+Crb3 153 153
+Tqm9 154 154
+Vw_4 159 159
+Izj8 162 162
+Nbm1 166 166
+F_g3 169 169
+Npt1 174 174
+Sjj8 177 177
+P_n6 181 181
+Qe_4 184 184
+Zug6 186 186
+Vvw6 190 190
+Urb1 192 192
+Jnx3 196 196
+Dq_7 200 200
+Xut8 201 201
+Wyz0 206 206
+Qwb0 209 209
+Itm7 212 212
+Cww0 215 215
+Kbz4 218 218
+Hy_1 220 220
+Rlz0 222 222
+Hvs5 224 224
+Wa_8 226 226
+U_z0 227 227
+Enb3 228 228
+Rel7 230 230
+Nkm0 234 234
+Rup6 237 237
+Rhq6 238 238
+Ssw0 241 241
+A_k7 242 242
+M_h0 245 245
+B_r5 250 250
+Apf0 253 253
+G_d6 257 257
+Est6 260 260
+Hre7 264 264
+Drx4 266 266
+Xnd7 267 267
+H_u9 269 269
+Hxu2 272 272
+Iiv8 273 273
+Pvx6 277 277
+Ttw6 279 279
+T_v0 281 281
+Exv7 286 286
+Gly0 288 288
+Kre9 291 291
+Vse2 294 294
+Bst1 297 297
+Vgg0 301 301
+Db_3 303 303
+Uwy9 305 305
+Ryv7 308 308
+Or_8 312 312
+Pin8 314 314
+Seo0 318 318
+Rpx8 321 321
+Tsb5 326 326
+Gkl2 330 330
+Qbb2 333 333
+Z_r1 337 337
+Mxu5 340 340
+Nwr9 341 341
+Wlr5 346 346
+Kwk0 350 350
+Gy_3 354 354
+Apx3 356 356
+Xbs4 357 357
+D_h9 360 360
+Caz7 363 363
+H_p8 368 368
+Pic4 371 371
+Fum0 375 375
+Uob7 378 378
+Qyd2 380 380
+Njd6 383 383
+I_f9 385 385
+Gq_9 389 389
+Yrc8 391 391
+Fkv9 394 394
+Uvr6 399 399
+Tqi9 402 402
+Pzr4 405 405
+Aaq3 409 409
+Afz2 412 412
+Zrt5 416 416
+Gok6 420 420
+Zpu6 422 422
+Rpw7 426 426
+X__3 429 429
+Hjc6 432 432
+Ppv6 434 434
+Sxe5 437 437
+Tcc0 440 440
+Yqa9 443 443
+Vzf3 447 447
+Hmz8 450 450
+Zbj7 455 455
+Bwe4 459 459
+Asc9 464 464
+Vww7 468 468
+Xbc9 472 472
+Mnn2 476 476
+Nsa0 478 478
+Whp3 480 480
+Efq0 484 484
+Knk7 486 486
+Nrq1 489 489
+Mia5 492 492
+Sba7 496 496
+Ee_8 501 501
+Btk6 505 505
+Oad6 508 508
+Syd7 511 511
+Yyw2 516 516
+Duu8 519 519
+Qkg3 520 520
+Qgf8 525 525
+Qfd3 527 527
+Xlj8 529 529
+Ghj9 530 530
+Dwn2 533 533
+Vwj5 538 538
+Cax0 540 540
+Rpt2 543 543
+Zan1 547 547
+Eaq8 550 550
+Vpa3 553 553
+Tas6 557 557
+Oft1 560 560
+Ugr5 563 563
+Dzp9 567 567
+Rkq3 570 570
+Dvg2 575 575
+Dsn9 576 576
+Paf8 580 580
+Seo4 581 581
+X_r4 584 584
+Y_v6 589 589
+Nhe8 590 590
+Zhv0 592 592
+Fvc7 593 593
+Hiw3 597 597
+Wcr8 600 600
+H_c5 602 602
+Bpy2 605 605
+Sbn8 610 610
+Wqc6 614 614
+Mgq3 618 618
+Vdj7 621 621
+Bfx0 624 624
+Wvb0 629 629
+Fdc2 632 632
+Squ1 637 637
+Xv_0 640 640
+Rrw1 641 641
+Ojt6 642 642
+Yjn5 643 643
+Bkf8 645 645
+Okq8 649 649
+Poa6 652 652
+Bfx6 655 655
+Tps8 658 658
+Mdi0 662 662
+Cbh5 666 666
+Nfv9 667 667
+Se_3 671 671
+B__6 675 675
+Msn0 677 677
+Ycr7 680 680
+Vsn1 682 682
+Iaj9 684 684
+Wye0 686 686
+Mkp9 687 687
+Yaj3 690 690
+Isd9 694 694
+Ylx8 698 698
+Bzh1 699 699
+Gk_6 702 702
+Cqj1 707 707
+Rsr1 709 709
+Pbf5 714 714
+Fzh7 717 717
+Jhs5 720 720
+Xeo7 723 723
+H_t3 726 726
+Sq_8 731 731
+Nrw2 733 733
+Fd_4 737 737
+Mds0 741 741
+Z_t7 745 745
+Xay9 748 748
+Y_g9 750 750
+Cii3 753 753
+Spc5 756 756
+Srz7 759 759
+Yj_6 760 760
+S_f5 763 763
+Rvp3 768 768
+N_b4 771 771
+Tsz4 774 774
+Ttp5 777 777
+Pmc4 779 779
+Zco2 782 782
+Sqc1 783 783
+Yvi8 784 784
+Fnn6 787 787
+Wmy1 791 791
+Nrn2 794 794
+Gnh2 797 797
+Imz5 800 800
+Pfi5 803 803
+Myb0 804 804
+G__4 807 807
+A_r3 811 811
+Xls8 813 813
+Ox_3 817 817
+Kew3 821 821
+Xlj6 825 825
+Qgn8 826 826
+It_7 829 829
+Yvb4 831 831
+Zht6 834 834
+Wvr2 837 837
+Ckx7 842 842
+Dqk7 846 846
+Mcj6 850 850
+Us_3 854 854
+Hov0 855 855
+Umm4 858 858
+Frl4 862 862
+Ebl6 867 867
+Jsg7 870 870
+Joz5 873 873
+N_n4 878 878
+Kra6 882 882
+Rs_8 886 886
+Ps_1 889 889
+Jhk6 892 892
+Srv2 895 895
+Rvs0 897 897
+Epo7 900 900
+Wot8 902 902
+Oim1 904 904
+Xsj6 909 909
+Qeq4 913 913
+Afp1 916 916
+Mio6 918 918
+Euv0 921 921
+Kld5 923 923
+X_v4 928 928
+Z__3 932 932
+Nt_1 935 935
+Ndb8 939 939
+Omw6 941 941
+Iqb7 946 946
+Blz4 949 949
+A_h8 954 954
+Hfj5 959 959
+Mzm4 962 962
+Hsh8 963 963
+Xbn2 965 965
+Dff3 968 968
+Rj_1 972 972
+Unk0 975 975
+Rwf3 977 977
+Pso1 981 981
+Gtp7 984 984
+Voz6 988 988
+Opf7 992 992
+Hqa8 995 995
+T_j7 999 999
+Yee3 1000 1000
+Yte8 1005 1005
+K__1 1007 1007
+Czn4 1011 1011
+Kjm0 1012 1012
+Vrd9 1016 1016
+Jrt4 1019 1019
+Zxn9 1021 1021
+Bov6 1024 1024
+Sl_9 1027 1027
+Hkr9 1030 1030
+Ymx8 1033 1033
+Zhz6 1037 1037
+Job2 1042 1042
+Frl1 1045 1045
+Hkv7 1050 1050
+Yym2 1054 1054
+Jot6 1056 1056
+Ksa4 1061 1061
+Vss0 1065 1065
+Fse0 1068 1068
+Vy_7 1070 1070
+A_y9 1073 1073
+Dfh4 1075 1075
+Ayi5 1077 1077
+Uso0 1079 1079
+Pbz5 1084 1084
+Ekf3 1088 1088
+Qzf6 1091 1091
+Cl_4 1092 1092
+Bzj5 1095 1095
+Xbs7 1100 1100
+Ixt1 1103 1103
+Yyx8 1107 1107
+Sgl0 1108 1108
+Tvj5 1111 1111
+Fkf3 1113 1113
+W_u3 1114 1114
+Atz2 1117 1117
+Tzo8 1122 1122
+Hxn8 1126 1126
+Ojf1 1129 1129
+Ges1 1134 1134
+Nl_6 1136 1136
+Ejc8 1139 1139
+Su_2 1143 1143
+Mvr7 1148 1148
+V_t0 1153 1153
+Asl6 1156 1156
+Cxg4 1158 1158
+O_y9 1161 1161
+Sbf5 1165 1165
+Gjv0 1170 1170
+Bwm4 1175 1175
+Cnw3 1180 1180
+Yee6 1184 1184
+Abm1 1189 1189
+Esa9 1194 1194
+J_m5 1198 1198
+Bes6 1201 1201
+Shs7 1204 1204
+Zqf1 1205 1205
+Nqq5 1210 1210
+Zby5 1215 1215
+Icl0 1219 1219
+Qbd8 1220 1220
+Jeo5 1225 1225
+Kre2 1226 1226
+Vnv9 1229 1229
+Yyw2-Vnv9
+Qvr5-Rzt9
+Cqj1-Cfu5
+Hvs5-Jeo5
+Zxd3-Qbd8
+Qeq4-Jst5
+Zlf9-Nqq5
+Cl_4-Shs7
+D_h9-Ham2
+Tas6-Zlf9
+Zxb9-Qvr5
+Vse2-Eqq6
+Bfx6-Vqo9
+Bmg3-Cnw3
+Ndb8-Mrd8
+Ckx7-Bwm4
+I_f9-Uca9
+Zpu6-Uin4
+G_b2-Sbf5
+Kra6-V_t0
+Mio6-Mvr7
+B_r5-Su_2
+Ejc8-Wpt9
+Ued4-Ejc8
+Ges1-Nl_6
+Ukv5-Ges1
+Ojf1-Ukv5
+Hxn8-Ojf1
+Atz2-Tzo8
+Hv_9-Atz2
+Zxb9-Hv_9
+W_u3-Zxb9
+Tvj5-Z_z6
+Cbu4-Jia0
+Sgl0-Vw_3
+Vyt1-Nfo4
+Nrl9-God6
+Cl_4-Bzj5
+X_p9-Ekf3
+Pbz5-X_p9
+Uso0-Pbz5
+Pzu9-Dfh4
+A_y9-Pzu9
+Fse0-Agx2
+Crb3-Bmg3
+Tqm9-Crb3
+Izj8-Ksa4
+Jot6-Nbm1
+Yym2-Jot6
+F_g3-Yym2
+Npt1-F_g3
+Hkv7-Npt1
+Sjj8-Hkv7
+Frl1-P_n6
+Job2-Frl1
+Urb1-Vvw6
+Ymx8-Jnx3
+Dq_7-Sl_9
+Zxn9-Bov6
+Jrt4-Zxn9
+Vrd9-Jrt4
+Czn4-Kjm0
+Wyz0-Czn4
+Qwb0-K__1
+Kbz4-Yte8
+Hy_1-Kbz4
+Rlz0-Hy_1
+Wa_8-Hvs5
+Eyg2-Wa_8
+T_j7-Skh7
+U_z0-T_j7
+Opf7-Hqa8
+Pso1-Gtp7
+Dff3-Nkm0
+Rup6-Xbn2
+Hsh8-Rup6
+Mzm4-Hsh8
+Eyg2-Mzm4
+Rhq6-Skh7
+Hfj5-Ssw0
+A_h8-Hfj5
+A_k7-Blz4
+M_h0-A_k7
+Iqb7-M_h0
+Omw6-Iqb7
+B_r5-Omw6
+G_d6-Apf0
+Ndb8-G_d6
+Est6-Ndb8
+Hre7-Est6
+Xnd7-Drx4
+Nt_1-Xnd7
+Eyg2-Ttw6
+T_v0-Skh7
+Mio6-Euv0
+Exv7-Mio6
+Gly0-Exv7
+Afp1-Gly0
+Kre9-Afp1
+Bst1-Vse2
+Qeq4-Vgg0
+Uwy9-Db_3
+Xsj6-Uwy9
+Wot8-Oim1
+Pin8-Wot8
+Rvs0-Skh7
+Srv2-Rvs0
+Jhk6-Seo0
+Rpx8-Jhk6
+Rs_8-Ps_1
+Kra6-Tsb5
+Qbb2-Gkl2
+N_n4-Qbb2
+Z_r1-N_n4
+Joz5-Nwr9
+Jsg7-Joz5
+Eyg2-Jsg7
+Wlr5-Ebl6
+Kwk0-Frl4
+Gy_3-Kwk0
+Apx3-Gy_3
+Umm4-Apx3
+Xbs4-Umm4
+Hov0-Xbs4
+Us_3-Hov0
+D_h9-Us_3
+Mcj6-Caz7
+Ckx7-Dqk7
+H_p8-Wvr2
+Pic4-Squ1
+Qgn8-It_7
+Qyd2-Kew3
+Njd6-Ox_3
+I_f9-Njd6
+Gq_9-I_f9
+Xls8-Gq_9
+A_r3-Yrc8
+Pfi5-Myb0
+Uvr6-Pfi5
+Tqi9-Gnh2
+Nrn2-Tqi9
+Afz2-Aaq3
+Eyg2-Fnn6
+Yvi8-Skh7
+Zrt5-Yvi8
+Gok6-Zrt5
+Rpw7-Zpu6
+X__3-Rpw7
+Pmc4-Zco2
+Ttp5-Pmc4
+Hjc6-Ttp5
+Ppv6-Hjc6
+Tsz4-Ppv6
+Tcc0-Sxe5
+Hmz8-Vzf3
+Zbj7-Skh7
+Asc9-Bwe4
+Vww7-Asc9
+N_b4-Vww7
+Mnn2-Rvp3
+Yj_6-S_f5
+Nsa0-Srz7
+Whp3-Spc5
+Knk7-Skh7
+Xay9-Nrq1
+Mia5-Z_t7
+Sba7-Mds0
+Fd_4-Sba7
+Nrw2-Ee_8
+Btk6-Nrw2
+Sq_8-Btk6
+Xeo7-Syd7
+Fzh7-Jhs5
+Yyw2-Fzh7
+Eyg2-Pbf5
+Rsr1-Duu8
+Cqj1-Rsr1
+Qkg3-Cqj1
+Qgf8-Qkg3
+Ylx8-Bzh1
+Vwj5-Dwn2
+Isd9-Vwj5
+Yaj3-Isd9
+Iaj9-Wye0
+Ycr7-Rpt2
+Zan1-Msn0
+Eyg2-Zan1
+B__6-Skh7
+Eaq8-B__6
+Vpa3-Eaq8
+Tas6-Se_3
+Ugr5-Cbh5
+Tps8-Mdi0
+Dzp9-Tps8
+Dvg2-Bfx6
+Paf8-Dsn9
+Seo4-Paf8
+Poa6-Seo4
+Eyg2-Okq8
+Y_v6-Bkf8
+Nhe8-Y_v6
+Fvc7-Zhv0
+Hiw3-Ojt6
+Rrw1-Wcr8
+Bpy2-H_c5
+Wqc6-Sbn8
+Mgq3-Wqc6
+Vdj7-Xv_0
+Eyg2-Fdc2
+Fdc2-Wvb0
+Wvb0-Bfx0
+Bfx0-Vdj7
+Xv_0-Mgq3
+Sbn8-Bpy2
+H_c5-Rrw1
+Wcr8-Hiw3
+Ojt6-Fvc7
+Zhv0-Yjn5
+Yjn5-Nhe8
+Bkf8-Skh7
+Okq8-X_r4
+X_r4-Poa6
+Dsn9-Dvg2
+Bfx6-Rkq3
+Rkq3-Dzp9
+Mdi0-Ugr5
+Cbh5-Oft1
+Oft1-Nfv9
+Nfv9-Tas6
+Se_3-Vpa3
+Msn0-Ycr7
+Rpt2-Vsn1
+Vsn1-Cax0
+Cax0-Iaj9
+Wye0-Mkp9
+Mkp9-Yaj3
+Dwn2-Ghj9
+Ghj9-Xlj8
+Xlj8-Qfd3
+Qfd3-Ylx8
+Bzh1-Gk_6
+Gk_6-Qgf8
+Duu8-Skh7
+Pbf5-Yyw2
+Jhs5-Xeo7
+Syd7-Oad6
+Oad6-H_t3
+H_t3-Sq_8
+Ee_8-Fd_4
+Mds0-Mia5
+Z_t7-Xay9
+Nrq1-Knk7
+Eyg2-Y_g9
+Y_g9-Cii3
+Cii3-Efq0
+Efq0-Whp3
+Spc5-Nsa0
+Srz7-Yj_6
+S_f5-Mnn2
+Rvp3-Xbc9
+Xbc9-N_b4
+Bwe4-Zbj7
+Eyg2-Hmz8
+Vzf3-Yqa9
+Yqa9-Tcc0
+Sxe5-Tsz4
+Zco2-Sqc1
+Sqc1-X__3
+Zpu6-Gok6
+Fnn6-Afz2
+Aaq3-Wmy1
+Wmy1-Pzr4
+Pzr4-Nrn2
+Gnh2-Imz5
+Imz5-Uvr6
+Myb0-Fkv9
+Fkv9-G__4
+G__4-A_r3
+Yrc8-Skh7
+Eyg2-Xls8
+Ox_3-Qyd2
+Kew3-Uob7
+Uob7-Xlj6
+Xlj6-Qgn8
+It_7-Yvb4
+Yvb4-Fum0
+Fum0-Pic4
+Squ1-Skh7
+Eyg2-Zht6
+Zht6-H_p8
+Wvr2-Ckx7
+Dqk7-Mcj6
+Caz7-D_h9
+Frl4-Wlr5
+Ebl6-Skh7
+Nwr9-Mxu5
+Mxu5-Z_r1
+Gkl2-Kra6
+Tsb5-Rs_8
+Ps_1-Rpx8
+Seo0-Srv2
+Eyg2-Epo7
+Epo7-Pin8
+Oim1-Or_8
+Or_8-Ryv7
+Ryv7-Xsj6
+Db_3-Qeq4
+Vgg0-Bst1
+Vse2-Kre9
+Euv0-Kld5
+Kld5-X_v4
+X_v4-T_v0
+Ttw6-Pvx6
+Pvx6-Iiv8
+Iiv8-Hxu2
+Hxu2-Z__3
+Z__3-H_u9
+H_u9-Nt_1
+Drx4-Hre7
+Apf0-B_r5
+Blz4-A_h8
+Ssw0-Rhq6
+Xbn2-Dff3
+Nkm0-Rj_1
+Rj_1-Unk0
+Unk0-Rwf3
+Rwf3-Rel7
+Rel7-Pso1
+Gtp7-Enb3
+Enb3-Voz6
+Voz6-Opf7
+Hqa8-U_z0
+Hvs5-Yee3
+Yee3-Rlz0
+Yte8-Cww0
+Cww0-Itm7
+Itm7-Qwb0
+K__1-Wyz0
+Kjm0-Vrd9
+Bov6-Xut8
+Xut8-Dq_7
+Sl_9-Hkr9
+Hkr9-Ymx8
+Jnx3-Zhz6
+Zhz6-Urb1
+Vvw6-Zug6
+Zug6-Qe_4
+Qe_4-Job2
+P_n6-Sjj8
+Nbm1-Izj8
+Ksa4-Vw_4
+Vw_4-Vss0
+Vss0-Tqm9
+Bmg3-Fse0
+Agx2-Vy_7
+Vy_7-Skh7
+Eyg2-Glj0
+Glj0-A_y9
+Dfh4-Ayi5
+Ayi5-Ufg8
+Ufg8-Uso0
+Ekf3-Qzf6
+Qzf6-Hel2
+Hel2-Cl_4
+Bzj5-Zxd3
+Zxd3-Zuw1
+Zuw1-Xbs7
+Xbs7-Ixt1
+Ixt1-Nrl9
+God6-Xbz3
+Xbz3-Y_v0
+Y_v0-Vyt1
+Nfo4-Yyx8
+Yyx8-Sgl0
+Vw_3-Cbu4
+Jia0-Tvj5
+Z_z6-Fkf3
+Fkf3-W_u3
+Tzo8-Hxn8
+Nl_6-W_i2
+W_i2-Ued4
+Wpt9-Skh7
+Zco2-G_b2
+Spc5-Ibt9
+Umm4-Z_i3
+Nt_1-Asl6
+It_7-Cxg4
+Rpx8-Bkr7
+Zxd3-O_y9
+Hxu2-Ecl4
+Ckx7-Gjv0
+Xls8-Yee6
+Pbz5-Igu8
+Seo4-Kfq4
+Syd7-Abm1
+Xnd7-Zm_1
+H_t3-Esa9
+Cbu4-J_m5
+Dq_7-Bes6
+Pzr4-Mne8
+Rpw7-Gxv2
+Xbc9-Zqf1
+Su_2-Zby5
+Wmy1-Icl0
+Ibt9-Kre2
+Bes6-Jjk8
+#Here is the number of lines required: 32

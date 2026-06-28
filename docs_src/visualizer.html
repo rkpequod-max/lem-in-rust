@@ -357,34 +357,32 @@
         // ============================================================
         // Maps pré-générées par le vrai générateur officiel 42
         // ============================================================
-        // Les maps sont générées par ./generator-official (binaire de l'école)
-        // et stockées dans maps/. On les fetch au clic.
-        // --big étant le seul non-déterministe, on a 3 variantes.
+        // 50 maps générées avec ./generator-official (binaire de l'école)
+        // Le générateur utilise srand(time(NULL)) → maps différentes à chaque seconde.
+        // On a pré-généré 10 maps par option en espaçant les appels d'1 seconde.
+        // À chaque clic, on tire aléatoirement dans le pool → impression de temps réel.
 
-        const MAP_FILES = {
-            'flow-one':           ['maps/flow-one.txt'],
-            'flow-ten':           ['maps/flow-ten.txt'],
-            'flow-thousand':      ['maps/flow-thousand.txt'],
-            'big':                ['maps/big-1.txt', 'maps/big-2.txt', 'maps/big-3.txt'],
-            'big-superposition':  ['maps/big-superposition.txt']
-        };
+        function mapFiles(opt) {
+            return Array.from({length: 10}, (_, i) => `maps/${opt}_${i+1}.txt`);
+        }
 
         const MAP_DESC = {
             'flow-one':           '1 fourmi, chemin distinctif',
-            'flow-ten':           '~16 fourmis, chemin distinctif',
-            'flow-thousand':      '~118 fourmis, chemin distinctif',
-            'big':                '~340 fourmis, ~1800-2400 salles',
-            'big-superposition':  '384 fourmis, 5470 salles, chemins chevauchés'
+            'flow-ten':           '~10 fourmis, chemin distinctif',
+            'flow-thousand':      '~100 fourmis, chemin distinctif',
+            'big':                '~300 fourmis, ~2000-3500 salles',
+            'big-superposition':  '~350 fourmis, ~3000-5600 salles, chemins chevauchés'
         };
 
         window.genOfficial = async function(opt, btn) {
-            if(!MAP_FILES[opt]) return;
+            if(!MAP_DESC[opt]) return;
             document.querySelectorAll('.gen-bar button').forEach(b=>b.classList.remove('active'));
             if(btn) btn.classList.add('active');
 
-            // Choisir aléatoirement parmi les variantes (pour --big)
-            const files = MAP_FILES[opt];
+            // Tirer aléatoirement dans le pool de 10 maps
+            const files = mapFiles(opt);
             const file = files[Math.floor(Math.random() * files.length)];
+            const genInfo = document.getElementById('genInfo');
 
             try {
                 const resp = await fetch(file);
@@ -392,16 +390,15 @@
                 const mapText = await resp.text();
                 document.getElementById('inputMap').value = mapText;
 
-                // Afficher les stats de la map
+                // Stats
                 const lines = mapText.split('\n');
                 const ants = lines[0];
                 const rooms = lines.filter(l => l.match(/^\S+ -?\d+ -?\d+$/)).length;
                 const links = lines.filter(l => l.includes('-') && !l.startsWith('#') && !l.match(/^\S+ -?\d+ -?\d+$/)).length;
-                document.getElementById('genInfo').innerHTML =
-                    `<strong>--${opt}</strong> : ${MAP_DESC[opt]}<br>` +
-                    `Map officielle : <strong>${ants}</strong> fourmis, <strong>${rooms}</strong> salles, <strong>${links}</strong> liens`;
+                const num = file.match(/_(\d+)\./)[1];
+                if(genInfo) genInfo.textContent = `${ants} fourmis · ${rooms} salles · ${links} liens · map #${num}/10`;
             } catch(e) {
-                document.getElementById('genInfo').innerHTML = `❌ Erreur chargement ${file}: ${e}`;
+                if(genInfo) genInfo.textContent = `❌ ${e}`;
             }
         };
 

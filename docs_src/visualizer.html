@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lem-in Rust - Visualiseur Interactif</title>
+    <title>Lem-in Rust - Visualiseur & Générateur</title>
     <style>
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
             --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
             --accent: #58a6ff;
             --success: #2ea043;
             --border: #30363d;
             --danger: #da3633;
+            --warning: #d29922;
+            --rust: #dea584;
         }
-        
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
             background: var(--bg-primary);
             color: var(--text-primary);
             padding: 1rem;
         }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        
+        .header { text-align: center; margin-bottom: 1.5rem; }
         h1 { color: var(--accent); margin-bottom: 0.5rem; }
-        
         .container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -38,21 +34,17 @@
             max-width: 1400px;
             margin: 0 auto;
         }
-        
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
-        }
-        
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
         .panel {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1rem;
         }
-        
+        .panel h3 { color: var(--accent); margin-bottom: 0.8rem; font-size: 1rem; }
         textarea {
             width: 100%;
-            height: 250px;
+            height: 220px;
             background: #0d1117;
             color: var(--text-primary);
             border: 1px solid var(--border);
@@ -62,45 +54,33 @@
             font-size: 0.85rem;
             resize: vertical;
         }
-        
         .controls {
             display: flex;
             gap: 0.5rem;
-            margin-top: 1rem;
+            margin-top: 0.8rem;
             flex-wrap: wrap;
+            align-items: center;
         }
-        
         button {
-            padding: 0.6rem 1.2rem;
+            padding: 0.5rem 1rem;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
             transition: all 0.2s;
+            font-size: 0.85rem;
         }
-        
-        .btn-primary {
-            background: var(--success);
-            color: white;
-        }
-        
+        .btn-primary { background: var(--success); color: white; }
         .btn-primary:hover { background: #268537; }
-        
-        .btn-secondary {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-        
+        .btn-secondary { background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); }
         .btn-secondary:hover { background: var(--border); }
-        
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-        
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b3231e; }
+        .btn-rust { background: var(--rust); color: var(--bg-primary); }
+        .btn-rust:hover { background: #c9976f; }
+
         .output {
-            height: 250px;
+            height: 180px;
             overflow-y: auto;
             background: #0d1117;
             border: 1px solid var(--border);
@@ -110,72 +90,158 @@
             font-size: 0.8rem;
             white-space: pre-wrap;
         }
-        
         canvas {
             width: 100%;
             height: 400px;
             background: #0d1117;
             border: 1px solid var(--border);
             border-radius: 4px;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
         }
-        
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 0.5rem;
-            margin-top: 1rem;
+            margin-top: 0.8rem;
         }
-        
         .stat-card {
             background: var(--bg-primary);
-            padding: 0.8rem;
+            padding: 0.6rem;
             border-radius: 4px;
             text-align: center;
             border: 1px solid var(--border);
         }
-        
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent);
+        .stat-value { font-size: 1.3rem; font-weight: bold; color: var(--accent); }
+        .stat-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+        input[type="range"] { width: 100px; }
+        .loading { text-align: center; padding: 1rem; color: var(--accent); }
+
+        /* === Generator Panel === */
+        .generator {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
-        
-        .stat-label {
-            font-size: 0.75rem;
-            color: #8b949e;
-            margin-top: 0.2rem;
-        }
-        
-        .speed-control {
+        .generator h3 {
+            color: var(--rust);
+            margin-bottom: 0.8rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-left: auto;
         }
-        
-        input[type="range"] {
-            width: 100px;
+        .gen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
         }
-        
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--accent);
+        .gen-field { display: flex; flex-direction: column; gap: 0.3rem; }
+        .gen-field label { font-size: 0.75rem; color: var(--text-secondary); }
+        .gen-field select, .gen-field input[type="number"] {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+        .gen-presets {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+        }
+        .gen-presets button {
+            padding: 0.3rem 0.7rem;
+            font-size: 0.75rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .gen-presets button:hover { background: var(--accent); color: var(--bg-primary); }
+        .gen-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: rgba(88, 166, 255, 0.08);
+            padding: 0.6rem;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent);
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🐜 Lem-in Rust Visualiseur</h1>
-        <p>Exécute ton algorithme de fourmis directement dans le navigateur grâce à WebAssembly</p>
+        <h1>🐜 Lem-in Rust — Visualiseur & Générateur</h1>
+        <p>Génère des maps avec flow paramétrable, résous avec WASM, visualise le déplacement des fourmis</p>
     </div>
-    
-    <div class="container">
-        <div class="panel">
-            <h3>📝 Carte d'entrée</h3>
-            <textarea id="inputMap" placeholder="Colle ta carte ici...">4
 
+    <div class="container">
+        <!-- ==================== COLONNE GAUCHE ==================== -->
+        <div>
+            <!-- Générateur -->
+            <div class="generator">
+                <h3>🎲 Générateur de Maps</h3>
+
+                <div class="gen-presets">
+                    <button onclick="loadPreset('simple')">Simple (1 chemin)</button>
+                    <button onclick="loadPreset('flow2')">Flow 2 chemins</button>
+                    <button onclick="loadPreset('flow3')">Flow 3 chemins</button>
+                    <button onclick="loadPreset('flow4')">Flow 4 chemins</button>
+                    <button onclick="loadPreset('big')">Big (~50 salles)</button>
+                    <button onclick="loadPreset('random')">Aléatoire</button>
+                </div>
+
+                <div class="gen-grid">
+                    <div class="gen-field">
+                        <label>Nombre de fourmis</label>
+                        <input type="number" id="genAnts" value="20" min="1" max="9999">
+                    </div>
+                    <div class="gen-field">
+                        <label>Flow (chemins disjoints)</label>
+                        <select id="genFlow">
+                            <option value="1">1 chemin</option>
+                            <option value="2" selected>2 chemins</option>
+                            <option value="3">3 chemins</option>
+                            <option value="4">4 chemins</option>
+                            <option value="5">5 chemins</option>
+                        </select>
+                    </div>
+                    <div class="gen-field">
+                        <label>Longueur des chemins</label>
+                        <select id="genLength">
+                            <option value="short">Courts (3-5 salles)</option>
+                            <option value="medium" selected>Moyens (5-8 salles)</option>
+                            <option value="long">Longs (8-12 salles)</option>
+                            <option value="mixed">Mixte (longueurs variées)</option>
+                        </select>
+                    </div>
+                    <div class="gen-field">
+                        <label>Salles bonus (bruit)</label>
+                        <input type="number" id="genNoise" value="5" min="0" max="50">
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-rust" onclick="generateMap()">🎲 Générer</button>
+                    <button class="btn-secondary" onclick="generateAndRun()">🎲+▶️ Générer & Résoudre</button>
+                </div>
+
+                <div class="gen-info" id="genInfo">
+                    Configure les paramètres puis clique sur "Générer". Le générateur crée un graphe avec le flow demandé (chemins disjoints de start à end), plus des salles de bruit optionnelles.
+                </div>
+            </div>
+
+            <!-- Input map -->
+            <div class="panel" style="margin-bottom: 1rem;">
+                <h3>📝 Carte d'entrée</h3>
+                <textarea id="inputMap" placeholder="Colle ta carte ici ou utilise le générateur ci-dessus...">4
 ##start
 1 0 0
 2 1 0
@@ -183,32 +249,35 @@
 4 1 1
 ##end
 5 2 0
-
 1-2
 1-3
 2-4
 3-4
 4-5</textarea>
-            
-            <div class="controls">
-                <button class="btn-primary" onclick="runSimulation()">▶️ Résoudre</button>
-                <button class="btn-secondary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
-                <button class="btn-danger" onclick="reset()">🔄 Reset</button>
-                
-                <div class="speed-control">
-                    <span>Vitesse:</span>
-                    <input type="range" id="speedRange" min="10" max="1000" value="200">
+
+                <div class="controls">
+                    <button class="btn-primary" onclick="runSimulation()">▶️ Résoudre</button>
+                    <button class="btn-secondary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
+                    <button class="btn-danger" onclick="reset()">🔄 Reset</button>
+                    <div class="speed-control">
+                        <span>Vitesse:</span>
+                        <input type="range" id="speedRange" min="10" max="1000" value="200">
+                    </div>
                 </div>
             </div>
-            
-            <h3 style="margin-top: 1rem;">📊 Sortie</h3>
-            <div class="output" id="output"></div>
+
+            <!-- Output -->
+            <div class="panel">
+                <h3>📊 Sortie</h3>
+                <div class="output" id="output"></div>
+            </div>
         </div>
-        
+
+        <!-- ==================== COLONNE DROITE ==================== -->
         <div class="panel">
             <h3>🎨 Visualisation</h3>
             <canvas id="visCanvas"></canvas>
-            
+
             <div class="stats">
                 <div class="stat-card">
                     <div class="stat-value" id="turnCount">0</div>
@@ -216,14 +285,18 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="antsMoved">0</div>
-                    <div class="stat-label">Fourmis déplacées</div>
+                    <div class="stat-label">Fourmis actives</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="antsArrived">0/0</div>
                     <div class="stat-label">Arrivées</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pathCount">0</div>
+                    <div class="stat-label">Chemins trouvés</div>
+                </div>
             </div>
-            
+
             <div id="loadingMsg" class="loading">
                 Chargement du module WASM...
             </div>
@@ -232,7 +305,7 @@
 
     <script type="module">
         import init, { parse_and_solve } from './lem_in_rust.js';
-        
+
         let wasmReady = false;
         let isPaused = false;
         let animationId = null;
@@ -240,96 +313,303 @@
         let currentMoveIndex = 0;
         let rooms = [];
         let links = [];
-        
+        let antTracks = {}; // { antId: [{room, turn}, ...] }
+        let totalAnts = 0;
+
         async function loadWasm() {
             try {
                 await init();
                 wasmReady = true;
                 document.getElementById('loadingMsg').style.display = 'none';
-                console.log('✅ WASM chargé avec succès');
+                console.log('✅ WASM chargé');
             } catch (error) {
                 document.getElementById('loadingMsg').innerHTML = `❌ Erreur WASM: ${error}`;
-                console.error('Erreur chargement WASM:', error);
             }
         }
-        
         loadWasm();
-        
-        window.runSimulation = async function() {
-            if (!wasmReady) {
-                alert('WASM pas encore chargé, patientez...');
-                return;
+
+        // ============================================================
+        //  GÉNÉRATEUR DE MAPS
+        // ============================================================
+
+        function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function randName(used) {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let name;
+            do {
+                name = '';
+                const len = randInt(2, 6);
+                for (let i = 0; i < len; i++) name += chars[randInt(0, chars.length - 1)];
+            } while (used.has(name));
+            used.add(name);
+            return name;
+        }
+
+        /**
+         * Génère une map lem-in avec un flow (nombre de chemins disjoints) paramétrable.
+         *
+         * @param {number} ants - Nombre de fourmis
+         * @param {number} flow - Nombre de chemins disjoints start → end
+         * @param {string} lengthMode - 'short' | 'medium' | 'long' | 'mixed'
+         * @param {number} noise - Nombre de salles bonus (bruit) à ajouter
+         * @returns {string} La map au format lem-in
+         */
+        window.generateMap = function(ants, flow, lengthMode, noise) {
+            ants = ants || parseInt(document.getElementById('genAnts').value);
+            flow = flow || parseInt(document.getElementById('genFlow').value);
+            lengthMode = lengthMode || document.getElementById('genLength').value;
+            noise = noise || parseInt(document.getElementById('genNoise').value);
+
+            const usedNames = new Set();
+            const rooms = []; // {name, x, y}
+            const links = []; // [name1, name2]
+            let gridX = 0, gridY = 0;
+
+            // Start et End
+            const startName = 'start';
+            const endName = 'end';
+            usedNames.add(startName);
+            usedNames.add(endName);
+            rooms.push({ name: startName, x: 0, y: 0 });
+            rooms.push({ name: endName, x: 100, y: 0 });
+
+            // Déterminer les longueurs de chemins
+            const lenRanges = {
+                short: [3, 5],
+                medium: [5, 8],
+                long: [8, 12],
+                mixed: [3, 12]
+            };
+            const [minLen, maxLen] = lenRanges[lengthMode] || lenRanges.medium;
+
+            // Créer `flow` chemins disjoints
+            const paths = [];
+            for (let p = 0; p < flow; p++) {
+                const pathLen = randInt(minLen, maxLen);
+                const path = [startName];
+                const yOffset = Math.round((p - (flow - 1) / 2) * 15);
+                gridX = 0;
+
+                for (let i = 1; i < pathLen - 1; i++) {
+                    const name = randName(usedNames);
+                    gridX += Math.floor(100 / pathLen);
+                    rooms.push({ name, x: gridX, y: yOffset + randInt(-3, 3) });
+                    path.push(name);
+                }
+                path.push(endName);
+                paths.push(path);
+
+                // Créer les liens le long du chemin
+                for (let i = 0; i < path.length - 1; i++) {
+                    const link = [path[i], path[i + 1]].sort();
+                    // Éviter doublons
+                    if (!links.some(l => l[0] === link[0] && l[1] === link[1])) {
+                        links.push(link);
+                    }
+                }
             }
-            
+
+            // Ajouter des salles de bruit (dead-ends ou connectées aléatoirement)
+            for (let i = 0; i < noise; i++) {
+                const name = randName(usedNames);
+                const x = randInt(5, 95);
+                const y = randInt(-30, 30);
+                rooms.push({ name, x, y });
+
+                // Connecter à 1-2 salles existantes aléatoires (pas start/end)
+                const connectable = rooms.filter(r => r.name !== startName && r.name !== endName && r.name !== name);
+                const numLinks = randInt(1, 2);
+                for (let j = 0; j < numLinks && connectable.length > 0; j++) {
+                    const target = connectable[randInt(0, connectable.length - 1)];
+                    const link = [name, target.name].sort();
+                    if (!links.some(l => l[0] === link[0] && l[1] === link[1])) {
+                        links.push(link);
+                    }
+                }
+            }
+
+            // Construire la map
+            let map = `${ants}\n`;
+            map += `##start\n`;
+            map += `${startName} 0 0\n`;
+
+            // Salles intermédiaires (pas start, pas end)
+            const midRooms = rooms.filter(r => r.name !== startName && r.name !== endName);
+            for (const r of midRooms) {
+                map += `${r.name} ${r.x} ${r.y}\n`;
+            }
+
+            map += `##end\n`;
+            map += `${endName} 100 0\n`;
+
+            for (const [a, b] of links) {
+                map += `${a}-${b}\n`;
+            }
+
+            // Mettre dans le textarea
+            document.getElementById('inputMap').value = map;
+            document.getElementById('genInfo').innerHTML =
+                `✅ Map générée : <strong>${ants}</strong> fourmis, <strong>${flow}</strong> chemin(s) disjoints, ` +
+                `<strong>${rooms.length}</strong> salles, <strong>${links.length}</strong> liens. ` +
+                `Chemins : ${paths.map(p => p.length + ' salles').join(', ')}.`;
+
+            return map;
+        };
+
+        window.generateAndRun = function() {
+            generateMap();
+            setTimeout(() => runSimulation(), 100);
+        };
+
+        window.loadPreset = function(preset) {
+            const presets = {
+                simple: { ants: 5, flow: 1, length: 'short', noise: 0 },
+                flow2: { ants: 20, flow: 2, length: 'medium', noise: 5 },
+                flow3: { ants: 50, flow: 3, length: 'medium', noise: 10 },
+                flow4: { ants: 100, flow: 4, length: 'mixed', noise: 15 },
+                big: { ants: 200, flow: 3, length: 'long', noise: 40 },
+                random: {
+                    ants: randInt(5, 200),
+                    flow: randInt(1, 5),
+                    length: ['short', 'medium', 'long', 'mixed'][randInt(0, 3)],
+                    noise: randInt(0, 30)
+                }
+            };
+            const p = presets[preset];
+            document.getElementById('genAnts').value = p.ants;
+            document.getElementById('genFlow').value = p.flow;
+            document.getElementById('genLength').value = p.length;
+            document.getElementById('genNoise').value = p.noise;
+            generateMap(p.ants, p.flow, p.length, p.noise);
+        };
+
+        // ============================================================
+        //  RÉSOLUTION + VISUALISATION
+        // ============================================================
+
+        window.runSimulation = async function() {
+            if (!wasmReady) { alert('WASM pas encore chargé, patientez...'); return; }
+
             const input = document.getElementById('inputMap').value;
             const outputDiv = document.getElementById('output');
             outputDiv.textContent = '';
-            
+
             try {
                 const result = parse_and_solve(input);
                 const lines = result.split('\n');
-                
-                // Parser la sortie pour extraire les mouvements et la carte
+
                 let inMoves = false;
                 moves = [];
                 rooms = [];
                 links = [];
-                
+                antTracks = {};
+
                 for (const line of lines) {
                     if (line.trim() === '') continue;
-                    
-                    if (line.startsWith('L') || line.match(/^\d+-/)) {
+
+                    if (line.startsWith('L')) {
                         inMoves = true;
                         moves.push(line);
                         outputDiv.textContent += line + '\n';
                     } else if (!inMoves) {
-                        // C'est la carte originale
-                        if (line.match(/^[^-]+ \d+ \d+$/)) {
-                            const parts = line.split(' ');
-                            rooms.push({
-                                name: parts[0],
-                                x: parseInt(parts[1]),
-                                y: parseInt(parts[2])
-                            });
-                        } else if (line.includes('-')) {
-                            links.push(line.split('-'));
+                        // Carte originale
+                        if (line === '##start' || line === '##end') {
+                            outputDiv.textContent += line + '\n';
+                            continue;
+                        }
+                        const roomMatch = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+                        if (roomMatch) {
+                            rooms.push({ name: roomMatch[1], x: parseInt(roomMatch[2]), y: parseInt(roomMatch[3]) });
+                        } else if (line.includes('-') && !line.startsWith('#')) {
+                            const parts = line.split('-');
+                            if (parts.length === 2) links.push([parts[0], parts[1]]);
                         }
                         outputDiv.textContent += line + '\n';
                     }
                 }
-                
+
+                // Détecter start/end
+                // Re-parse l'input pour les commandes ##start/##end
+                const inputLines = input.split('\n');
+                let nextIsStart = false, nextIsEnd = false;
+                for (const line of inputLines) {
+                    if (line.trim() === '##start') { nextIsStart = true; continue; }
+                    if (line.trim() === '##end') { nextIsEnd = true; continue; }
+                    const m = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+                    if (m) {
+                        const r = rooms.find(rm => rm.name === m[1]);
+                        if (r) {
+                            if (nextIsStart) { r.isStart = true; nextIsStart = false; }
+                            if (nextIsEnd) { r.isEnd = true; nextIsEnd = false; }
+                        }
+                    }
+                }
+
+                // Compter fourmis
+                totalAnts = parseInt(inputLines[0]) || 0;
+
+                // Construire les tracks de chaque fourmi
+                // Chaque ligne de moves = un tour
+                antTracks = {};
+                for (let turn = 0; turn < moves.length; turn++) {
+                    const moveLine = moves[turn];
+                    const tokens = moveLine.trim().split(/\s+/);
+                    for (const tok of tokens) {
+                        const m = tok.match(/L(\d+)-(\S+)/);
+                        if (m) {
+                            const antId = m[1];
+                            const roomName = m[2];
+                            if (!antTracks[antId]) antTracks[antId] = [];
+                            antTracks[antId].push({ room: roomName, turn: turn });
+                        }
+                    }
+                }
+
                 outputDiv.scrollTop = outputDiv.scrollHeight;
                 currentMoveIndex = 0;
+
+                // Estimer le nombre de chemins (nombre de voisins de start avec f_to)
+                // Approximation : nombre de mouvements uniques au tour 0
+                const firstTurnRooms = new Set();
+                if (moves.length > 0) {
+                    const tokens = moves[0].trim().split(/\s+/);
+                    for (const tok of tokens) {
+                        const m = tok.match(/L\d+-(\S+)/);
+                        if (m) firstTurnRooms.add(m[1]);
+                    }
+                }
+                document.getElementById('pathCount').textContent = firstTurnRooms.size;
+
                 drawFrame();
                 animate();
-                
+
             } catch (error) {
                 outputDiv.textContent += `\n❌ Erreur: ${error}`;
             }
         };
-        
+
         window.togglePause = function() {
             isPaused = !isPaused;
             document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Reprendre' : '⏸️ Pause';
+            if (!isPaused) animate();
         };
-        
+
         window.reset = function() {
             isPaused = false;
             currentMoveIndex = 0;
             moves = [];
+            antTracks = {};
             document.getElementById('output').textContent = '';
             document.getElementById('pauseBtn').textContent = '⏸️ Pause';
             const canvas = document.getElementById('visCanvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateStats(0, 0, 0);
+            updateStats(0, 0, 0, 0);
         };
-        
+
         function animate() {
             if (isPaused || currentMoveIndex >= moves.length) return;
-            
             const speed = 1010 - document.getElementById('speedRange').value;
-            
             setTimeout(() => {
                 if (!isPaused && currentMoveIndex < moves.length) {
                     currentMoveIndex++;
@@ -338,43 +618,42 @@
                 }
             }, speed);
         }
-        
+
         function drawFrame() {
             const canvas = document.getElementById('visCanvas');
             const ctx = canvas.getContext('2d');
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width;
             canvas.height = rect.height;
-            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             if (rooms.length === 0) return;
-            
-            // Calculer les bounds
+
+            // Bounds
             const minX = Math.min(...rooms.map(r => r.x));
             const maxX = Math.max(...rooms.map(r => r.x));
             const minY = Math.min(...rooms.map(r => r.y));
             const maxY = Math.max(...rooms.map(r => r.y));
-            
             const rangeX = maxX - minX || 1;
             const rangeY = maxY - minY || 1;
-            const padding = 40;
+            const padding = 50;
             const scaleX = (canvas.width - 2 * padding) / rangeX;
             const scaleY = (canvas.height - 2 * padding) / rangeY;
             const scale = Math.min(scaleX, scaleY);
-            
-            // Fonction de conversion
+            const offsetX = (canvas.width - rangeX * scale) / 2;
+            const offsetY = (canvas.height - rangeY * scale) / 2;
+
             const toScreen = (x, y) => ({
-                x: padding + (x - minX) * scale,
-                y: padding + (y - minY) * scale
+                x: offsetX + (x - minX) * scale,
+                y: offsetY + (y - minY) * scale
             });
-            
-            // Dessiner les liens
+
+            // Dessiner liens
             ctx.strokeStyle = '#30363d';
             ctx.lineWidth = 2;
-            for (const [room1, room2] of links) {
-                const r1 = rooms.find(r => r.name === room1);
-                const r2 = rooms.find(r => r.name === room2);
+            for (const [n1, n2] of links) {
+                const r1 = rooms.find(r => r.name === n1);
+                const r2 = rooms.find(r => r.name === n2);
                 if (r1 && r2) {
                     const p1 = toScreen(r1.x, r1.y);
                     const p2 = toScreen(r2.x, r2.y);
@@ -384,77 +663,88 @@
                     ctx.stroke();
                 }
             }
-            
-            // Parser l'état actuel des fourmis
-            const antPositions = {};
-            for (let i = 0; i <= currentMoveIndex && i < moves.length; i++) {
-                const move = moves[i];
-                const match = move.match(/L(\d+)-([^\s]+)/);
-                if (match) {
-                    const antId = match[1];
-                    const roomName = match[2];
-                    antPositions[antId] = roomName;
+
+            // Calculer positions des fourmis au tour actuel
+            const antPositions = {}; // antId → roomName
+            const roomAnts = {};     // roomName → [antId, ...]
+
+            for (let turn = 0; turn <= currentMoveIndex && turn < moves.length; turn++) {
+                const tokens = moves[turn].trim().split(/\s+/);
+                for (const tok of tokens) {
+                    const m = tok.match(/L(\d+)-(\S+)/);
+                    if (m) {
+                        antPositions[m[1]] = m[2];
+                    }
                 }
             }
-            
-            // Dessiner les salles
+
+            for (const [antId, roomName] of Object.entries(antPositions)) {
+                if (!roomAnts[roomName]) roomAnts[roomName] = [];
+                roomAnts[roomName].push(antId);
+            }
+
+            // Dessiner salles
             for (const room of rooms) {
                 const pos = toScreen(room.x, room.y);
-                
-                // Cercle
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
-                
-                if (room.name.includes('start')) {
-                    ctx.fillStyle = '#2ea043';
-                } else if (room.name.includes('end')) {
-                    ctx.fillStyle = '#da3633';
-                } else {
-                    ctx.fillStyle = '#58a6ff';
+
+                // Glow pour start/end
+                if (room.isStart) {
+                    ctx.shadowColor = '#2ea043';
+                    ctx.shadowBlur = 20;
+                } else if (room.isEnd) {
+                    ctx.shadowColor = '#da3633';
+                    ctx.shadowBlur = 20;
                 }
-                
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 16, 0, Math.PI * 2);
+                if (room.isStart) ctx.fillStyle = '#2ea043';
+                else if (room.isEnd) ctx.fillStyle = '#da3633';
+                else ctx.fillStyle = '#161b22';
                 ctx.fill();
-                ctx.strokeStyle = '#c9d1d9';
-                ctx.lineWidth = 2;
+                ctx.shadowBlur = 0;
+
+                ctx.strokeStyle = room.isStart || room.isEnd ? '#c9d1d9' : '#58a6ff';
+                ctx.lineWidth = room.isStart || room.isEnd ? 3 : 2;
                 ctx.stroke();
-                
+
                 // Nom
                 ctx.fillStyle = '#c9d1d9';
-                ctx.font = '12px monospace';
+                ctx.font = '11px monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText(room.name, pos.x, pos.y - 20);
-                
-                // Fourmis dans la salle
-                const antsHere = Object.entries(antPositions)
-                    .filter(([_, roomName]) => roomName === room.name)
-                    .map(([antId, _]) => antId);
-                
-                if (antsHere.length > 0) {
-                    ctx.fillStyle = '#f0f6fc';
-                    ctx.font = 'bold 14px monospace';
-                    ctx.fillText(`🐜${antsHere.length}`, pos.x, pos.y + 5);
+                ctx.fillText(room.name, pos.x, pos.y - 22);
+
+                // Fourmis
+                const ants = roomAnts[room.name] || [];
+                if (ants.length > 0) {
+                    if (room.isEnd) {
+                        ctx.fillStyle = '#2ea043';
+                        ctx.font = 'bold 13px monospace';
+                        ctx.fillText(`✓${ants.length}`, pos.x, pos.y + 5);
+                    } else {
+                        ctx.fillStyle = '#f0f6fc';
+                        ctx.font = 'bold 11px monospace';
+                        if (ants.length <= 3) {
+                            ctx.fillText(ants.map(a => '🐜' + a).join(' '), pos.x, pos.y + 5);
+                        } else {
+                            ctx.fillText(`🐜×${ants.length}`, pos.x, pos.y + 5);
+                        }
+                    }
                 }
             }
-            
-            // Mettre à jour les stats
-            const totalAnts = Object.keys(antPositions).length;
-            const endRoom = rooms.find(r => r.name.includes('end'));
-            let arrived = 0;
-            if (endRoom) {
-                arrived = Object.values(antPositions).filter(name => name === endRoom.name).length;
-            }
-            updateStats(currentMoveIndex + 1, totalAnts, arrived);
+
+            // Stats
+            const activeAnts = Object.values(antPositions).length;
+            const endRoom = rooms.find(r => r.isEnd);
+            const arrived = endRoom ? (roomAnts[endRoom.name] || []).length : 0;
+            updateStats(currentMoveIndex + 1, activeAnts, arrived, 0);
         }
-        
-        function updateStats(turns, moved, arrived) {
+
+        function updateStats(turns, moved, arrived, paths) {
             document.getElementById('turnCount').textContent = turns;
             document.getElementById('antsMoved').textContent = moved;
-            
-            // Estimer le total de fourmis depuis l'input
-            const input = document.getElementById('inputMap').value;
-            const antMatch = input.match(/^(\d+)/m);
-            const totalAnts = antMatch ? antMatch[1] : '?';
             document.getElementById('antsArrived').textContent = `${arrived}/${totalAnts}`;
+            if (paths) document.getElementById('pathCount').textContent = paths;
         }
     </script>
 </body>

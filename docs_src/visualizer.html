@@ -234,6 +234,7 @@
             <button onclick="genOfficial('flow-thousand', this)">--flow-thousand</button>
             <button onclick="genOfficial('big', this)">--big</button>
             <button onclick="genOfficial('big-superposition', this)">--big-superposition</button>
+            <span id="genInfo" style="font-size:0.65rem;color:var(--text-dim);margin-left:0.5rem;"></span>
         </div>
 
         <div class="header-actions">
@@ -354,77 +355,54 @@
         loadWasm();
 
         // ============================================================
-        // Générateur conforme au générateur officiel 42
+        // Maps pré-générées par le vrai générateur officiel 42
         // ============================================================
-        function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-        const CHARS = 'abcdefghijkmnopqrstuvwxyzABCDEFGHIJKMNOPQRSTUVWXYZ0123456789_';
-        function genName(used) {
-            let n; do { n=''; for(let i=0;i<4;i++) n+=CHARS[randInt(0,CHARS.length-1)]; } while(used.has(n));
-            used.add(n); return n;
-        }
+        // Les maps sont générées par ./generator-official (binaire de l'école)
+        // et stockées dans maps/. On les fetch au clic.
+        // --big étant le seul non-déterministe, on a 3 variantes.
 
-        // Configurations calibrées sur le vrai générateur officiel (generator-linux)
-        // Valeurs mesurées sur 3+ runs du binaire de l'école :
-        //   --flow-one:         1 fourmi, 158 salles, 158 liens, 33 tours (déterministe)
-        //   --flow-ten:        12-14 fourmis, ~480 salles, ~490 liens, 31-32 tours
-        //   --flow-thousand:   108 fourmis, 410 salles, 421 liens, 32 tours (déterministe)
-        //   --big:            212-283 fourmis, ~2400 salles, ~3100 liens, 40-57 tours
-        //   --big-superposition: 192 fourmis, 2135 salles, 2174 liens, 79 tours (déterministe)
-        const CONFIGS = {
-            'flow-one':         { ants:1,   paths:1, plen:[25,35], noise:[70,100],  dens:1.0,  desc:'1 fourmi, ~110 salles' },
-            'flow-ten':         { ants:13,  paths:1, plen:[25,35], noise:[440,480], dens:1.02, desc:'~13 fourmis, ~480 salles' },
-            'flow-thousand':    { ants:137, paths:1, plen:[25,35], noise:[500,540], dens:1.03, desc:'~130 fourmis, ~540 salles' },
-            'big':              { ants:()=>randInt(200,420), paths:3, plen:[20,40], noise:[2500,2800], dens:1.22, desc:'~2700 salles, test complexité' },
-            'big-superposition':{ ants:()=>randInt(190,220), paths:4, plen:[20,40], noise:[4300,4600], dens:1.02, sup:true, desc:'~4500 salles, chemins chevauchés' }
+        const MAP_FILES = {
+            'flow-one':           ['maps/flow-one.txt'],
+            'flow-ten':           ['maps/flow-ten.txt'],
+            'flow-thousand':      ['maps/flow-thousand.txt'],
+            'big':                ['maps/big-1.txt', 'maps/big-2.txt', 'maps/big-3.txt'],
+            'big-superposition':  ['maps/big-superposition.txt']
         };
 
-        window.genOfficial = function(opt, btn) {
-            const c = CONFIGS[opt]; if(!c) return;
+        const MAP_DESC = {
+            'flow-one':           '1 fourmi, chemin distinctif',
+            'flow-ten':           '~16 fourmis, chemin distinctif',
+            'flow-thousand':      '~118 fourmis, chemin distinctif',
+            'big':                '~340 fourmis, ~1800-2400 salles',
+            'big-superposition':  '384 fourmis, 5470 salles, chemins chevauchés'
+        };
+
+        window.genOfficial = async function(opt, btn) {
+            if(!MAP_FILES[opt]) return;
             document.querySelectorAll('.gen-bar button').forEach(b=>b.classList.remove('active'));
             if(btn) btn.classList.add('active');
 
-            const ants = typeof c.ants==='function' ? c.ants() : c.ants;
-            const used = new Set(), usedC = new Set();
-            const rms = [], lks = [];
-            const sName = genName(used), eName = genName(used);
-            const sC = randInt(1,5), eC = randInt(40,80);
-            function addR(n,x,y,s,e){ while(usedC.has(x+','+y))y++; usedC.add(x+','+y); rms.push({name:n,x,y,s:!!s,e:!!e}); }
-            function addL(a,b){ if(!lks.some(l=>(l[0]==a&&l[1]==b)||(l[0]==b&&l[1]==a))) lks.push([a,b]); }
-            addR(sName,sC,sC,true,false); addR(eName,eC,eC,false,true);
+            // Choisir aléatoirement parmi les variantes (pour --big)
+            const files = MAP_FILES[opt];
+            const file = files[Math.floor(Math.random() * files.length)];
 
-            const paths = [];
-            for(let p=0;p<c.paths;p++){
-                const pl=randInt(c.plen[0],c.plen[1]), path=[sName];
-                const yo=c.paths>1?Math.round((p-(c.paths-1)/2)*10):0;
-                let cx=sC, sx=Math.floor((eC-sC)/pl);
-                for(let i=1;i<pl-1;i++){
-                    const n=genName(used); cx+=sx+randInt(-2,2);
-                    addR(n,cx,Math.max(0,sC+yo+randInt(0,3))); path.push(n);
-                    if(c.sup&&paths.length>0&&Math.random()<0.15){
-                        const op=paths[randInt(0,paths.length-1)];
-                        if(op.length>2) addL(n,op[randInt(1,op.length-2)]);
-                    }
-                }
-                path.push(eName); paths.push(path);
-                for(let i=0;i<path.length-1;i++) addL(path[i],path[i+1]);
+            try {
+                const resp = await fetch(file);
+                if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const mapText = await resp.text();
+                document.getElementById('inputMap').value = mapText;
+
+                // Afficher les stats de la map
+                const lines = mapText.split('\n');
+                const ants = lines[0];
+                const rooms = lines.filter(l => l.match(/^\S+ -?\d+ -?\d+$/)).length;
+                const links = lines.filter(l => l.includes('-') && !l.startsWith('#') && !l.match(/^\S+ -?\d+ -?\d+$/)).length;
+                document.getElementById('genInfo').innerHTML =
+                    `<strong>--${opt}</strong> : ${MAP_DESC[opt]}<br>` +
+                    `Map officielle : <strong>${ants}</strong> fourmis, <strong>${rooms}</strong> salles, <strong>${links}</strong> liens`;
+            } catch(e) {
+                document.getElementById('genInfo').innerHTML = `❌ Erreur chargement ${file}: ${e}`;
             }
-
-            const nc=randInt(c.noise[0],c.noise[1]);
-            for(let i=0;i<nc;i++){
-                const n=genName(used), x=randInt(1,eC+20), y=randInt(0,50);
-                addR(n,x,y);
-                const conn=rms.filter(r=>r.name!=n&&!r.s&&!r.e);
-                // dens 1.0 = dead-ends (1 lien), dens >1.2 = quelques salles avec 2-3 liens
-                const nl = c.dens <= 1.05 ? 1 : (Math.random() < (c.dens - 1.0) ? randInt(2,3) : 1);
-                for(let j=0;j<nl&&conn.length>0;j++) addL(n,conn[randInt(0,conn.length-1)].name);
-            }
-
-            let m=`${ants}\n#Here is the number of lines required: ${rms.length+lks.length}\n##start\n`;
-            const sr=rms.find(r=>r.s); m+=`${sr.name} ${sr.x} ${sr.y}\n`;
-            for(const r of rms) if(!r.s&&!r.e) m+=`${r.name} ${r.x} ${r.y}\n`;
-            m+='##end\n'; const er=rms.find(r=>r.e); m+=`${er.name} ${er.x} ${er.y}\n`;
-            for(const[a,b]of lks) m+=`${a}-${b}\n`;
-            document.getElementById('inputMap').value=m;
         };
 
         // ============================================================

@@ -448,21 +448,37 @@ function loadData(mapText, result) {
   if (moves.length > 0) for (const tok of moves[0].split(' ')) { const m = tok.match(/L\d+-(\S+)/); if (m) firstRooms.add(m[1]); }
   document.getElementById('s-paths').textContent = firstRooms.size;
 
-  // Layout : d3-force si beaucoup de salles, coordonnées sinon
-  if (nodes.length <= 200) {
-    const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    const rx = maxX-minX || 1, ry = maxY-minY || 1;
-    const s = Math.min(800/rx, 600/ry);
-    const ox = -minX*s, oy = -minY*s;
-    nodes.forEach(n => { n.x = n.x*s + ox - 400; n.y = n.y*s + oy - 300; });
-  } else {
-    // Layout circulaire
-    const cx = 0, cy = 0, maxR = 500;
-    nodes.filter(n => n.type === 'room').forEach((n, i) => { const a = (i / nodes.filter(n => n.type === 'room').length) * Math.PI * 2; const r = maxR * (0.3 + 0.7 * Math.sin(i * 1.7)); n.x = cx + Math.cos(a) * r; n.y = cy + Math.sin(a) * r; });
-    if (startNode) { startNode.x = 0; startNode.y = 0; }
-    if (endNode) { endNode.x = 0; endNode.y = -400; }
-  }
+  // Layout : d3-force simulation pour un beau graphe
+  // Start à gauche, end à droite, les autres répartis par force
+  if (startNode) { startNode.x = -500; startNode.y = 0; startNode.fx = -500; startNode.fy = 0; }
+  if (endNode) { endNode.x = 500; endNode.y = 0; endNode.fx = 500; endNode.fy = 0; }
+  // Init positions en ellipse pour éviter le tas central
+  const nRooms = nodes.filter(n => n !== startNode && n !== endNode).length;
+  let idx = 0;
+  nodes.forEach(n => {
+    if (n === startNode || n === endNode) return;
+    const a = (idx / nRooms) * Math.PI * 2;
+    n.x = Math.cos(a) * (200 + Math.random() * 200);
+    n.y = Math.sin(a) * (150 + Math.random() * 150);
+    idx++;
+  });
+
+  // Force simulation — paramètres ajustés pour étaler le graphe
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(d => 50).strength(0.15))
+    .force('charge', d3.forceManyBody().strength(-150))
+    .force('center', d3.forceCenter(0, 0))
+    .force('collide', d3.forceCollide().radius(d => d.type === 'start' || d.type === 'end' ? 40 : 18))
+    .force('x', d3.forceX(0).strength(0.03))
+    .force('y', d3.forceY(0).strength(0.03))
+    .stop();
+
+  // Run synchronously
+  const ticks = nodes.length > 1000 ? 200 : 500;
+  for (let i = 0; i < ticks; i++) sim.tick();
+
+  // Clean up
+  nodes.forEach(n => { delete n.fx; delete n.fy; });
 
   document.getElementById('conn-dot').className = 'dot ready';
   document.getElementById('conn-text').textContent = `Prêt ✅ — ${moves.length} tours`;

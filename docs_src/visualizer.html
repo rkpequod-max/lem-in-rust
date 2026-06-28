@@ -3,193 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lem-in Rust - Visualiseur & Générateur</title>
+    <title>Lem-in — Visualiseur Professionnel</title>
     <style>
         :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --accent: #58a6ff;
-            --success: #2ea043;
-            --border: #30363d;
-            --danger: #da3633;
-            --warning: #d29922;
-            --rust: #dea584;
+            --bg: #0a0e14;
+            --bg-panel: #11161e;
+            --bg-elevated: #1a1f2b;
+            --border: #2a3140;
+            --text: #d4dae0;
+            --text-dim: #7a8290;
+            --accent: #4fc3f7;
+            --accent-glow: rgba(79, 195, 247, 0.3);
+            --green: #66bb6a;
+            --red: #ef5350;
+            --amber: #ffa726;
+            --ant: #ffd54f;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            padding: 1rem;
-        }
-        .header { text-align: center; margin-bottom: 1.5rem; }
-        h1 { color: var(--accent); margin-bottom: 0.5rem; }
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
-        .panel {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-        }
-        .panel h3 { color: var(--accent); margin-bottom: 0.8rem; font-size: 1rem; }
-        textarea {
-            width: 100%;
-            height: 220px;
-            background: #0d1117;
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 0.8rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            resize: vertical;
-        }
-        .controls {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
             display: flex;
-            gap: 0.5rem;
-            margin-top: 0.8rem;
-            flex-wrap: wrap;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1.5rem;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
-        button {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 4px;
+        .logo { display: flex; align-items: center; gap: 0.6rem; }
+        .logo svg { width: 28px; height: 28px; }
+        .logo h1 { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; }
+        .logo .tag { font-size: 0.65rem; color: var(--text-dim); font-weight: 400; }
+
+        .gen-bar { display: flex; gap: 0.3rem; }
+        .gen-bar button {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.35rem 0.7rem;
+            border-radius: 5px;
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
             cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-            font-size: 0.85rem;
+            transition: all 0.15s;
         }
-        .btn-primary { background: var(--success); color: white; }
-        .btn-primary:hover { background: #268537; }
-        .btn-secondary { background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: var(--border); }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #b3231e; }
-        .btn-rust { background: var(--rust); color: var(--bg-primary); }
-        .btn-rust:hover { background: #c9976f; }
-        .output {
-            height: 180px;
-            overflow-y: auto;
-            background: #0d1117;
+        .gen-bar button:hover { color: var(--accent); border-color: var(--accent); background: rgba(79,195,247,0.08); }
+        .gen-bar button.active { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+
+        .header-actions { display: flex; gap: 0.4rem; align-items: center; }
+        .header-actions button {
+            background: var(--bg-elevated);
             border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 0.8rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            white-space: pre-wrap;
+            color: var(--text);
+            padding: 0.4rem 0.8rem;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
         }
-        canvas {
+        .header-actions button:hover { border-color: var(--accent); }
+        .header-actions button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+        .header-actions button.primary:hover { background: #29b6f6; }
+
+        /* ── Layout ── */
+        .main { display: flex; flex: 1; overflow: hidden; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 340px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar-section { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); }
+        .sidebar-section h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 0.5rem; }
+
+        .map-input {
             width: 100%;
-            height: 400px;
-            background: #0d1117;
+            height: 160px;
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 4px;
-            margin-top: 0.5rem;
+            border-radius: 6px;
+            color: var(--text);
+            padding: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            resize: none;
+            line-height: 1.4;
         }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
-            margin-top: 0.8rem;
+        .map-input:focus { outline: none; border-color: var(--accent); }
+
+        .output-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            height: 140px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.5;
+            color: var(--text-dim);
         }
-        .stat-card {
-            background: var(--bg-primary);
-            padding: 0.6rem;
-            border-radius: 4px;
+        .output-box .move-line { color: var(--accent); }
+
+        /* ── Stats ── */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+        .stat {
+            background: var(--bg-elevated);
+            border-radius: 6px;
+            padding: 0.5rem;
             text-align: center;
-            border: 1px solid var(--border);
         }
-        .stat-value { font-size: 1.3rem; font-weight: bold; color: var(--accent); }
-        .stat-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem; }
-        .speed-control { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
-        input[type="range"] { width: 100px; }
-        .loading { text-align: center; padding: 1rem; color: var(--accent); }
-        /* Generator */
-        .generator {
-            background: var(--bg-tertiary);
+        .stat-val { font-size: 1.3rem; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+        .stat-lbl { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem; }
+
+        /* ── Controls ── */
+        .controls-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+        .controls-row button {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.35rem 0.6rem;
+            border-radius: 5px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .controls-row button:hover { border-color: var(--accent); }
+        .speed-slider { display: flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+        .speed-slider input { width: 80px; accent-color: var(--accent); }
+        .speed-slider span { font-size: 0.65rem; color: var(--text-dim); }
+
+        /* ── Visualization area ── */
+        .viz-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(ellipse at center, #0d1219 0%, var(--bg) 100%);
+            overflow: hidden;
+        }
+        #viz-svg { width: 100%; height: 100%; cursor: grab; }
+        #viz-svg:active { cursor: grabbing; }
+
+        .viz-overlay {
+            position: absolute;
+            top: 0.8rem;
+            left: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            pointer-events: none;
+        }
+        .turn-badge {
+            background: rgba(17, 22, 30, 0.9);
+            backdrop-filter: blur(8px);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            padding: 0.5rem 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
         }
-        .generator h3 {
-            color: var(--rust);
-            margin-bottom: 0.8rem;
+        .turn-badge .label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; }
+        .turn-badge .value { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--border);
         }
-        .gen-presets {
-            display: flex;
-            gap: 0.4rem;
-            flex-wrap: wrap;
-            margin-bottom: 0.8rem;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            transition: width 0.3s ease;
+            width: 0%;
         }
-        .gen-presets button {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.8rem;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: monospace;
-        }
-        .gen-presets button:hover { background: var(--accent); color: var(--bg-primary); }
-        .gen-presets button.active { background: var(--rust); color: var(--bg-primary); border-color: var(--rust); }
-        .gen-info {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            background: rgba(88, 166, 255, 0.08);
-            padding: 0.6rem;
-            border-radius: 4px;
-            border-left: 3px solid var(--accent);
-            margin-top: 0.5rem;
-        }
-        .gen-desc {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            margin-top: 0.3rem;
-            font-style: italic;
-        }
+
+        .loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--accent); font-size: 0.8rem; }
+
+        /* ── SVG styles ── */
+        .room-circle { transition: r 0.2s ease, fill 0.2s; cursor: pointer; }
+        .room-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; fill: var(--text-dim); pointer-events: none; text-anchor: middle; }
+        .room-group:hover .room-circle { stroke-width: 3; }
+        .link-line { stroke: var(--border); stroke-width: 1.5; fill: none; transition: stroke 0.3s, stroke-width 0.3s; }
+        .link-active { stroke: var(--accent); stroke-width: 2.5; }
+        .ant-dot { fill: var(--ant); transition: cx 0.4s ease, cy 0.4s ease; filter: drop-shadow(0 0 3px var(--ant)); }
+        .ant-label { font-family: 'JetBrains Mono', monospace; font-size: 7px; fill: #1a1500; font-weight: 700; text-anchor: middle; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🐜 Lem-in Rust — Visualiseur & Générateur</h1>
-        <p>Génère des maps conformes au générateur officiel 42, résous avec WASM, visualise le déplacement des fourmis</p>
-    </div>
-
-    <div class="container">
-        <div>
-            <!-- Générateur -->
-            <div class="generator">
-                <h3>🎲 Générateur de Maps (conforme générateur 42)</h3>
-
-                <div class="gen-presets">
-                    <button onclick="genOfficial('flow-one', this)" title="1 fourmi, chemin distinctif">--flow-one</button>
-                    <button onclick="genOfficial('flow-ten', this)" title="~10 fourmis, chemin distinctif">--flow-ten</button>
-                    <button onclick="genOfficial('flow-thousand', this)" title="~100 fourmis, chemin distinctif">--flow-thousand</button>
-                    <button onclick="genOfficial('big', this)" title="~4000 salles, test complexité">--big</button>
-                    <button onclick="genOfficial('big-superposition', this)" title="grande map, chemins chevauchés">--big-superposition</button>
-                </div>
-
-                <div class="gen-info" id="genInfo">
-                    Clique sur une option pour générer une map conforme au générateur officiel de l'école 42.
-                </div>
+    <header>
+        <div class="logo">
+            <svg viewBox="0 0 100 100" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round">
+                <circle cx="50" cy="50" r="12" fill="var(--accent)" stroke="none"/>
+                <circle cx="20" cy="30" r="8"/>
+                <circle cx="80" cy="30" r="8"/>
+                <circle cx="20" cy="70" r="8"/>
+                <circle cx="80" cy="70" r="8"/>
+                <line x1="50" y1="50" x2="20" y2="30"/>
+                <line x1="50" y1="50" x2="80" y2="30"/>
+                <line x1="50" y1="50" x2="20" y2="70"/>
+                <line x1="50" y1="50" x2="80" y2="70"/>
+            </svg>
+            <div>
+                <h1>Lem-in Visualiseur</h1>
+                <div class="tag">WebAssembly · École 42</div>
             </div>
+        </div>
 
-            <div class="panel" style="margin-bottom: 1rem;">
-                <h3>📝 Carte d'entrée</h3>
-                <textarea id="inputMap" placeholder="Colle ta carte ici ou utilise le générateur ci-dessus...">4
+        <div class="gen-bar">
+            <button onclick="genOfficial('flow-one', this)">--flow-one</button>
+            <button onclick="genOfficial('flow-ten', this)">--flow-ten</button>
+            <button onclick="genOfficial('flow-thousand', this)">--flow-thousand</button>
+            <button onclick="genOfficial('big', this)">--big</button>
+            <button onclick="genOfficial('big-superposition', this)">--big-superposition</button>
+        </div>
+
+        <div class="header-actions">
+            <button onclick="runSimulation()" class="primary">▶ Résoudre</button>
+        </div>
+    </header>
+
+    <div class="main">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>Carte</h3>
+                <textarea class="map-input" id="inputMap" spellcheck="false">4
 ##start
 1 0 0
 2 1 0
@@ -202,46 +258,70 @@
 2-4
 3-4
 4-5</textarea>
+            </div>
 
-                <div class="controls">
-                    <button class="btn-primary" onclick="runSimulation()">▶️ Résoudre</button>
-                    <button class="btn-secondary" onclick="togglePause()" id="pauseBtn">⏸️ Pause</button>
-                    <button class="btn-danger" onclick="reset()">🔄 Reset</button>
-                    <div class="speed-control">
-                        <span>Vitesse:</span>
-                        <input type="range" id="speedRange" min="10" max="1000" value="200">
+            <div class="sidebar-section">
+                <h3>Sortie</h3>
+                <div class="output-box" id="output"></div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Statistiques</h3>
+                <div class="stats-grid">
+                    <div class="stat"><div class="stat-val" id="turnCount">—</div><div class="stat-lbl">Tours</div></div>
+                    <div class="stat"><div class="stat-val" id="antCount">—</div><div class="stat-lbl">Fourmis</div></div>
+                    <div class="stat"><div class="stat-val" id="pathCount">—</div><div class="stat-lbl">Chemins</div></div>
+                    <div class="stat"><div class="stat-val" id="arrivedCount">0/0</div><div class="stat-lbl">Arrivées</div></div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" style="flex: 1;">
+                <h3>Contrôles</h3>
+                <div class="controls-row">
+                    <button onclick="togglePause()" id="pauseBtn">⏸ Pause</button>
+                    <button onclick="stepBack()">◀ Tour</button>
+                    <button onclick="stepForward()">Tour ▶</button>
+                    <button onclick="reset()">↺ Reset</button>
+                </div>
+                <div class="controls-row" style="margin-top: 0.5rem;">
+                    <div class="speed-slider">
+                        <span>Vitesse</span>
+                        <input type="range" id="speedRange" min="50" max="1500" value="500">
                     </div>
                 </div>
             </div>
-
-            <div class="panel">
-                <h3>📊 Sortie</h3>
-                <div class="output" id="output"></div>
-            </div>
         </div>
 
-        <div class="panel">
-            <h3>🎨 Visualisation</h3>
-            <canvas id="visCanvas"></canvas>
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="turnCount">0</div>
-                    <div class="stat-label">Tours</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="antsMoved">0</div>
-                    <div class="stat-label">Fourmis actives</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="antsArrived">0/0</div>
-                    <div class="stat-label">Arrivées</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="pathCount">0</div>
-                    <div class="stat-label">Chemins trouvés</div>
+        <div class="viz-area">
+            <div class="viz-overlay">
+                <div class="turn-badge">
+                    <div class="label">Tour</div>
+                    <div class="value" id="turnDisplay">0 / 0</div>
                 </div>
             </div>
-            <div id="loadingMsg" class="loading">Chargement du module WASM...</div>
+            <svg id="viz-svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <radialGradient id="grad-start">
+                        <stop offset="0%" stop-color="#81c784"/>
+                        <stop offset="100%" stop-color="#388e3c"/>
+                    </radialGradient>
+                    <radialGradient id="grad-end">
+                        <stop offset="0%" stop-color="#e57373"/>
+                        <stop offset="100%" stop-color="#c62828"/>
+                    </radialGradient>
+                    <radialGradient id="grad-room">
+                        <stop offset="0%" stop-color="#2a3140"/>
+                        <stop offset="100%" stop-color="#1a1f2b"/>
+                    </radialGradient>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <g id="viewport"></g>
+            </svg>
+            <div class="loading" id="loadingMsg">Chargement WASM…</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         </div>
     </div>
 
@@ -250,416 +330,401 @@
 
         let wasmReady = false;
         let isPaused = false;
-        let animationId = null;
         let moves = [];
-        let currentMoveIndex = 0;
+        let currentTurn = 0;
+        let totalTurns = 0;
+        let totalAnts = 0;
         let rooms = [];
         let links = [];
-        let totalAnts = 0;
+        let roomMap = {};
+        let antPositions = {}; // antId -> roomName
+        let animTimer = null;
+        let panX = 0, panY = 0, scale = 1;
+        let isDragging = false, dragStartX = 0, dragStartY = 0;
 
         async function loadWasm() {
             try {
                 await init();
                 wasmReady = true;
                 document.getElementById('loadingMsg').style.display = 'none';
-            } catch (error) {
-                document.getElementById('loadingMsg').innerHTML = `❌ Erreur WASM: ${error}`;
+            } catch(e) {
+                document.getElementById('loadingMsg').textContent = 'Erreur WASM: ' + e;
             }
         }
         loadWasm();
 
         // ============================================================
-        //  GÉNÉRATEUR CONFORME AU GÉNÉRATEUR OFFICIEL 42
+        // Générateur conforme au générateur officiel 42
         // ============================================================
-        // Le générateur officiel a 5 options fixes (pas de paramètres utilisateur) :
-        //   --flow-one         : 1 fourmi, chemin distinctif
-        //   --flow-ten         : ~10 fourmis, chemin distinctif
-        //   --flow-thousand    : ~100 fourmis, chemin distinctif
-        //   --big              : ~4000 salles, test complexité
-        //   --big-superposition: grande map avec chemins chevauchés
-        //
-        // "distinctive path" = un chemin principal clair start→end,
-        //   avec peu de branches mortes (ratio liens/salles ≈ 1.0)
-        // "big" = graphe plus dense (ratio ≈ 1.27, degré moyen 2.5)
-        // "superposition" = chemins qui se chevauchent (noeuds partagés)
-
         function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-
         const CHARS = 'abcdefghijkmnopqrstuvwxyzABCDEFGHIJKMNOPQRSTUVWXYZ0123456789_';
-
         function genName(used) {
-            let name;
-            do {
-                name = '';
-                for (let i = 0; i < 4; i++) name += CHARS[randInt(0, CHARS.length - 1)];
-            } while (used.has(name));
-            used.add(name);
-            return name;
+            let n; do { n=''; for(let i=0;i<4;i++) n+=CHARS[randInt(0,CHARS.length-1)]; } while(used.has(n));
+            used.add(n); return n;
         }
 
-        // Configurations conformes aux mesures du générateur officiel
-        const GEN_CONFIGS = {
-            'flow-one': {
-                ants: 1,
-                numPaths: 1,        // 1 chemin distinctif
-                pathLen: [20, 40],  // chemin long
-                noiseRooms: [100, 300],  // ~200 salles de bruit
-                noiseDensity: 1.0,  // ratio liens/salles ≈ 1.0
-                desc: '1 fourmi, chemin distinctif (~200 salles)'
-            },
-            'flow-ten': {
-                ants: 15,           // déterministe : toujours 15
-                numPaths: 1,
-                pathLen: [20, 35],
-                noiseRooms: [200, 400],
-                noiseDensity: 1.0,
-                desc: '~10 fourmis, chemin distinctif (~300 salles)'
-            },
-            'flow-thousand': {
-                ants: 109,          // déterministe : toujours 109
-                numPaths: 1,
-                pathLen: [15, 25],
-                noiseRooms: [200, 400],
-                noiseDensity: 1.05,
-                desc: '~100 fourmis, chemin distinctif (~300 salles)'
-            },
-            'big': {
-                ants: () => randInt(200, 500),
-                numPaths: 3,
-                pathLen: [15, 30],
-                noiseRooms: [2000, 3000],
-                noiseDensity: 1.25,  // plus dense
-                desc: '~4000 salles, test de complexité temporelle'
-            },
-            'big-superposition': {
-                ants: () => randInt(100, 500),
-                numPaths: 4,
-                pathLen: [15, 30],
-                noiseRooms: [2000, 4000],
-                noiseDensity: 1.02,
-                superposition: true,  // chemins qui se chevauchent
-                desc: 'Grande map avec chemins chevauchés'
-            }
+        const CONFIGS = {
+            'flow-one': { ants:1, paths:1, plen:[20,40], noise:[100,300], dens:1.0, desc:'1 fourmi' },
+            'flow-ten': { ants:15, paths:1, plen:[20,35], noise:[200,400], dens:1.0, desc:'~10 fourmis' },
+            'flow-thousand': { ants:109, paths:1, plen:[15,25], noise:[200,400], dens:1.05, desc:'~100 fourmis' },
+            'big': { ants:()=>randInt(200,500), paths:3, plen:[15,30], noise:[2000,3000], dens:1.25, desc:'~4000 salles' },
+            'big-superposition': { ants:()=>randInt(100,500), paths:4, plen:[15,30], noise:[2000,4000], dens:1.02, sup:true, desc:'chemins chevauchés' }
         };
 
-        window.genOfficial = function(option, btn) {
-            const config = GEN_CONFIGS[option];
-            if (!config) return;
+        window.genOfficial = function(opt, btn) {
+            const c = CONFIGS[opt]; if(!c) return;
+            document.querySelectorAll('.gen-bar button').forEach(b=>b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
 
-            // Highlight bouton actif
-            document.querySelectorAll('.gen-presets button').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
+            const ants = typeof c.ants==='function' ? c.ants() : c.ants;
+            const used = new Set(), usedC = new Set();
+            const rms = [], lks = [];
+            const sName = genName(used), eName = genName(used);
+            const sC = randInt(1,5), eC = randInt(40,80);
+            function addR(n,x,y,s,e){ while(usedC.has(x+','+y))y++; usedC.add(x+','+y); rms.push({name:n,x,y,s:!!s,e:!!e}); }
+            function addL(a,b){ if(!lks.some(l=>(l[0]==a&&l[1]==b)||(l[0]==b&&l[1]==a))) lks.push([a,b]); }
+            addR(sName,sC,sC,true,false); addR(eName,eC,eC,false,true);
 
-            const ants = typeof config.ants === 'function' ? config.ants() : config.ants;
-            const usedNames = new Set();
-            const usedCoords = new Set();
-            const rooms = [];
-            const links = [];
-
-            // Start et End (coordonnées diagonales, comme le générateur officiel)
-            const startName = genName(usedNames);
-            const endName = genName(usedNames);
-            const startCoord = randInt(1, 5);
-            const endCoord = randInt(40, 80);
-
-            function addRoom(name, x, y, isStart, isEnd) {
-                while (usedCoords.has(x + ',' + y)) y++;
-                usedCoords.add(x + ',' + y);
-                rooms.push({ name, x, y, isStart: !!isStart, isEnd: !!isEnd });
-            }
-
-            addRoom(startName, startCoord, startCoord, true, false);
-            addRoom(endName, endCoord, endCoord, false, true);
-
-            function addLink(a, b) {
-                if (!links.some(l => (l[0] === a && l[1] === b) || (l[0] === b && l[1] === a))) {
-                    links.push([a, b]);
-                }
-            }
-
-            // Créer les chemins principaux
             const paths = [];
-            for (let p = 0; p < config.numPaths; p++) {
-                const pathLen = randInt(config.pathLen[0], config.pathLen[1]);
-                const path = [startName];
-                const yOffset = config.numPaths > 1 ? Math.round((p - (config.numPaths - 1) / 2) * 10) : 0;
-                let curX = startCoord;
-                const stepX = Math.floor((endCoord - startCoord) / pathLen);
-
-                for (let i = 1; i < pathLen - 1; i++) {
-                    const name = genName(usedNames);
-                    curX += stepX + randInt(-2, 2);
-                    const y = Math.max(0, startCoord + yOffset + randInt(0, 3));
-                    addRoom(name, curX, y);
-                    path.push(name);
-
-                    // Superposition : connecter parfois à un noeud d'un autre chemin
-                    if (config.superposition && paths.length > 0 && Math.random() < 0.15) {
-                        const otherPath = paths[randInt(0, paths.length - 1)];
-                        if (otherPath.length > 2) {
-                            const target = otherPath[randInt(1, otherPath.length - 2)];
-                            addLink(name, target);
-                        }
+            for(let p=0;p<c.paths;p++){
+                const pl=randInt(c.plen[0],c.plen[1]), path=[sName];
+                const yo=c.paths>1?Math.round((p-(c.paths-1)/2)*10):0;
+                let cx=sC, sx=Math.floor((eC-sC)/pl);
+                for(let i=1;i<pl-1;i++){
+                    const n=genName(used); cx+=sx+randInt(-2,2);
+                    addR(n,cx,Math.max(0,sC+yo+randInt(0,3))); path.push(n);
+                    if(c.sup&&paths.length>0&&Math.random()<0.15){
+                        const op=paths[randInt(0,paths.length-1)];
+                        if(op.length>2) addL(n,op[randInt(1,op.length-2)]);
                     }
                 }
-                path.push(endName);
-                paths.push(path);
-
-                for (let i = 0; i < path.length - 1; i++) {
-                    addLink(path[i], path[i + 1]);
-                }
+                path.push(eName); paths.push(path);
+                for(let i=0;i<path.length-1;i++) addL(path[i],path[i+1]);
             }
 
-            // Salles de bruit (dead-ends et branches)
-            const noiseCount = randInt(config.noiseRooms[0], config.noiseRooms[1]);
-            for (let i = 0; i < noiseCount; i++) {
-                const name = genName(usedNames);
-                const x = randInt(1, endCoord + 20);
-                const y = randInt(0, 50);
-                addRoom(name, x, y);
-
-                // Connecter à 1-2 salles existantes (density contrôle le nombre moyen de liens)
-                const connectable = rooms.filter(r => r.name !== name && !r.isStart && !r.isEnd);
-                const numLinks = config.noiseDensity > 1.15 ? randInt(1, 3) : randInt(1, 2);
-                for (let j = 0; j < numLinks && connectable.length > 0; j++) {
-                    const target = connectable[randInt(0, connectable.length - 1)];
-                    addLink(name, target.name);
-                }
+            const nc=randInt(c.noise[0],c.noise[1]);
+            for(let i=0;i<nc;i++){
+                const n=genName(used), x=randInt(1,eC+20), y=randInt(0,50);
+                addR(n,x,y);
+                const conn=rms.filter(r=>r.name!=n&&!r.s&&!r.e);
+                const nl=c.dens>1.15?randInt(1,3):randInt(1,2);
+                for(let j=0;j<nl&&conn.length>0;j++) addL(n,conn[randInt(0,conn.length-1)].name);
             }
 
-            // Construire la map au format lem-in
-            let map = `${ants}\n`;
-            map += `#Here is the number of lines required: ${rooms.length + links.length}\n`;
-            map += `##start\n`;
-            const sr = rooms.find(r => r.isStart);
-            map += `${sr.name} ${sr.x} ${sr.y}\n`;
-            for (const r of rooms) {
-                if (!r.isStart && !r.isEnd) map += `${r.name} ${r.x} ${r.y}\n`;
-            }
-            map += `##end\n`;
-            const er = rooms.find(r => r.isEnd);
-            map += `${er.name} ${er.x} ${er.y}\n`;
-            for (const [a, b] of links) map += `${a}-${b}\n`;
-
-            document.getElementById('inputMap').value = map;
-            document.getElementById('genInfo').innerHTML =
-                `<strong>--${option}</strong> : ${config.desc}<br>` +
-                `✅ Map générée : <strong>${ants}</strong> fourmis, ` +
-                `<strong>${rooms.length}</strong> salles, <strong>${links.length}</strong> liens, ` +
-                `<strong>${config.numPaths}</strong> chemin(s) principal(aux).`;
+            let m=`${ants}\n#Here is the number of lines required: ${rms.length+lks.length}\n##start\n`;
+            const sr=rms.find(r=>r.s); m+=`${sr.name} ${sr.x} ${sr.y}\n`;
+            for(const r of rms) if(!r.s&&!r.e) m+=`${r.name} ${r.x} ${r.y}\n`;
+            m+='##end\n'; const er=rms.find(r=>r.e); m+=`${er.name} ${er.x} ${er.y}\n`;
+            for(const[a,b]of lks) m+=`${a}-${b}\n`;
+            document.getElementById('inputMap').value=m;
         };
 
         // ============================================================
-        //  RÉSOLUTION + VISUALISATION
+        // Résolution + visualisation SVG
         // ============================================================
-
         window.runSimulation = async function() {
-            if (!wasmReady) { alert('WASM pas encore chargé, patientez...'); return; }
+            if(!wasmReady){ alert('WASM en cours de chargement…'); return; }
             const input = document.getElementById('inputMap').value;
-            const outputDiv = document.getElementById('output');
-            outputDiv.textContent = '';
+            const out = document.getElementById('output');
+            out.innerHTML = '';
 
             try {
                 const result = parse_and_solve(input);
                 const lines = result.split('\n');
                 let inMoves = false;
-                moves = [];
-                rooms = [];
-                links = [];
+                moves = []; rooms = []; links = []; roomMap = {};
 
-                for (const line of lines) {
-                    if (line.trim() === '') continue;
-                    if (line.startsWith('L')) {
+                for(const line of lines) {
+                    if(line.trim()==='') continue;
+                    if(line.startsWith('L')) {
                         inMoves = true;
                         moves.push(line);
-                        outputDiv.textContent += line + '\n';
-                    } else if (!inMoves) {
-                        if (line === '##start' || line === '##end') { outputDiv.textContent += line + '\n'; continue; }
-                        const roomMatch = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
-                        if (roomMatch) {
-                            rooms.push({ name: roomMatch[1], x: parseInt(roomMatch[2]), y: parseInt(roomMatch[3]) });
-                        } else if (line.includes('-') && !line.startsWith('#')) {
-                            const parts = line.split('-');
-                            if (parts.length === 2) links.push([parts[0], parts[1]]);
+                        const div = document.createElement('div');
+                        div.className = 'move-line';
+                        div.textContent = line;
+                        out.appendChild(div);
+                    } else if(!inMoves) {
+                        if(line==='##start'||line==='##end') continue;
+                        const rm = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+                        if(rm) {
+                            rooms.push({name:rm[1],x:parseInt(rm[2]),y:parseInt(rm[3])});
+                            roomMap[rm[1]] = rooms[rooms.length-1];
+                        } else if(line.includes('-')&&!line.startsWith('#')) {
+                            const p=line.split('-'); if(p.length===2) links.push([p[0],p[1]]);
                         }
-                        outputDiv.textContent += line + '\n';
                     }
                 }
 
                 // Détecter start/end
-                const inputLines = input.split('\n');
-                let nextIsStart = false, nextIsEnd = false;
-                for (const line of inputLines) {
-                    if (line.trim() === '##start') { nextIsStart = true; continue; }
-                    if (line.trim() === '##end') { nextIsEnd = true; continue; }
-                    const m = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
-                    if (m) {
-                        const r = rooms.find(rm => rm.name === m[1]);
-                        if (r) {
-                            if (nextIsStart) { r.isStart = true; nextIsStart = false; }
-                            if (nextIsEnd) { r.isEnd = true; nextIsEnd = false; }
-                        }
-                    }
+                const il = input.split('\n');
+                let ns=false, ne=false;
+                for(const line of il) {
+                    if(line.trim()==='##start'){ns=true;continue;}
+                    if(line.trim()==='##end'){ne=true;continue;}
+                    const m=line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+                    if(m){const r=roomMap[m[1]]; if(r){if(ns){r.isStart=true;ns=false;} if(ne){r.isEnd=true;ne=false;}}}
                 }
-                totalAnts = parseInt(inputLines[0]) || 0;
-                currentMoveIndex = 0;
+                totalAnts = parseInt(il[0]) || 0;
+                totalTurns = moves.length;
+                currentTurn = 0;
+                antPositions = {};
 
-                // Compter chemins (mouvements uniques au tour 0)
-                const firstTurnRooms = new Set();
-                if (moves.length > 0) {
-                    for (const tok of moves[0].trim().split(/\s+/)) {
+                document.getElementById('antCount').textContent = totalAnts;
+                document.getElementById('turnCount').textContent = totalTurns;
+
+                // Compter chemins au tour 0
+                if(moves.length>0) {
+                    const firstRooms = new Set();
+                    for(const tok of moves[0].trim().split(/\s+/)) {
                         const m = tok.match(/L\d+-(\S+)/);
-                        if (m) firstTurnRooms.add(m[1]);
+                        if(m) firstRooms.add(m[1]);
                     }
+                    document.getElementById('pathCount').textContent = firstRooms.size;
                 }
-                document.getElementById('pathCount').textContent = firstTurnRooms.size;
 
-                drawFrame();
-                animate();
-            } catch (error) {
-                outputDiv.textContent += `\n❌ Erreur: ${error}`;
+                out.scrollTop = out.scrollHeight;
+                renderGraph();
+                updateTurn(0);
+                startAnimation();
+            } catch(e) {
+                out.innerHTML = `<span style="color:var(--red)">Erreur: ${e}</span>`;
             }
         };
+
+        // ============================================================
+        // Rendu SVG du graphe
+        // ============================================================
+        function renderGraph() {
+            const vp = document.getElementById('viewport');
+            vp.innerHTML = '';
+
+            if(rooms.length === 0) return;
+
+            // Auto-layout : si peu de salles, utiliser coordonnées originales
+            // Si beaucoup, layout circulaire
+            const useOriginal = rooms.length <= 200;
+
+            if(useOriginal) {
+                const minX = Math.min(...rooms.map(r=>r.x));
+                const maxX = Math.max(...rooms.map(r=>r.x));
+                const minY = Math.min(...rooms.map(r=>r.y));
+                const maxY = Math.max(...rooms.map(r=>r.y));
+                const rangeX = maxX - minX || 1;
+                const rangeY = maxY - minY || 1;
+                const padding = 60;
+                const svgW = document.getElementById('viz-svg').clientWidth;
+                const svgH = document.getElementById('viz-svg').clientHeight;
+                const s = Math.min((svgW - 2*padding)/rangeX, (svgH - 2*padding)/rangeY);
+                const ox = (svgW - rangeX*s)/2;
+                const oy = (svgH - rangeY*s)/2;
+                rooms.forEach(r => { r.sx = ox + (r.x-minX)*s; r.sy = oy + (r.y-minY)*s; });
+            } else {
+                // Layout circulaire : start au centre, end en haut, autres en cercles
+                const svgW = document.getElementById('viz-svg').clientWidth;
+                const svgH = document.getElementById('viz-svg').clientHeight;
+                const cx = svgW/2, cy = svgH/2;
+                const start = rooms.find(r=>r.isStart);
+                const end = rooms.find(r=>r.isEnd);
+                if(start) { start.sx = cx; start.sy = cy; }
+                if(end) { end.sx = cx; end.sy = cy - Math.min(svgH,svgW)*0.35; }
+                const others = rooms.filter(r=>!r.isStart&&!r.isEnd);
+                const radius = Math.min(svgW,svgW)*0.3;
+                others.forEach((r,i) => {
+                    const angle = (i/others.length)*Math.PI*2;
+                    const r2 = radius * (0.4 + 0.6*Math.random());
+                    r.sx = cx + Math.cos(angle)*r2;
+                    r.sy = cy + Math.sin(angle)*r2;
+                });
+            }
+
+            // Links
+            const linkGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+            linkGroup.setAttribute('id','links');
+            for(const [a,b] of links) {
+                const r1 = roomMap[a], r2 = roomMap[b];
+                if(r1 && r2 && r1.sx !== undefined) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+                    line.setAttribute('x1',r1.sx); line.setAttribute('y1',r1.sy);
+                    line.setAttribute('x2',r2.sx); line.setAttribute('y2',r2.sy);
+                    line.setAttribute('class','link-line');
+                    line.setAttribute('id',`link-${a}-${b}`);
+                    linkGroup.appendChild(line);
+                }
+            }
+            vp.appendChild(linkGroup);
+
+            // Rooms
+            const roomGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+            roomGroup.setAttribute('id','rooms');
+            const showLabels = rooms.length <= 80;
+            const radius = rooms.length <= 50 ? 14 : rooms.length <= 200 ? 8 : 4;
+
+            for(const r of rooms) {
+                if(r.sx === undefined) continue;
+                const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+                g.setAttribute('class','room-group');
+                g.setAttribute('transform',`translate(${r.sx},${r.sy})`);
+
+                const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+                c.setAttribute('r',radius);
+                c.setAttribute('class','room-circle');
+                if(r.isStart) { c.setAttribute('fill','url(#grad-start)'); c.setAttribute('stroke','#81c784'); c.setAttribute('stroke-width','2.5'); c.setAttribute('filter','url(#glow)'); }
+                else if(r.isEnd) { c.setAttribute('fill','url(#grad-end)'); c.setAttribute('stroke','#e57373'); c.setAttribute('stroke-width','2.5'); c.setAttribute('filter','url(#glow)'); }
+                else { c.setAttribute('fill','url(#grad-room)'); c.setAttribute('stroke','#4fc3f7'); c.setAttribute('stroke-width','1.5'); }
+                c.setAttribute('id',`room-${r.name}`);
+                g.appendChild(c);
+
+                if(showLabels) {
+                    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+                    t.setAttribute('class','room-label');
+                    t.setAttribute('y', radius + 10);
+                    t.textContent = r.name;
+                    g.appendChild(t);
+                }
+                roomGroup.appendChild(g);
+            }
+            vp.appendChild(roomGroup);
+
+            // Ants layer (sera mis à jour par updateTurn)
+            const antLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+            antLayer.setAttribute('id','ants');
+            vp.appendChild(antLayer);
+
+            // Pan & zoom
+            setupPanZoom();
+        }
+
+        function setupPanZoom() {
+            const svg = document.getElementById('viz-svg');
+            svg.onmousedown = (e) => {
+                if(e.target.tagName === 'circle' || e.target.tagName === 'text') return;
+                isDragging = true; dragStartX = e.clientX - panX; dragStartY = e.clientY - panY;
+            };
+            svg.onmousemove = (e) => {
+                if(!isDragging) return;
+                panX = e.clientX - dragStartX; panY = e.clientY - dragStartY;
+                updateViewport();
+            };
+            svg.onmouseup = () => isDragging = false;
+            svg.onmouseleave = () => isDragging = false;
+            svg.onwheel = (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                scale = Math.max(0.2, Math.min(5, scale * delta));
+                updateViewport();
+            };
+            panX = 0; panY = 0; scale = 1;
+            updateViewport();
+        }
+
+        function updateViewport() {
+            const vp = document.getElementById('viewport');
+            vp.setAttribute('transform', `translate(${panX},${panY}) scale(${scale})`);
+        }
+
+        // ============================================================
+        // Animation tour par tour
+        // ============================================================
+        function updateTurn(turn) {
+            currentTurn = turn;
+            // Recalculer les positions des fourmis jusqu'au tour actuel
+            antPositions = {};
+            for(let t = 0; t <= turn && t < moves.length; t++) {
+                for(const tok of moves[t].trim().split(/\s+/)) {
+                    const m = tok.match(/L(\d+)-(\S+)/);
+                    if(m) antPositions[m[1]] = m[2];
+                }
+            }
+
+            // Mettre à jour les fourmis sur le SVG
+            const antLayer = document.getElementById('ants');
+            if(!antLayer) return;
+            antLayer.innerHTML = '';
+
+            const radius = rooms.length <= 50 ? 14 : rooms.length <= 200 ? 8 : 4;
+            const antR = Math.max(3, radius * 0.45);
+
+            for(const [antId, roomName] of Object.entries(antPositions)) {
+                const r = roomMap[roomName];
+                if(!r || r.sx === undefined) continue;
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+                g.setAttribute('transform',`translate(${r.sx},${r.sy})`);
+
+                const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+                c.setAttribute('r', antR);
+                c.setAttribute('class','ant-dot');
+                g.appendChild(c);
+
+                if(rooms.length <= 80) {
+                    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+                    t.setAttribute('class','ant-label');
+                    t.setAttribute('y', 2);
+                    t.textContent = antId;
+                    g.appendChild(t);
+                }
+                antLayer.appendChild(g);
+            }
+
+            // Stats
+            const endRoom = rooms.find(r => r.isEnd);
+            const arrived = endRoom ? (Object.values(antPositions).filter(n => n === endRoom.name).length) : 0;
+            document.getElementById('turnDisplay').textContent = `${turn + 1} / ${totalTurns}`;
+            document.getElementById('arrivedCount').textContent = `${arrived}/${totalAnts}`;
+            document.getElementById('progressFill').style.width = `${totalTurns > 0 ? ((turn+1)/totalTurns)*100 : 0}%`;
+
+            // Scroll output to current turn
+            const out = document.getElementById('output');
+            const lines = out.children;
+            if(lines[turn]) {
+                Array.from(lines).forEach(l => l.style.opacity = '0.4');
+                lines[turn].style.opacity = '1';
+                lines[turn].scrollIntoView({block:'nearest', behavior:'smooth'});
+            }
+        }
+
+        function startAnimation() {
+            if(animTimer) clearTimeout(animTimer);
+            isPaused = false;
+            document.getElementById('pauseBtn').textContent = '⏸ Pause';
+            animStep();
+        }
+
+        function animStep() {
+            if(isPaused) return;
+            if(currentTurn >= totalTurns - 1) return;
+            updateTurn(currentTurn + 1);
+            const speed = 1600 - parseInt(document.getElementById('speedRange').value);
+            animTimer = setTimeout(animStep, speed);
+        }
 
         window.togglePause = function() {
             isPaused = !isPaused;
-            document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Reprendre' : '⏸️ Pause';
-            if (!isPaused) animate();
+            document.getElementById('pauseBtn').textContent = isPaused ? '▶ Play' : '⏸ Pause';
+            if(!isPaused) animStep();
+        };
+
+        window.stepForward = function() {
+            if(currentTurn < totalTurns - 1) { updateTurn(currentTurn + 1); }
+        };
+
+        window.stepBack = function() {
+            if(currentTurn > 0) { updateTurn(currentTurn - 1); }
         };
 
         window.reset = function() {
+            if(animTimer) clearTimeout(animTimer);
             isPaused = false;
-            currentMoveIndex = 0;
-            moves = [];
-            document.getElementById('output').textContent = '';
-            document.getElementById('pauseBtn').textContent = '⏸️ Pause';
-            const canvas = document.getElementById('visCanvas');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateStats(0, 0, 0, 0);
+            currentTurn = 0;
+            antPositions = {};
+            document.getElementById('pauseBtn').textContent = '⏸ Pause';
+            document.getElementById('output').innerHTML = '';
+            document.getElementById('turnDisplay').textContent = '0 / 0';
+            document.getElementById('arrivedCount').textContent = '0/0';
+            document.getElementById('progressFill').style.width = '0%';
+            const antLayer = document.getElementById('ants');
+            if(antLayer) antLayer.innerHTML = '';
         };
-
-        function animate() {
-            if (isPaused || currentMoveIndex >= moves.length) return;
-            const speed = 1010 - document.getElementById('speedRange').value;
-            setTimeout(() => {
-                if (!isPaused && currentMoveIndex < moves.length) {
-                    currentMoveIndex++;
-                    drawFrame();
-                    animationId = requestAnimationFrame(animate);
-                }
-            }, speed);
-        }
-
-        function drawFrame() {
-            const canvas = document.getElementById('visCanvas');
-            const ctx = canvas.getContext('2d');
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (rooms.length === 0) return;
-
-            const minX = Math.min(...rooms.map(r => r.x));
-            const maxX = Math.max(...rooms.map(r => r.x));
-            const minY = Math.min(...rooms.map(r => r.y));
-            const maxY = Math.max(...rooms.map(r => r.y));
-            const rangeX = maxX - minX || 1;
-            const rangeY = maxY - minY || 1;
-            const padding = 50;
-            const scale = Math.min((canvas.width - 2 * padding) / rangeX, (canvas.height - 2 * padding) / rangeY);
-            const offsetX = (canvas.width - rangeX * scale) / 2;
-            const offsetY = (canvas.height - rangeY * scale) / 2;
-
-            const toScreen = (x, y) => ({
-                x: offsetX + (x - minX) * scale,
-                y: offsetY + (y - minY) * scale
-            });
-
-            // Liens
-            ctx.strokeStyle = '#30363d';
-            ctx.lineWidth = 2;
-            for (const [n1, n2] of links) {
-                const r1 = rooms.find(r => r.name === n1);
-                const r2 = rooms.find(r => r.name === n2);
-                if (r1 && r2) {
-                    const p1 = toScreen(r1.x, r1.y);
-                    const p2 = toScreen(r2.x, r2.y);
-                    ctx.beginPath();
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.stroke();
-                }
-            }
-
-            // Positions des fourmis
-            const antPositions = {};
-            const roomAnts = {};
-            for (let turn = 0; turn <= currentMoveIndex && turn < moves.length; turn++) {
-                for (const tok of moves[turn].trim().split(/\s+/)) {
-                    const m = tok.match(/L(\d+)-(\S+)/);
-                    if (m) antPositions[m[1]] = m[2];
-                }
-            }
-            for (const [antId, roomName] of Object.entries(antPositions)) {
-                if (!roomAnts[roomName]) roomAnts[roomName] = [];
-                roomAnts[roomName].push(antId);
-            }
-
-            // Salles
-            const radius = Math.max(6, Math.min(16, 400 / Math.sqrt(rooms.length)));
-            for (const room of rooms) {
-                const pos = toScreen(room.x, room.y);
-                if (room.isStart) { ctx.shadowColor = '#2ea043'; ctx.shadowBlur = 20; }
-                else if (room.isEnd) { ctx.shadowColor = '#da3633'; ctx.shadowBlur = 20; }
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = room.isStart ? '#2ea043' : room.isEnd ? '#da3633' : '#161b22';
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.strokeStyle = room.isStart || room.isEnd ? '#c9d1d9' : '#58a6ff';
-                ctx.lineWidth = room.isStart || room.isEnd ? 3 : 2;
-                ctx.stroke();
-
-                // Nom seulement si pas trop de salles
-                if (rooms.length < 100) {
-                    ctx.fillStyle = '#c9d1d9';
-                    ctx.font = `${Math.max(8, radius - 4)}px monospace`;
-                    ctx.textAlign = 'center';
-                    ctx.fillText(room.name, pos.x, pos.y - radius - 4);
-                }
-
-                // Fourmis
-                const ants = roomAnts[room.name] || [];
-                if (ants.length > 0) {
-                    if (room.isEnd) {
-                        ctx.fillStyle = '#2ea043';
-                        ctx.font = `bold ${Math.max(10, radius)}px monospace`;
-                        ctx.fillText(`✓${ants.length}`, pos.x, pos.y + 4);
-                    } else {
-                        ctx.fillStyle = '#f0f6fc';
-                        ctx.font = `bold ${Math.max(8, radius - 2)}px monospace`;
-                        if (ants.length <= 3 && rooms.length < 100) {
-                            ctx.fillText(ants.map(a => '🐜' + a).join(' '), pos.x, pos.y + 4);
-                        } else {
-                            ctx.fillText(`🐜×${ants.length}`, pos.x, pos.y + 4);
-                        }
-                    }
-                }
-            }
-
-            const activeAnts = Object.values(antPositions).length;
-            const endRoom = rooms.find(r => r.isEnd);
-            const arrived = endRoom ? (roomAnts[endRoom.name] || []).length : 0;
-            updateStats(currentMoveIndex + 1, activeAnts, arrived, 0);
-        }
-
-        function updateStats(turns, moved, arrived, paths) {
-            document.getElementById('turnCount').textContent = turns;
-            document.getElementById('antsMoved').textContent = moved;
-            document.getElementById('antsArrived').textContent = `${arrived}/${totalAnts}`;
-            if (paths) document.getElementById('pathCount').textContent = paths;
-        }
     </script>
 </body>
 </html>

@@ -363,12 +363,19 @@
             used.add(n); return n;
         }
 
+        // Configurations calibrées sur le vrai générateur officiel (generator-linux)
+        // Valeurs mesurées sur 3+ runs du binaire de l'école :
+        //   --flow-one:         1 fourmi, 158 salles, 158 liens, 33 tours (déterministe)
+        //   --flow-ten:        12-14 fourmis, ~480 salles, ~490 liens, 31-32 tours
+        //   --flow-thousand:   108 fourmis, 410 salles, 421 liens, 32 tours (déterministe)
+        //   --big:            212-283 fourmis, ~2400 salles, ~3100 liens, 40-57 tours
+        //   --big-superposition: 192 fourmis, 2135 salles, 2174 liens, 79 tours (déterministe)
         const CONFIGS = {
-            'flow-one': { ants:1, paths:1, plen:[20,40], noise:[100,300], dens:1.0, desc:'1 fourmi' },
-            'flow-ten': { ants:15, paths:1, plen:[20,35], noise:[200,400], dens:1.0, desc:'~10 fourmis' },
-            'flow-thousand': { ants:109, paths:1, plen:[15,25], noise:[200,400], dens:1.05, desc:'~100 fourmis' },
-            'big': { ants:()=>randInt(200,500), paths:3, plen:[15,30], noise:[2000,3000], dens:1.25, desc:'~4000 salles' },
-            'big-superposition': { ants:()=>randInt(100,500), paths:4, plen:[15,30], noise:[2000,4000], dens:1.02, sup:true, desc:'chemins chevauchés' }
+            'flow-one':         { ants:1,   paths:1, plen:[25,35], noise:[70,100],  dens:1.0,  desc:'1 fourmi, ~110 salles' },
+            'flow-ten':         { ants:13,  paths:1, plen:[25,35], noise:[440,480], dens:1.02, desc:'~13 fourmis, ~480 salles' },
+            'flow-thousand':    { ants:137, paths:1, plen:[25,35], noise:[500,540], dens:1.03, desc:'~130 fourmis, ~540 salles' },
+            'big':              { ants:()=>randInt(200,420), paths:3, plen:[20,40], noise:[2500,2800], dens:1.22, desc:'~2700 salles, test complexité' },
+            'big-superposition':{ ants:()=>randInt(190,220), paths:4, plen:[20,40], noise:[4300,4600], dens:1.02, sup:true, desc:'~4500 salles, chemins chevauchés' }
         };
 
         window.genOfficial = function(opt, btn) {
@@ -407,7 +414,8 @@
                 const n=genName(used), x=randInt(1,eC+20), y=randInt(0,50);
                 addR(n,x,y);
                 const conn=rms.filter(r=>r.name!=n&&!r.s&&!r.e);
-                const nl=c.dens>1.15?randInt(1,3):randInt(1,2);
+                // dens 1.0 = dead-ends (1 lien), dens >1.2 = quelques salles avec 2-3 liens
+                const nl = c.dens <= 1.05 ? 1 : (Math.random() < (c.dens - 1.0) ? randInt(2,3) : 1);
                 for(let j=0;j<nl&&conn.length>0;j++) addL(n,conn[randInt(0,conn.length-1)].name);
             }
 

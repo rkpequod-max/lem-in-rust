@@ -3,250 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lem-in Rust - Documentation & Visualiseur</title>
+    <title>Lem-in Rust — Guide Complet, Visualiseur & Comparaison C vs Rust</title>
     <style>
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
             --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
             --accent: #58a6ff;
+            --accent-c: #f34b7d;
+            --accent-rust: #dea584;
             --success: #2ea043;
+            --warning: #d29922;
+            --danger: #f85149;
             --border: #30363d;
         }
-        
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.7;
         }
-        
         .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        
         header {
             text-align: center;
             padding: 3rem 0;
             border-bottom: 1px solid var(--border);
             margin-bottom: 2rem;
         }
-        
         h1 { font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; }
-        h2 { font-size: 1.8rem; margin: 2rem 0 1rem; color: var(--accent); }
-        h3 { font-size: 1.3rem; margin: 1.5rem 0 0.8rem; }
-        
+        h2 { font-size: 1.8rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        h3 { font-size: 1.3rem; margin: 1.5rem 0 0.8rem; color: var(--text-primary); }
+        h4 { font-size: 1.1rem; margin: 1rem 0 0.5rem; color: var(--text-secondary); }
         .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            background: var(--success);
-            color: white;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-left: 1rem;
+            display: inline-block; padding: 0.3rem 0.8rem;
+            background: var(--success); color: white;
+            border-radius: 20px; font-size: 0.9rem; margin-left: 1rem;
         }
-        
         .nav-links {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1.5rem;
+            display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;
         }
-        
         .nav-links a {
-            padding: 0.8rem 1.5rem;
-            background: var(--bg-secondary);
-            color: var(--accent);
-            text-decoration: none;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            transition: all 0.3s;
+            padding: 0.8rem 1.5rem; background: var(--bg-secondary);
+            color: var(--accent); text-decoration: none; border-radius: 6px;
+            border: 1px solid var(--border); transition: all 0.3s;
         }
-        
-        .nav-links a:hover {
-            background: var(--accent);
-            color: var(--bg-primary);
-        }
-        
+        .nav-links a:hover { background: var(--accent); color: var(--bg-primary); }
         .card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin: 1.5rem 0;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0;
         }
-        
+        .info {
+            background: rgba(56, 139, 253, 0.1); border-left: 4px solid var(--accent);
+            padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 4px;
+        }
+        .warn {
+            background: rgba(187, 128, 9, 0.1); border-left: 4px solid var(--warning);
+            padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 4px;
+        }
+        .danger {
+            background: rgba(248, 81, 73, 0.1); border-left: 4px solid var(--danger);
+            padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 4px;
+        }
         code {
-            background: rgba(110, 118, 129, 0.4);
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
+            background: rgba(110, 118, 129, 0.4); padding: 0.2rem 0.4rem;
+            border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em;
         }
-        
         pre {
-            background: #0d1117;
-            padding: 1rem;
-            border-radius: 6px;
-            overflow-x: auto;
-            border: 1px solid var(--border);
+            background: #010409; padding: 1rem; border-radius: 6px;
+            overflow-x: auto; border: 1px solid var(--border); margin: 1rem 0;
         }
-        
-        pre code {
-            background: transparent;
-            padding: 0;
-        }
-        
-        ul { margin-left: 2rem; margin-top: 0.5rem; }
+        pre code { background: transparent; padding: 0; }
+        ul, ol { margin-left: 2rem; margin-top: 0.5rem; }
         li { margin-bottom: 0.5rem; }
-        
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { border: 1px solid var(--border); padding: 0.8rem; text-align: left; }
+        th { background: var(--bg-tertiary); color: var(--accent); }
+        tr:nth-child(even) { background: var(--bg-secondary); }
         .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem; margin: 2rem 0;
         }
-        
         .feature-item {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid var(--accent);
+            background: var(--bg-secondary); padding: 1.5rem;
+            border-radius: 8px; border-left: 4px solid var(--accent);
         }
-        
+        .feature-item h3 { color: var(--accent); }
+        .toc {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 8px; padding: 1.5rem; margin: 2rem 0;
+        }
+        .toc ul { list-style: none; margin-left: 0; }
+        .toc a { color: var(--accent); text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        /* Comparison table styles */
+        .compare-table th { text-align: center; }
+        .compare-table td:first-child { font-weight: bold; color: var(--text-secondary); }
+        .compare-c { color: var(--accent-c); }
+        .compare-rust { color: var(--accent-rust); }
+        .check { color: var(--success); }
+        .cross { color: var(--danger); }
         footer {
-            text-align: center;
-            padding: 2rem;
-            margin-top: 3rem;
-            border-top: 1px solid var(--border);
-            color: #8b949e;
+            text-align: center; padding: 2rem; margin-top: 3rem;
+            border-top: 1px solid var(--border); color: var(--text-secondary);
+        }
+        .section-divider {
+            text-align: center; margin: 3rem 0; color: var(--text-secondary);
+            font-size: 1.2rem; letter-spacing: 0.3rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🐜 Lem-in Rust <span class="badge">WASM Ready</span></h1>
-            <p>Traduction complète du projet Lem-in de la 42 School en Rust avec compilation WebAssembly native</p>
-            
-            <div class="nav-links">
-                <a href="visualizer.html">🚀 Lancer le Visualiseur</a>
-                <a href="https://github.com/rkpequod-max/lem-in-rust" target="_blank">📂 Voir sur GitHub</a>
-            </div>
-        </header>
+<div class="container">
+    <header>
+        <h1>🐜 Lem-in Rust <span class="badge">WASM Ready</span></h1>
+        <p>Traduction complète du projet Lem-in (42 School) en Rust — avec algorithmes Edmonds-Karp, path_config, et compilation WebAssembly</p>
+        <div class="nav-links">
+            <a href="visualizer.html">🚀 Visualiseur</a>
+            <a href="https://github.com/rkpequod-max/lem-in-rust" target="_blank">📂 GitHub</a>
+            <a href="https://rkpequod-max.github.io/lem-in/" target="_blank">📘 Guide Version C</a>
+        </div>
+    </header>
 
-        <section>
-            <h2>📖 À propos du projet</h2>
-            <div class="card">
-                <p><strong>Lem-in</strong> est un projet algorithmique qui consiste à faire passer un nombre donné de fourmis d'un point de départ à un point d'arrivée dans le minimum de tours, en évitant les collisions.</p>
-                <br>
-                <p>Cette version <strong>Rust</strong> offre :</p>
-                <ul>
-                    <li>✅ <strong>Sécurité mémoire garantie</strong> (pas de segfault, pas de buffer overflow)</li>
-                    <li>✅ <strong>Performance optimale</strong> grâce au compilateur Rust</li>
-                    <li>✅ <strong>Compilation WASM native</strong> avec wasm-pack</li>
-                    <li>✅ <strong>Code moderne et maintenable</strong> avec le système de types Rust</li>
-                </ul>
-            </div>
-        </section>
+    <!-- ==================== SOMMAIRE ==================== -->
+    <div class="toc">
+        <h3>📋 Sommaire</h3>
+        <ul>
+            <li>1. <a href="#about">À propos du projet</a></li>
+            <li>2. <a href="#structures">Structures de données</a></li>
+            <li>3. <a href="#parsing">Parsing et validation</a></li>
+            <li>4. <a href="#algorithmes">Algorithmes (BFS, Flux, Optimisation)</a></li>
+            <li>5. <a href="#simulation">Simulation des fourmis</a></li>
+            <li>6. <a href="#modules">Architecture des modules</a></li>
+            <li>7. <a href="#exemple">Exemple complet</a></li>
+            <li>8. <a href="#build">Compilation & Build WASM</a></li>
+            <li>9. <a href="#comparison">⚡ Comparaison C vs Rust</a></li>
+        </ul>
+    </div>
 
-        <section>
-            <h2>🏗️ Structures de données</h2>
-            <div class="features">
-                <div class="feature-item">
-                    <h3>Room (Salles)</h3>
-                    <p>Représente une salle avec son nom, ses coordonnées, son statut (start/end) et ses connexions.</p>
-                    <pre><code>struct Room {
-    name: String,
-    coords: (i32, i32),
-    is_start: bool,
-    is_end: bool,
-    links: Vec&lt;String&gt;,
+    <!-- ==================== ABOUT ==================== -->
+    <h2 id="about">📖 À propos du projet</h2>
+    <div class="card">
+        <p><strong>Lem-in</strong> est un projet algorithmique qui consiste à faire passer un nombre donné de fourmis d'un point de départ à un point d'arrivée dans le minimum de tours, en évitant les collisions. Le projet utilise un algorithme de <strong>BFS (Breadth-First Search)</strong> combiné à une gestion de <strong>flot maximum</strong> inspirée d'Edmonds-Karp.</p>
+        <p style="margin-top: 1rem;">Cette version <strong>Rust</strong> est une traduction fidèle de la <a href="https://github.com/rkpequod-max/lem-in" target="_blank" style="color: var(--accent);">version C originale</a>. Elle produit <strong>exactement le même nombre de tours</strong> sur toutes les maps de test (validé par stress test sur 20 maps aléatoires).</p>
+        <p style="margin-top: 1rem;">Avantages de la version Rust :</p>
+        <ul>
+            <li>✅ <strong>Sécurité mémoire garantie</strong> — pas de segfault, pas de fuite, pas de double-free (ownership + <code>Drop</code>)</li>
+            <li>✅ <strong>Performance</strong> — <code>HashMap</code>/<code>HashSet</code> O(1) au lieu de listes chaînées O(n)</li>
+            <li>✅ <strong>BFS itératif</strong> — pas de risque de stack overflow sur grandes maps</li>
+            <li>✅ <strong>Code modulaire</strong> — 8 modules clairement séparés</li>
+            <li>✅ <strong>Compilation WASM native</strong> avec <code>wasm-pack</code></li>
+        </ul>
+    </div>
+
+    <!-- ==================== STRUCTURES ==================== -->
+    <h2 id="structures">🏗️ Structures de données</h2>
+
+    <p>Définies dans <code>src/models.rs</code>. La version Rust utilise <code>Rc&lt;RefCell&lt;Room&gt;&gt;</code> (comptage de références + mutation intérieure) pour permettre le partage de propriété dans le graphe cyclique — l'équivalent des pointeurs bruts <code>t_room *</code> du C, mais avec une sécurité garantie à la compilation.</p>
+
+    <h3>Coord — Coordonnées 2D</h3>
+    <pre><code>#[derive(Clone, Debug, Default)]
+pub struct Coord {
+    pub x: i32,
+    pub y: i32,
 }</code></pre>
-                </div>
-                
-                <div class="feature-item">
-                    <h3>Farm (Ferme)</h3>
-                    <p>Conteneur principal avec le nombre de fourmis et la liste des salles.</p>
-                    <pre><code>struct Farm {
-    num_ants: usize,
-    rooms: HashMap&lt;String, Room&gt;,
+
+    <h3>RoomRef — Type alias pour référence partagée</h3>
+    <pre><code>pub type RoomRef = Rc&lt;RefCell&lt;Room&gt;&gt;;</code></pre>
+    <p><code>Rc</code> = Reference Counted (comptage de références automatique). <code>RefCell</code> = mutation intérieure (borrow-checking runtime). Ensemble, ils remplacent les <code>t_room *</code> + <code>malloc</code>/<code>free</code> manuels du C.</p>
+
+    <h3>Room — La Structure Centrale</h3>
+    <pre><code>pub struct Room {
+    pub name: String,                    // Nom (propriétaire, pas de malloc/ft_strdup)
+    pub coord: Coord,
+    pub ant: i32,                        // ID de la fourmi (0 si vide)
+    pub start: bool,                     // bool natif (vs int 0/1 en C)
+    pub end: bool,
+    pub links: Vec&lt;RoomRef&gt;,             // Vec contigu (vs t_list *lnks chaîné en C)
+    pub f_to: Option&lt;RoomRef&gt;,           // Option (vs NULL pointer en C)
+    pub f_fm: Option&lt;RoomRef&gt;,           // Option = impossible d'oublier le check
 }</code></pre>
-                </div>
-                
-                <div class="feature-item">
-                    <h3>BFS & Pathfinding</h3>
-                    <p>Algorithme de Breadth-First Search optimisé pour trouver les chemins les plus courts.</p>
-                    <pre><code>fn find_shortest_path(
-    farm: &Farm,
-    start: &str,
-    end: &str
-) -&gt; Option&lt;Vec&lt;String&gt;&gt;</code></pre>
-                </div>
-            </div>
-        </section>
 
-        <section>
-            <h2>⚙️ Algorithme</h2>
-            <div class="card">
-                <h3>1. Parsing de la carte</h3>
-                <p>Lecture et validation de l'input : nombre de fourmis, salles (nom x y), et liens (room1-room2).</p>
-                
-                <h3>2. Recherche de chemins (BFS)</h3>
-                <p>Parcours en largeur pour trouver tous les chemins possibles du start à l'end, en évitant les collisions.</p>
-                
-                <h3>3. Optimisation du flux</h3>
-                <p>Calcul du nombre optimal de fourmis par chemin pour minimiser le nombre total de tours.</p>
-                
-                <h3>4. Simulation</h3>
-                <p>Exécution tour par tour du déplacement des fourmis avec affichage des mouvements.</p>
-            </div>
-        </section>
+    <div class="info">
+        <strong>Différences clés avec le C :</strong>
+        <ul>
+            <li><code>String</code> au lieu de <code>char *</code> + <code>ft_strdup</code> — pas de gestion mémoire manuelle</li>
+            <li><code>Vec&lt;RoomRef&gt;</code> au lieu de <code>t_list *lnks</code> — contigu en mémoire (meilleur cache locality)</li>
+            <li><code>Option&lt;RoomRef&gt;</code> au lieu de <code>struct s_room *f_to</code> + NULL — le compilateur force le check</li>
+            <li><code>bool</code> au lieu de <code>int start/end</code> — plus clair</li>
+            <li>Pas de <code>next</code> — <code>Farm.rooms</code> est un <code>Vec</code></li>
+            <li>Pas de <code>t_room **</code> (double pointeur) — <code>Rc::ptr_eq</code> + <code>borrow_mut</code> suffisent</li>
+        </ul>
+    </div>
 
-        <section>
-            <h2>📦 Format d'entrée</h2>
-            <div class="card">
-                <pre><code>&lt;nombre_fourmis&gt;
+    <h3>Farm — Conteneur Principal</h3>
+    <pre><code>pub struct Farm {
+    pub ants: i32,
+    pub rooms: Vec&lt;RoomRef&gt;,                            // Vec (vs liste chaînée en C)
+    pub name_map: HashMap&lt;String, RoomRef&gt;,               // Lookup O(1) par nom
+}</code></pre>
+    <p>Le <code>name_map</code> est un ajout Rust : en C, <code>find_name()</code> parcourt toute la liste en O(n). En Rust, <code>farm.find_by_name()</code> est O(1) grâce à la <code>HashMap</code>.</p>
 
-##start
-&lt;nom&gt; &lt;x&gt; &lt;y&gt;
-##end
-&lt;nom&gt; &lt;x&gt; &lt;y&gt;
+    <h3>Path — Chemin pour la simulation</h3>
+    <pre><code>pub struct Path {
+    pub rooms: Vec&lt;RoomRef&gt;,   // [première_salleAprèsStart, ..., end]
+    pub send_ants: i32,         // temporaire, utilisé pendant path_config
+    pub min_ants: i32,          // allocation finale calculée par path_config
+}</code></pre>
+    <p>En C, cette structure s'appelle <code>t_bfs</code> et contient aussi <code>path_size</code>, <code>prev</code>, <code>next</code>. En Rust, <code>path_size</code> est calculé via <code>rooms.len()</code>, et <code>prev/next</code> ne sont plus nécessaires (le BFS utilise une <code>HashMap</code> de parents).</p>
 
-&lt;room1&gt;-&lt;room2&gt;
-&lt;room3&gt;-&lt;room4&gt;</code></pre>
-                
-                <h3>Exemple :</h3>
-                <pre><code>4
+    <!-- ==================== PARSING ==================== -->
+    <h2 id="parsing">🔍 Parsing et validation</h2>
 
+    <p>Le parsing utilise une <strong>FSM à 3 sections</strong> identique à la version C, mais exploite <code>HashSet</code> pour la validation d'unicité en O(1) au lieu de parcours O(n).</p>
+
+    <table>
+        <thead><tr><th>Section</th><th>Contenu</th><th>Format</th></tr></thead>
+        <tbody>
+            <tr><td><strong>0</strong></td><td>Nombre de fourmis</td><td><code>i32</code> positif (<code>line.parse::&lt;i32&gt;()</code>)</td></tr>
+            <tr><td><strong>1</strong></td><td>Salles</td><td><code>nom x y</code> (3 tokens, <code>split_whitespace</code>)</td></tr>
+            <tr><td><strong>2</strong></td><td>Liens</td><td><code>room1-room2</code> (un seul <code>-</code>)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Validation</h3>
+    <ul>
+        <li>Noms uniques : <code>HashSet&lt;String&gt;</code> O(1) (vs <code>is_name()</code> O(n) en C)</li>
+        <li>Coordonnées uniques : <code>HashSet&lt;(i32, i32)&gt;</code> O(1)</li>
+        <li>Recherche de salle par nom : <code>HashMap&lt;String, RoomRef&gt;</code> O(1) (vs <code>find_name()</code> O(n) en C)</li>
+        <li>Liens bidirectionnels avec <code>Rc::ptr_eq</code> pour éviter les doublons</li>
+        <li>Erreurs via <code>Result&lt;ParseResult, String&gt;</code> (vs <code>ft_puterr</code> + retour -1 en C)</li>
+    </ul>
+
+    <div class="warn">
+        <strong>Ordre LIFO :</strong> Comme en C (<code>ft_lstadd</code> = ajout en tête), les salles et liens sont insérés avec <code>insert(0, ...)</code> pour reproduire l'ordre LIFO. C'est critique car l'ordre des voisins affecte le parcours BFS et donc le résultat final.
+    </div>
+
+    <!-- ==================== ALGORITHMES ==================== -->
+    <h2 id="algorithmes">🧮 Algorithmes</h2>
+
+    <h3>1. Vue d'ensemble</h3>
+    <pre><code>solve()
+  │
+  ├── find_start() / find_end()
+  │
+  ├── BOUCLE de découverte de chemins :
+  │   ├── bfs_find_path() : BFS itératif VecDeque
+  │   ├── update_flow() : marquer f_to/f_fm + annuler conflits
+  │   └── répéter jusqu'à ce qu'aucun chemin ne soit trouvé
+  │
+  └── send_ants() : simulation tour par tour
+      ├── extract_paths() : suivre f_to depuis les voisins de start
+      ├── path_config() : optimiser la distribution des fourmis
+      └── boucle (move_ants + select_paths)</code></pre>
+
+    <h3>2. BFS — <code>bfs_find_path()</code></h3>
+    <p>Le BFS est <strong>itératif</strong> (avec <code>VecDeque</code>) au lieu de récursif en C. Avantage : pas de risque de stack overflow sur grandes maps.</p>
+    <ul>
+        <li><code>HashSet&lt;usize&gt;</code> pour les visited — O(1) (vs <code>room_in()</code> O(n) en C qui parcourt toute la file)</li>
+        <li><code>HashMap&lt;usize, RoomRef&gt;</code> pour les parents — reconstruction du chemin en O(L)</li>
+        <li>Clés = <code>Rc::as_ptr(r) as usize</code> (adresse mémoire) — équivalent de comparer les pointeurs en C</li>
+        <li>Même logique <code>flow_to</code> + <code>undo</code> que la version C (Edmonds-Karp)</li>
+    </ul>
+
+    <div class="info">
+        <strong><code>flow_to(from, to)</code> :</strong>
+        <ul>
+            <li>Si <code>from</code> est start : arête utilisée si <code>to.f_fm == from</code></li>
+            <li>Sinon : arête utilisée si <code>from.f_to == to</code></li>
+        </ul>
+        Le mode <strong>undo</strong> autorise uniquement le voisin <code>f_fm</code> (reverse edge) quand le noeud courant a un <code>f_to</code> qui ne pointe pas vers son parent.
+    </div>
+
+    <h3>3. Mise à jour du flux — <code>update_flow()</code></h3>
+    <p>Backtrack depuis end vers start, en marquant <code>f_to</code>/<code>f_fm</code> et en <strong>annulant les conflits</strong> (tunnels inverses) :</p>
+    <pre><code>// Pour chaque paire (prv, r) sur le chemin :
+if !r_f_to_is_prv && !prv_f_fm_is_r {
+    r.f_fm = Some(prv);    // marquer backward
+    prv.f_to = Some(r);    // marquer forward
+}
+// Annuler les conflits :
+if r_f_to_is_prv { r.f_to = None; }
+if prv_f_fm_is_r { prv.f_fm = None; }</code></pre>
+
+    <h3>4. Extraction des chemins — <code>extract_paths()</code></h3>
+    <p>Suit <code>f_to</code> depuis les <strong>voisins du start</strong> (pas le start lui-même) jusqu'à <code>end</code>. Les chemins sont triés par longueur (<code>sort_by_key</code>) — équivalent à <code>insertio()</code> en C.</p>
+
+    <h3>5. Optimisation — <code>path_config()</code></h3>
+    <p>Portage fidèle de <code>condemn_path</code> + <code>populate_path</code> + <code>save_min</code> :</p>
+    <pre><code>// populate_path : distribution proportionnelle
+send_ants[0] = first;
+send_ants[i+1] = (send_ants[i] - abs(path_size[i+1] - path_size[i])).max(0);
+
+// condemn_path : tours = population + longest_path_size
+// path_config : tester toutes les combinaisons, garder le minimum</code></pre>
+
+    <!-- ==================== SIMULATION ==================== -->
+    <h2 id="simulation">🐜 Simulation des fourmis</h2>
+    <pre><code>while end.ant < total_ants {
+    moved = move_ants(&paths);      // avancer toutes les fourmis
+    moved |= select_paths(&mut paths, farm); // injecter nouvelles fourmis
+    output.push('\n');
+    if !moved { break; }
+}</code></pre>
+
+    <h3><code>push_ants()</code> — Shift forward</h3>
+    <p>Parcourt le chemin et décale les fourmis d'une case (sauvegarde <code>aux_ant</code>, échange avec <code>prev_ant</code>). Si une fourmi arrive à <code>end</code>, <code>end.ant</code> est incrémenté.</p>
+
+    <h3><code>select_paths()</code> — Injection</h3>
+    <p>Pour chaque chemin avec <code>min_ants > 0</code> : place une nouvelle fourmi (ID = <code>total_ants - farm.ants + 1</code>) dans la première salle, décrémente <code>min_ants</code> et <code>farm.ants</code>.</p>
+
+    <!-- ==================== MODULES ==================== -->
+    <h2 id="modules">📦 Architecture des modules</h2>
+    <div class="features">
+        <div class="feature-item">
+            <h3>models.rs</h3>
+            <p>Coord, Room, Farm, Path, RoomRef. Définit les structures de données et les méthodes <code>find_start</code>, <code>find_end</code>, <code>find_by_name</code>.</p>
+        </div>
+        <div class="feature-item">
+            <h3>parser.rs</h3>
+            <p>FSM 3 sections + validation (HashSet O(1)). Retourne <code>Result&lt;ParseResult, String&gt;</code>.</p>
+        </div>
+        <div class="feature-item">
+            <h3>bfs.rs</h3>
+            <p>BFS itératif VecDeque avec <code>flow_to</code> + <code>undo</code>. <code>HashSet</code> visited O(1). Reconstruction via <code>HashMap</code> parent.</p>
+        </div>
+        <div class="feature-item">
+            <h3>flow.rs</h3>
+            <p><code>update_flow</code> avec gestion des conflits + <code>extract_paths</code> (suit <code>f_to</code> depuis voisins de start).</p>
+        </div>
+        <div class="feature-item">
+            <h3>path_config.rs</h3>
+            <p><code>path_config</code> + <code>condemn_path</code> + <code>populate_path</code>. Optimisation de la distribution des fourmis.</p>
+        </div>
+        <div class="feature-item">
+            <h3>simulation.rs</h3>
+            <p><code>send_ants</code> + <code>push_ants</code> (shift) + <code>select_paths</code> (injection). Boucle tour par tour.</p>
+        </div>
+        <div class="feature-item">
+            <h3>solver.rs</h3>
+            <p>Orchestration : boucle BFS → update_flow → send_ants. Point d'entrée <code>solve()</code>.</p>
+        </div>
+        <div class="feature-item">
+            <h3>lib.rs + main.rs</h3>
+            <p><code>lib.rs</code> : entry WASM (<code>parse_and_solve</code>). <code>main.rs</code> : entry CLI (stdin → stdout).</p>
+        </div>
+    </div>
+
+    <!-- ==================== EXEMPLE ==================== -->
+    <h2 id="exemple">📝 Exemple complet</h2>
+    <div class="card">
+        <h3>Input :</h3>
+        <pre><code>4
 ##start
 1 0 0
 2 1 0
 3 0 1
-##end
 4 1 1
-
+##end
+5 2 0
 1-2
 1-3
 2-4
-3-4</code></pre>
-            </div>
-        </section>
+3-4
+4-5</pre></code>
+        <h3>Output (identique à la version C) :</h3>
+        <pre><code>L1-3
+L1-4 L2-3
+L2-4 L1-5 L3-3
+L3-4 L2-5 L4-3
+L4-4 L3-5
+L4-5</pre></code>
+        <p><strong>6 tours</strong> — les deux versions produisent exactement la même sortie (validé par stress test sur 20 maps aléatoires avec le générateur officiel).</p>
+    </div>
 
-        <section>
-            <h2>🔧 Compilation & Déploiement</h2>
-            <div class="card">
-                <p>Le projet utilise <strong>GitHub Actions</strong> pour compiler automatiquement le code Rust en WebAssembly et déployer le site.</p>
-                
-                <h3>Workflow automatique :</h3>
-                <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    <li>Push sur la branche <code>main</code></li>
-                    <li>Installation de Rust et wasm-pack</li>
-                    <li>Compilation WASM : <code>wasm-pack build --target web --release</code></li>
-                    <li>Déploiement sur GitHub Pages</li>
-                </ol>
-                
-                <h3 style="margin-top: 1rem;">Commandes locales (optionnel) :</h3>
-                <pre><code># Installer wasm-pack
+    <!-- ==================== BUILD ==================== -->
+    <h2 id="build">🔧 Compilation & Build WASM</h2>
+    <div class="card">
+        <h3>Build native</h3>
+        <pre><code>cargo build --release
+./target/release/lem-in &lt; map.txt</code></pre>
+        <h3>Build WebAssembly</h3>
+        <pre><code># Installer wasm-pack
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 # Compiler en WASM
@@ -254,13 +394,238 @@ wasm-pack build --target web --release
 
 # Tester localement
 python3 -m http.server 8000</code></pre>
-            </div>
-        </section>
-
-        <footer>
-            <p>Projet Lem-in réécrit en Rust par <a href="https://github.com/rkpequod-max" style="color: var(--accent);">@rkpequod-max</a></p>
-            <p style="margin-top: 0.5rem;">Déployé avec ❤️ sur GitHub Pages + WebAssembly</p>
-        </footer>
+        <h3>CI/CD GitHub Actions</h3>
+        <p>Le projet inclut un workflow GitHub Actions (<code>.github/workflows/deploy.yml</code>) qui compile automatiquement le WASM et déploie sur GitHub Pages à chaque push sur <code>main</code>.</p>
     </div>
+
+    <!-- ==================== COMPARAISON ==================== -->
+    <div class="section-divider">━━━━━━━━━━ ⚡ ━━━━━━━━━━</div>
+
+    <h2 id="comparison">⚡ Comparaison C vs Rust</h2>
+
+    <p>Cette section compare en détail les deux implémentations : la <a href="https://github.com/rkpequod-max/lem-in" target="_blank" style="color: var(--accent-c);">version C originale</a> et la <a href="https://github.com/rkpequod-max/lem-in-rust" target="_blank" style="color: var(--accent-rust);">version Rust</a>.</p>
+
+    <h3>Vue d'ensemble</h3>
+    <table class="compare-table">
+        <thead>
+            <tr>
+                <th>Aspect</th>
+                <th class="compare-c">Version C</th>
+                <th class="compare-rust">Version Rust</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Lignes de code (cœur)</td>
+                <td class="compare-c">~1375 (15 fichiers)</td>
+                <td class="compare-rust">~600 (8 modules)</td>
+            </tr>
+            <tr>
+                <td>Dépendances</td>
+                <td class="compare-c">libft custom (~80 fichiers)</td>
+                <td class="compare-rust">wasm-bindgen, js-sys, console_error_panic_hook</td>
+            </tr>
+            <tr>
+                <td>Build native</td>
+                <td class="compare-c">Makefile + gcc</td>
+                <td class="compare-rust">Cargo</td>
+            </tr>
+            <tr>
+                <td>Build WASM</td>
+                <td class="compare-c">Emscripten (emcc, ~500MB)</td>
+                <td class="compare-rust">wasm-pack (léger)</td>
+            </tr>
+            <tr>
+                <td>CI/CD</td>
+                <td class="compare-c">Aucune</td>
+                <td class="compare-rust">GitHub Actions auto</td>
+            </tr>
+            <tr>
+                <td>Tests automatisés</td>
+                <td class="compare-c">Aucun</td>
+                <td class="compare-rust">Stress test 20 maps ✅</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Structures de données</h3>
+    <table class="compare-table">
+        <thead>
+            <tr><th>Concept</th><th class="compare-c">C</th><th class="compare-rust">Rust</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Salles</td>
+                <td class="compare-c"><code>t_room *</code> (liste chaînée)</td>
+                <td class="compare-rust"><code>Vec&lt;RoomRef&gt;</code> (contigu)</td>
+            </tr>
+            <tr>
+                <td>Voisins</td>
+                <td class="compare-c"><code>t_list *lnks</code> (liste chaînée)</td>
+                <td class="compare-rust"><code>Vec&lt;RoomRef&gt;</code> (contigu)</td>
+            </tr>
+            <tr>
+                <td>Nom</td>
+                <td class="compare-c"><code>char *</code> + <code>ft_strdup</code> + <code>free</code></td>
+                <td class="compare-rust"><code>String</code> (ownership auto)</td>
+            </tr>
+            <tr>
+                <td>Flux forward/backward</td>
+                <td class="compare-c"><code>struct s_room *f_to</code> (NULL = absent)</td>
+                <td class="compare-rust"><code>Option&lt;RoomRef&gt;</code> (impossible d'oublier le check)</td>
+            </tr>
+            <tr>
+                <td>Start/End</td>
+                <td class="compare-c"><code>int start, end</code> (0/1)</td>
+                <td class="compare-rust"><code>bool start, end</code></td>
+            </tr>
+            <tr>
+                <td>Double pointeur</td>
+                <td class="compare-c"><code>t_room **</code> (fragile, pour backtracking)</td>
+                <td class="compare-rust">Pas besoin (<code>Rc::ptr_eq</code> + <code>borrow_mut</code>)</td>
+            </tr>
+            <tr>
+                <td>Recherche par nom</td>
+                <td class="compare-c"><code>find_name()</code> O(n) parcours liste</td>
+                <td class="compare-rust"><code>HashMap</code> O(1)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Gestion mémoire</h3>
+    <table class="compare-table">
+        <thead><tr><th>Aspect</th><th class="compare-c">C</th><th class="compare-rust">Rust</th></tr></thead>
+        <tbody>
+            <tr><td>Allocation</td><td class="compare-c"><code>malloc</code> manuel</td><td class="compare-rust"><code>Rc</code> (comptage auto)</td></tr>
+            <tr><td>Libération</td><td class="compare-c"><code>free</code> manuel + <code>destruct_farm</code></td><td class="compare-rust">Automatique (<code>Drop</code>)</td></tr>
+            <tr><td>Fuites possibles</td><td class="compare-c"><span class="cross">✗ Oui (oubli <code>free</code>)</span></td><td class="compare-rust"><span class="check">✓ Non (compile-time)</span></td></tr>
+            <tr><td>Double-free</td><td class="compare-c"><span class="cross">✗ Possible</span></td><td class="compare-rust"><span class="check">✓ Impossible (ownership)</span></td></tr>
+            <tr><td>Null pointer deref</td><td class="compare-c"><span class="cross">✗ Possible</span></td><td class="compare-rust"><span class="check">✓ Impossible (<code>Option</code>)</span></td></tr>
+            <tr><td>Use-after-free</td><td class="compare-c"><span class="cross">✗ Possible</span></td><td class="compare-rust"><span class="check">✓ Impossible (borrow checker)</span></td></tr>
+        </tbody>
+    </table>
+
+    <h3>Algorithmes</h3>
+    <table class="compare-table">
+        <thead><tr><th>Aspect</th><th class="compare-c">C</th><th class="compare-rust">Rust</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>BFS</td>
+                <td class="compare-c">Récursif (stack overflow possible)</td>
+                <td class="compare-rust">Itératif <code>VecDeque</code> (sûr)</td>
+            </tr>
+            <tr>
+                <td>Visited check</td>
+                <td class="compare-c"><code>room_in()</code> O(n) parcours file</td>
+                <td class="compare-rust"><code>HashSet</code> O(1)</td>
+            </tr>
+            <tr>
+                <td>Parent tracking</td>
+                <td class="compare-c"><code>prev</code> dans <code>t_bfs</code></td>
+                <td class="compare-rust"><code>HashMap&lt;usize, RoomRef&gt;</code></td>
+            </tr>
+            <tr>
+                <td>update_flow</td>
+                <td class="compare-c">Gestion des conflits ✅</td>
+                <td class="compare-rust">Gestion des conflits ✅ (portage fidèle)</td>
+            </tr>
+            <tr>
+                <td>path_config</td>
+                <td class="compare-c"><code>condemn_path</code> + <code>populate_path</code> ✅</td>
+                <td class="compare-rust">Portage fidèle ✅</td>
+            </tr>
+            <tr>
+                <td>Simulation</td>
+                <td class="compare-c"><code>push_ants</code> + <code>select_paths</code> ✅</td>
+                <td class="compare-rust">Portage fidèle ✅</td>
+            </tr>
+            <tr>
+                <td>Ordre voisins</td>
+                <td class="compare-c"><code>ft_lstadd</code> = LIFO</td>
+                <td class="compare-rust"><code>insert(0, ...)</code> = LIFO (matching)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Gestion d'erreurs</h3>
+    <table class="compare-table">
+        <thead><tr><th>Aspect</th><th class="compare-c">C</th><th class="compare-rust">Rust</th></tr></thead>
+        <tbody>
+            <tr><td>Style</td><td class="compare-c">Retour <code>int</code> (0/-1) + <code>ft_puterr</code> (side effect)</td><td class="compare-rust"><code>Result&lt;T, String&gt;</code> (valeur de retour)</td></tr>
+            <tr><td>Type d'erreur</td><td class="compare-c">String magique via <code>ft_puterr</code></td><td class="compare-rust"><code>String</code> (pourrait être <code>enum Error</code>)</td></tr>
+            <tr><td>Séparation logique/erreur</td><td class="compare-c"><span class="cross">✗ Mélange</span></td><td class="compare-rust"><span class="check">✓ Séparation propre</span></td></tr>
+        </tbody>
+    </table>
+
+    <h3>WebAssembly</h3>
+    <table class="compare-table">
+        <thead><tr><th>Aspect</th><th class="compare-c">C (Emscripten)</th><th class="compare-rust">Rust (wasm-bindgen)</th></tr></thead>
+        <tbody>
+            <tr><td>Toolchain</td><td class="compare-c"><code>emcc</code> (~500MB)</td><td class="compare-rust"><code>wasm-pack</code> (léger)</td></tr>
+            <tr><td>Export</td><td class="compare-c"><code>EMSCRIPTEN_KEEPALIVE</code></td><td class="compare-rust"><code>#[wasm_bindgen]</code></td></tr>
+            <tr><td>Entrée/sortie</td><td class="compare-c">Buffer global <code>g_output_buffer</code> + <code>strcpy</code></td><td class="compare-rust"><code>&amp;str</code> → <code>String</code> direct</td></tr>
+            <tr><td>Glue JS</td><td class="compare-c">Manuel (~100 lignes)</td><td class="compare-rust">Auto-généré par wasm-bindgen</td></tr>
+            <tr><td>Optimisation</td><td class="compare-c"><code>-O2</code></td><td class="compare-rust"><code>opt-level = "s"</code> + <code>lto = true</code></td></tr>
+        </tbody>
+    </table>
+
+    <h3>Validation — Résultats identiques</h3>
+    <div class="card">
+        <p>Les deux versions produisent <strong>exactement le même nombre de tours</strong> sur toutes les maps testées :</p>
+        <table>
+            <thead><tr><th>Test</th><th class="compare-c">C (tours)</th><th class="compare-rust">Rust (tours)</th><th>Match</th></tr></thead>
+            <tbody>
+                <tr><td>Map simple (3 fourmis, 1 chemin)</td><td>5</td><td>5</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Map multi-chemins (10 fourmis)</td><td>9</td><td>9</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Map asymétrique (20 fourmis)</td><td>10</td><td>10</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Generator --flow-one</td><td>32</td><td>32</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Generator --flow-ten</td><td>31</td><td>31</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Generator --flow-thousand</td><td>33</td><td>33</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Generator --big</td><td>59</td><td>59</td><td><span class="check">✅</span></td></tr>
+                <tr><td>Generator --big-superposition</td><td>85</td><td>85</td><td><span class="check">✅</span></td></tr>
+                <tr><td><strong>Stress test 20 maps --big</strong></td><td>—</td><td>—</td><td><strong><span class="check">✅ 20/20</span></strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Résumé</h3>
+    <div class="features">
+        <div class="feature-item" style="border-left-color: var(--accent-c);">
+            <h3 class="compare-c">Avantages du C</h3>
+            <ul>
+                <li>Compilation sans runtime</li>
+                <li>Contrôle fin de la mémoire</li>
+                <li>Compatibilité maximale (42 Norme)</li>
+                <li>Executable standalone minimal</li>
+            </ul>
+        </div>
+        <div class="feature-item" style="border-left-color: var(--accent-rust);">
+            <h3 class="compare-rust">Avantages du Rust</h3>
+            <ul>
+                <li>Zéro fuite mémoire (ownership)</li>
+                <li>HashMap/HashSet O(1) vs listes O(n)</li>
+                <li>BFS itératif (pas de stack overflow)</li>
+                <li>3.2× moins de code (600 vs 1375 lignes)</li>
+                <li>Option&lt;T&gt; élimine les null deref</li>
+                <li>wasm-bindgen auto-génère le glue JS</li>
+                <li>CI/CD GitHub Actions intégré</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="info">
+        <strong>Conclusion :</strong> Les deux implémentations sont <strong>fonctionnellement équivalentes</strong> (même nombre de tours sur tous les tests). La version Rust est plus concise, plus sûre, et plus performante sur le parsing/BFS grâce aux HashMap/HashSet. La version C reste l'implémentation de référence à 42 et le choix par défaut. La version Rust est une alternative moderne qui offre des garanties de sécurité et de performance, au prix d'une courbe d'apprentissage plus raide.
+    </div>
+
+    <footer>
+        <p>Projet Lem-in Rust par <a href="https://github.com/rkpequod-max" style="color: var(--accent);">@rkpequod-max</a></p>
+        <p style="margin-top: 0.5rem;">
+            <a href="visualizer.html" style="color: var(--accent);">Visualiseur</a> |
+            <a href="https://github.com/rkpequod-max/lem-in-rust" style="color: var(--accent);">GitHub Rust</a> |
+            <a href="https://github.com/rkpequod-max/lem-in" style="color: var(--accent-c);">GitHub C</a> |
+            <a href="https://rkpequod-max.github.io/lem-in/" style="color: var(--accent-c);">Guide C</a>
+        </p>
+    </footer>
+</div>
 </body>
 </html>

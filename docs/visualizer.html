@@ -348,7 +348,7 @@ const CC = {
 
 let wasmReady = false;
 (async () => {
-  try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; loadPrefs(); }
+  try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; loadPrefs(); initWasmWorker(); }
   catch(e) { document.getElementById('loadingMsg').textContent = 'ERROR: ' + e; }
 })();
 
@@ -382,6 +382,13 @@ let globalAntJourneys = new Map(), uniquePaths = [], currentPathDisplayIndex = 0
 let globalEdgeUsage = new Map(), maxEdgeUsage = 1, currentTrackedAntPath = [];
 let isMassive = false;
 let currentMode = '2d';
+
+// Spatial index (quadtree) for O(log n) hit-testing — rebuilt after layout changes
+let nodeQuadtree = null;
+
+// Web Worker for WASM parsing (declared here to avoid temporal dead zone)
+let wasmWorker = null;
+let wasmWorkerReady = false;
 
 // Phase 2 globals
 let searchHighlight = null, searchHighlightTime = 0;
@@ -908,15 +915,34 @@ canvas.addEventListener('mousemove', e => {
         isDragging = true;
         canvas.style.cursor = 'grabbing';
       }
-      if (isDragging) { dragNode.x = mx; dragNode.y = my; render2D(); }
+      if (isDragging) { dragNode.x = mx; dragNode.y = my; nodeQuadtree && nodeQuadtree.update(dragNode); render2D(); }
       return;
     }
-    const thr = 28/transform.k; let best = null, bestD = Infinity;
-    for (const n of nodes) {
-      const dx = n.x-mx, dy = n.y-my;
-      if (Math.abs(dx) > thr || Math.abs(dy) > thr) continue;
-      const d = dx*dx+dy*dy;
-      if (d < thr*thr && d < bestD) { best = n; bestD = d; }
+    const thr = 28/transform.k;
+    let best = null, bestD = Infinity;
+    // Use quadtree for O(log n) hit-testing (vs O(n) loop) — huge win on large maps
+    if (nodeQuadtree) {
+      nodeQuadtree.visit((node, x0, y0, x1, y1) => {
+        // Skip quadrants that can't contain a point within thr
+        if (x0 > mx + thr || x1 < mx - thr || y0 > my + thr || y1 < my - thr) return true;
+        if (!node.length) {
+          let n = node.data;
+          if (n) {
+            const dx = n.x - mx, dy = n.y - my;
+            const d = dx*dx + dy*dy;
+            if (d < thr*thr && d < bestD) { best = n; bestD = d; }
+          }
+        }
+        return false;
+      });
+    } else {
+      // Fallback: linear scan (for small maps or before quadtree is built)
+      for (const n of nodes) {
+        const dx = n.x-mx, dy = n.y-my;
+        if (Math.abs(dx) > thr || Math.abs(dy) > thr) continue;
+        const d = dx*dx+dy*dy;
+        if (d < thr*thr && d < bestD) { best = n; bestD = d; }
+      }
     }
     const tt = document.getElementById('tooltip'), prev = hoveredNodeId;
     hoveredNodeId = best ? best.id : null;
@@ -1254,7 +1280,7 @@ window.toggleHeatmap = function() {
   renderActive();
 };
 window.resetAll = function() {
-  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear();
+  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear(); antSpriteCache.clear(); nodeQuadtree = null;
   globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
   roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
   step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1297,13 +1323,108 @@ function renderActive() {
   else if (mode3D) mode3D.updateVisuals();
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   WEB WORKER for WASM parsing — avoids blocking main thread on large maps
+   Falls back to main-thread if worker creation fails
+   (vars wasmWorker/wasmWorkerReady declared at top of file)
+   ═══════════════════════════════════════════════════════════════ */
+
+function initWasmWorker() {
+  if (wasmWorker) return wasmWorker;
+  try {
+    // Resolve absolute URL for the WASM module (Blob workers can't use relative URLs)
+    const wasmUrl = new URL('./lem_in_rust.js', location.href).href;
+    const workerCode = `
+      import init, { parse_and_solve } from '${wasmUrl}';
+      let ready = false;
+      (async () => {
+        try {
+          await init();
+          ready = true;
+          postMessage({ type: 'ready' });
+        } catch(e) {
+          postMessage({ type: 'init_error', error: e.message });
+        }
+      })();
+      onmessage = async (e) => {
+        if (e.data.type === 'solve' && ready) {
+          try {
+            const result = parse_and_solve(e.data.input);
+            postMessage({ type: 'result', result });
+          } catch(err) {
+            postMessage({ type: 'solve_error', error: err.message });
+          }
+        }
+      };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const blobUrl = URL.createObjectURL(blob);
+    wasmWorker = new Worker(blobUrl, { type: 'module' });
+    wasmWorker.onmessage = (e) => {
+      if (e.data.type === 'ready') {
+        wasmWorkerReady = true;
+      } else if (e.data.type === 'init_error') {
+        console.warn('WASM worker init failed, using main thread:', e.data.error);
+        wasmWorker = null;
+      }
+    };
+    wasmWorker.onerror = (e) => {
+      console.warn('WASM worker error, falling back to main thread:', e.message);
+      wasmWorker = null;
+    };
+  } catch(e) {
+    console.warn('WASM worker creation failed, using main thread:', e);
+    wasmWorker = null;
+  }
+  return wasmWorker;
+}
+
+function solveWithWorker(input) {
+  return new Promise((resolve) => {
+    const worker = initWasmWorker();
+    // Fallback: if worker isn't ready yet or failed, use main thread
+    if (!worker || !wasmWorkerReady) {
+      try { resolve(parse_and_solve(input)); }
+      catch(e) { resolve(null); }
+      return;
+    }
+    // Timeout: if worker doesn't respond in 15s, fall back
+    const timeout = setTimeout(() => {
+      console.warn('WASM worker timeout, falling back to main thread');
+      try { resolve(parse_and_solve(input)); }
+      catch(e) { resolve(null); }
+    }, 15000);
+    worker.onmessage = (e) => {
+      if (e.data.type === 'result') {
+        clearTimeout(timeout);
+        resolve(e.data.result);
+      } else if (e.data.type === 'solve_error') {
+        clearTimeout(timeout);
+        try { resolve(parse_and_solve(input)); }
+        catch(e) { resolve(null); }
+      }
+    };
+    worker.postMessage({ type: 'solve', input });
+  });
+}
+
+// Worker is initialized from the main WASM init IIFE above (initWasmWorker called after init() completes)
+
 window.runSimulation = async function() {
   if (!wasmReady) { alert('WASM en chargement…'); return; }
   const input = document.getElementById('inputMap').value;
   const out = document.getElementById('output'); out.innerHTML = '';
   try {
-    const result = parse_and_solve(input);
-    nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear();
+    // Offload WASM parsing to Web Worker (non-blocking for large maps)
+    if (input.length > 5000) {
+      showToast('Computing solution...', 'info');
+      document.getElementById('loadingMsg').textContent = '// COMPUTING...';
+      document.getElementById('loadingMsg').style.display = 'block';
+    }
+    const result = await solveWithWorker(input);
+    document.getElementById('loadingMsg').style.display = 'none';
+    if (!result) throw new Error('Solver returned empty result');
+    nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear(); antSpriteCache.clear(); nodeQuadtree = null;
     globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
     roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
     step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1386,6 +1507,8 @@ window.runSimulation = async function() {
     const ticks = nodes.length > 1500 ? 300 : nodes.length > 500 ? 400 : 500;
     for (let i = 0; i < ticks; i++) sim.tick();
     nodes.forEach(n => { delete n.fx; delete n.fy; });
+    // Build quadtree for O(log n) hit-testing
+    nodeQuadtree = d3.quadtree().x(d => d.x).y(d => d.y).addAll(nodes);
     document.getElementById('s-ants').textContent = totalAnts;
     document.getElementById('s-turn').textContent = `0/${moves.length}`;
     document.getElementById('s-paths').textContent = fr.size;
@@ -1638,8 +1761,14 @@ const mode3D = (() => {
     const norm = normalizeGraphData(nodes);
     nodes.forEach((n, i) => { n.x3d = norm[i].x3d; n.y3d = norm[i].y3d; n.z3d = norm[i].z3d; });
 
-    const geoNode = new THREE.IcosahedronGeometry(SCALES.nodeBase, 1);
-    const geoSpecial = new THREE.IcosahedronGeometry(SCALES.nodeStartEnd, 2);
+    // LOD: choose geometry detail based on map size — fewer triangles on large maps
+    const isLarge3D = nodes.length > 500;
+    const isHuge3D = nodes.length > 1500;
+    // detail=0 (20 tris) for huge, detail=1 (80 tris) for large, detail=2 (320 tris) for small
+    const geoNode = isHuge3D
+      ? new THREE.OctahedronGeometry(SCALES.nodeBase, 0)   // 8 tris — minimal
+      : new THREE.IcosahedronGeometry(SCALES.nodeBase, isLarge3D ? 0 : 1);
+    const geoSpecial = new THREE.IcosahedronGeometry(SCALES.nodeStartEnd, isLarge3D ? 1 : 2);
 
     nodes.forEach(n => {
       const isStart = n.type === 'start';
@@ -1653,34 +1782,50 @@ const mode3D = (() => {
 
       if (isStart || isEnd) {
         const color = isStart ? COL.start : COL.end;
-        const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.5 });
-        const wireSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(SCALES.nodeStartEnd * 1.4, 1), wireMat);
-        mesh.add(wireSphere);
-
-        const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false });
-        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(SCALES.nodeStartEnd * 1.9, 24, 24), glowMat);
-        mesh.add(glowSphere);
+        // Skip wireframe on huge maps (LOD)
+        if (!isHuge3D) {
+          const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.5 });
+          const wireSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(SCALES.nodeStartEnd * 1.4, isLarge3D ? 0 : 1), wireMat);
+          mesh.add(wireSphere);
+        }
+        // Skip glow sphere on large maps (LOD — transparent meshes are expensive)
+        let glowSphere = null;
+        if (!isLarge3D) {
+          const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false });
+          glowSphere = new THREE.Mesh(new THREE.SphereGeometry(SCALES.nodeStartEnd * 1.9, isLarge3D ? 12 : 24, isLarge3D ? 12 : 24), glowMat);
+          mesh.add(glowSphere);
+        }
 
         const pl = new THREE.PointLight(color, 2.5, SCALES.graphSize * 0.7);
         mesh.add(pl);
-        specialAnimations.push({ mesh: wireSphere, speedX: 0.005, speedY: 0.01, glowSphere });
+        // Only push to specialAnimations if wireSphere exists (for rotation)
+        const wireMesh = mesh.children.find(c => c.material && c.material.wireframe);
+        if (wireMesh) specialAnimations.push({ mesh: wireMesh, speedX: 0.005, speedY: 0.01, glowSphere });
       } else {
-        const glowMat = new THREE.MeshBasicMaterial({ color: COL.room, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
-        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(SCALES.nodeBase * 1.8, 16, 16), glowMat);
-        mesh.add(glowSphere);
+        // Skip room glow spheres on large maps (LOD — saves 500-1500 transparent meshes)
+        if (!isLarge3D) {
+          const glowMat = new THREE.MeshBasicMaterial({ color: COL.room, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
+          const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(SCALES.nodeBase * 1.8, 12, 12), glowMat);
+          mesh.add(glowSphere);
+        }
       }
 
-      const div = document.createElement('div');
-      div.textContent = n.id; div.className = 'label-3d';
-      div.style.color = isStart ? '#8acb7a' : (isEnd ? '#d05050' : 'rgba(220,225,235,0.95)');
-      const label = new CSS2DObject(div);
-      const yOffset = (isStart || isEnd) ? SCALES.nodeStartEnd * 2 : SCALES.nodeBase * 2;
-      label.position.set(n.x3d, n.y3d + yOffset, n.z3d);
-      label.userData = { nodeId: n.id, yOffset: yOffset };
-      labelsGroup.add(label);
+      // Skip labels on huge maps (LOD — CSS2DObjects are DOM elements, expensive)
+      if (!isHuge3D) {
+        const div = document.createElement('div');
+        div.textContent = n.id; div.className = 'label-3d';
+        div.style.color = isStart ? '#8acb7a' : (isEnd ? '#d05050' : 'rgba(220,225,235,0.95)');
+        const label = new CSS2DObject(div);
+        const yOffset = (isStart || isEnd) ? SCALES.nodeStartEnd * 2 : SCALES.nodeBase * 2;
+        label.position.set(n.x3d, n.y3d + yOffset, n.z3d);
+        label.userData = { nodeId: n.id, yOffset: yOffset };
+        labelsGroup.add(label);
+      }
     });
 
-    const cylinderGeo = new THREE.CylinderGeometry(SCALES.linkWidth, SCALES.linkWidth, 1, 6);
+    // LOD: simpler cylinder geometry for large maps (3 segments instead of 6)
+    const cylinderSegs = isHuge3D ? 3 : 6;
+    const cylinderGeo = new THREE.CylinderGeometry(SCALES.linkWidth, SCALES.linkWidth, 1, cylinderSegs);
     cylinderGeo.translate(0, 0.5, 0);
     cylinderGeo.rotateX(Math.PI / 2);
 

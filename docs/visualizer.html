@@ -178,6 +178,77 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
   from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+/* ── Reduced motion — respect prefers-reduced-motion (a11y) ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .scanlines, .noise-overlay { display: none !important; }
+}
+
+/* ── Command Palette (Cmd+K) ── */
+#command-palette-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+  display: none; align-items: flex-start; justify-content: center;
+  padding-top: 120px;
+}
+#command-palette {
+  width: 520px; max-width: 90vw;
+  background: var(--panel); backdrop-filter: blur(20px);
+  border: 1px solid var(--warm);
+  box-shadow: 0 16px 64px rgba(0,0,0,.6), 0 0 32px rgba(196,160,80,.15);
+  position: relative;
+}
+#command-palette::before { content:''; position:absolute; top:-1px; left:-1px; width:14px; height:14px; border-top:1px solid var(--warm); border-left:1px solid var(--warm); }
+#command-palette::after { content:''; position:absolute; bottom:-1px; right:-1px; width:14px; height:14px; border-bottom:1px solid var(--warm); border-right:1px solid var(--warm); }
+#cmd-input {
+  width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border);
+  color: var(--text); padding: 1rem 1.2rem; font-size: .85rem; font-family: 'JetBrains Mono', monospace;
+  outline: none; letter-spacing: .03em;
+}
+#cmd-input::placeholder { color: var(--dim); }
+#cmd-results { max-height: 360px; overflow-y: auto; }
+#cmd-results::-webkit-scrollbar { width: 3px; }
+#cmd-results::-webkit-scrollbar-thumb { background: var(--warm); }
+.cmd-item {
+  padding: .6rem 1.2rem; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: .8rem;
+  border-left: 2px solid transparent;
+}
+.cmd-item:hover, .cmd-item.selected {
+  background: rgba(196,160,80,.08);
+  border-left-color: var(--warm);
+}
+.cmd-icon { color: var(--warm); font-size: .9rem; width: 20px; text-align: center; }
+.cmd-label { color: var(--text); font-size: .7rem; font-family: 'JetBrains Mono', monospace; letter-spacing: .02em; flex: 1; }
+.cmd-hint { color: var(--dim); font-size: .55rem; font-family: 'JetBrains Mono', monospace; }
+.cmd-section {
+  padding: .4rem 1.2rem .2rem; font-size: .5rem; text-transform: uppercase;
+  letter-spacing: .15em; color: var(--dim); font-family: 'JetBrains Mono', monospace;
+}
+.cmd-footer {
+  padding: .5rem 1.2rem; border-top: 1px solid var(--border);
+  font-size: .5rem; color: var(--dim); font-family: 'JetBrains Mono', monospace;
+  display: flex; justify-content: space-between; letter-spacing: .05em;
+}
+
+/* ── Insights Panel (graph metrics) ── */
+.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; margin-top: .3rem; }
+.insight-card {
+  background: linear-gradient(135deg, rgba(0,0,0,.3), rgba(0,0,0,.15));
+  padding: .35rem .5rem; border-left: 2px solid var(--dim);
+  position: relative;
+}
+.insight-card::before { content:''; position:absolute; top:0; right:0; width:4px; height:4px; border-top:1px solid var(--warm); border-right:1px solid var(--warm); opacity:.5; }
+.insight-card.accent { border-left-color: var(--warm); }
+.insight-val { font-size: .75rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+.insight-card.accent .insight-val { color: var(--warm); }
+.insight-lbl { font-size: .45rem; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; font-family: 'JetBrains Mono', monospace; }
+
 </style>
 </head>
 <body>
@@ -247,6 +318,15 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
     </div>
   </div>
   <div class="lp-section">
+    <h3>Graph Insights</h3>
+    <div class="insights-grid">
+      <div class="insight-card"><div class="insight-val" id="i-diameter">—</div><div class="insight-lbl">Diameter</div></div>
+      <div class="insight-card"><div class="insight-val" id="i-density">—</div><div class="insight-lbl">Density</div></div>
+      <div class="insight-card accent"><div class="insight-val" id="i-avgdegree">—</div><div class="insight-lbl">Avg Degree</div></div>
+      <div class="insight-card"><div class="insight-val" id="i-clustering">—</div><div class="insight-lbl">Clustering</div></div>
+    </div>
+  </div>
+  <div class="lp-section">
     <h3>Tactical</h3>
     <div class="tool-row">
       <input type="text" class="tool-input" id="focus-input" placeholder="Track unit ID…">
@@ -306,12 +386,25 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 
 <div id="toast-container" style="position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none"></div>
 
+<!-- Command Palette (Cmd+K) -->
+<div id="command-palette-overlay" onclick="if(event.target===this)closeCommandPalette()">
+  <div id="command-palette">
+    <input type="text" id="cmd-input" placeholder="// Search commands, maps, rooms…" autocomplete="off" spellcheck="false">
+    <div id="cmd-results"></div>
+    <div class="cmd-footer">
+      <span>↑↓ NAVIGATE · ENTER EXECUTE · ESC CLOSE</span>
+      <span style="color:var(--warm)">⌘K</span>
+    </div>
+  </div>
+</div>
+
 <div id="help-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)toggleHelp()">
   <div class="panel" style="position:relative;width:400px;max-width:90vw;padding:2rem">
     <span class="panel-tr"></span><span class="panel-bl"></span>
     <h3 style="font-size:.7rem;text-transform:uppercase;letter-spacing:.15em;color:var(--warm);margin-bottom:1.5rem;font-family:'JetBrains Mono',monospace">// KEYBOARD REFERENCE</h3>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:.6rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.65rem">
       <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">SPACE</kbd><span style="color:var(--text)">Play / Pause simulation</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">⌘K</kbd><span style="color:var(--text)">Command palette (search maps, rooms, actions)</span>
       <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">←</kbd><span style="color:var(--text)">Previous step</span>
       <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">→</kbd><span style="color:var(--text)">Next step</span>
       <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">H</kbd><span style="color:var(--text)">Toggle heatmap</span>
@@ -337,9 +430,95 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
 /* ═══════════════════════════════════════════════════════════════
-   SHARED STATE — used by both 2D and 3D modes
+   TABLE DES MATIÈRES
+   1. IMPORTS & CONSTANTS .......... (above)
+   2. CONFIG ....................... (centralized magic numbers)
+   3. LOGGER & DEBUG MODE .......... (observability)
+   4. STATE (shared globals) .......
+   5. WASM LAYER .................. (worker + fallback)
+   6. GRAPH MODEL ................. (parse, build, queries, metrics)
+   7. RENDERER 2D ................. (canvas + d3 + sprites)
+   8. RENDERER 3D ................. (Three.js IIFE)
+   9. ANIMATION LOOP .............. (rAF orchestration)
+   10. INTERACTION LAYER ........... (mouse, keyboard, drag)
+   11. UI CONTROLLERS .............. (panels, badges, toasts, command palette)
+   12. ANALYTICS .................. (BFS, teams, bottlenecks, metrics)
+   13. PREFERENCES ................ (localStorage)
+   14. ENTRY POINT ................ (init, loadPrefs)
    ═══════════════════════════════════════════════════════════════ */
+
+/* ═════ 2. CONFIG — centralized magic numbers ═════ */
+const Config = {
+  performance: {
+    fpsTarget: 60,
+    frameBudgetMs: 16,
+    largeMapThreshold: 200,
+    hugeMapThreshold: 1500,
+    massiveAntThreshold: 150,
+    trailMaxPerAnt: 8,
+    trailDecay: 0.12,
+    spriteCacheMaxSize: 200,
+  },
+  layout: {
+    ticksSmall: 500,
+    ticksLarge: 400,
+    ticksHuge: 300,
+    chargeSmall: -150,
+    chargeLarge: -200,
+    chargeHuge: -300,
+    linkDistSmall: 50,
+    linkDistLarge: 60,
+    linkDistHuge: 80,
+    collideSmall: 16,
+    collideLarge: 14,
+    collideHuge: 12,
+  },
+  visual: {
+    bloomStrength: 1.0,
+    bloomRadius: 0.7,
+    bloomThreshold: 0.15,
+    spriteSize: 96,
+    antSpriteSize: 64,
+    nodeBaseRadius: 15,
+    nodeSpecialRadius: 30,
+    linkWidth: 2,
+    graphScale: 2000,
+  },
+  commandPalette: {
+    maxResults: 8,
+    fuzzyThreshold: 0.3,
+  },
+};
+
+/* ═════ 3. LOGGER & DEBUG MODE — observability ═════ */
+const Logger = {
+  logs: [],
+  maxLogs: 1000,
+  enabled: new URLSearchParams(location.search).has('debug'),
+
+  log(level, category, message, data) {
+    const entry = { t: performance.now(), level, category, message, data };
+    this.logs.push(entry);
+    if (this.logs.length > this.maxLogs) this.logs.shift();
+    if (this.enabled) {
+      const colors = { INFO: '#a0a8b0', WARN: '#c4a050', ERROR: '#c04040', DEBUG: '#7aba5a' };
+      console.log(`%c[LEMIN:${level}]%c ${category}: ${message}`, `color:${colors[level]||'#888'};font-weight:bold`, 'color:inherit', data || '');
+    }
+  },
+  info(cat, msg, data) { this.log('INFO', cat, msg, data); },
+  warn(cat, msg, data) { this.log('WARN', cat, msg, data); },
+  error(cat, msg, data) { this.log('ERROR', cat, msg, data); },
+  debug(cat, msg, data) { if (this.enabled) this.log('DEBUG', cat, msg, data); },
+  getLogs() { return this.logs; },
+  clear() { this.logs = []; },
+};
+// Expose for debugging
+window.__leminLogs = Logger;
+window.__leminConfig = Config;
+
+/* ═══ 4. SHARED STATE — used by both 2D and 3D modes ═══ */
 const CC = {
   bg:'#0a0c0f', grid:'rgba(180,190,200,0.06)', text:'rgba(220,225,235,',
   link:'rgba(180,190,205,0.4)', roomFill:'#3a424d', roomStroke:'rgba(180,190,205,0.75)',
@@ -983,6 +1162,12 @@ window.addEventListener('resize', () => {
   render2D();
 });
 window.addEventListener('keydown', e => {
+  // Command palette (Cmd+K / Ctrl+K) — works even when input is focused
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    CommandPalette.open();
+    return;
+  }
   if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   if (e.code === 'ArrowRight') { e.preventDefault(); nextStep(); }
@@ -994,6 +1179,7 @@ window.addEventListener('keydown', e => {
   }
   if (e.code === 'Escape') {
     document.getElementById('help-overlay').style.display = 'none';
+    CommandPalette.close();
     if (lockedNodeId) { lockedNodeId = null; renderRightPanel(); renderActive(); }
     if (focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; renderRightPanel(); renderActive(); }
   }
@@ -1281,6 +1467,7 @@ window.toggleHeatmap = function() {
 };
 window.resetAll = function() {
   nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear(); antSpriteCache.clear(); nodeQuadtree = null;
+  GraphMetrics.clear();
   globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
   roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
   step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1509,6 +1696,8 @@ window.runSimulation = async function() {
     nodes.forEach(n => { delete n.fx; delete n.fy; });
     // Build quadtree for O(log n) hit-testing
     nodeQuadtree = d3.quadtree().x(d => d.x).y(d => d.y).addAll(nodes);
+    // Compute graph metrics (diameter, density, clustering) — async-safe, non-blocking
+    setTimeout(() => GraphMetrics.compute(), 0);
     document.getElementById('s-ants').textContent = totalAnts;
     document.getElementById('s-turn').textContent = `0/${moves.length}`;
     document.getElementById('s-paths').textContent = fr.size;
@@ -2299,6 +2488,233 @@ const mode3D = (() => {
     get initialized() { return initialized; }
   };
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   COMMAND PALETTE (Cmd+K) — fuzzy search commands, maps, rooms
+   ═══════════════════════════════════════════════════════════════ */
+const CommandPalette = {
+  selectedIndex: 0,
+  currentResults: [],
+
+  commands: [
+    // Maps
+    { section: 'Maps', icon: 'M', label: 'flow-one', hint: 'Load map', action: () => window.genOfficial('flow-one') },
+    { section: 'Maps', icon: 'M', label: 'flow-ten', hint: 'Load map', action: () => window.genOfficial('flow-ten') },
+    { section: 'Maps', icon: 'M', label: 'flow-thousand', hint: 'Load map', action: () => window.genOfficial('flow-thousand') },
+    { section: 'Maps', icon: 'M', label: 'big', hint: 'Load map', action: () => window.genOfficial('big') },
+    { section: 'Maps', icon: 'M', label: 'big-superposition', hint: 'Load map', action: () => window.genOfficial('big-superposition') },
+    // Actions
+    { section: 'Actions', icon: '▶', label: 'Execute simulation', hint: 'Run', action: () => window.runSimulation() },
+    { section: 'Actions', icon: '↺', label: 'Reset all', hint: 'Clear', action: () => window.resetAll() },
+    { section: 'Actions', icon: '⏯', label: 'Play / Pause', hint: 'Space', action: () => window.togglePlay() },
+    { section: 'Actions', icon: '⏭', label: 'Next step', hint: '→', action: () => window.nextStep() },
+    { section: 'Actions', icon: '⏮', label: 'Previous step', hint: '←', action: () => window.prevStep() },
+    // Modes
+    { section: 'Modes', icon: '2', label: 'Switch to 2D', hint: 'Mode', action: () => window.setMode('2d') },
+    { section: 'Modes', icon: '3', label: 'Switch to 3D', hint: 'Mode', action: () => window.setMode('3d') },
+    // Toggles
+    { section: 'Toggles', icon: 'H', label: 'Toggle Heatmap', hint: 'H', action: () => window.toggleHeatmap() },
+    { section: 'Toggles', icon: 'T', label: 'Toggle Teams', hint: 'Color by path', action: () => window.toggleTeams() },
+    { section: 'Toggles', icon: 'B', label: 'Toggle BFS', hint: 'Distance from start', action: () => window.toggleBFS() },
+    { section: 'Toggles', icon: '⚠', label: 'Toggle Bottleneck', hint: 'Highlight hotspots', action: () => window.toggleBottleneck() },
+    // Help
+    { section: 'Help', icon: '?', label: 'Show keyboard shortcuts', hint: '?', action: () => window.toggleHelp() },
+  ],
+
+  // Fuzzy match: returns score (higher = better), or -1 if no match
+  fuzzyMatch(query, text) {
+    if (!query) return 0;
+    query = query.toLowerCase(); text = text.toLowerCase();
+    if (text.includes(query)) return 100 - (text.indexOf(query));
+    let qi = 0, score = 0, lastMatch = -1;
+    for (let ti = 0; ti < text.length && qi < query.length; ti++) {
+      if (text[ti] === query[qi]) {
+        score += (ti - lastMatch === 1) ? 5 : 1;
+        lastMatch = ti;
+        qi++;
+      }
+    }
+    return qi === query.length ? score : -1;
+  },
+
+  search(query) {
+    const results = [];
+    // Search commands
+    this.commands.forEach(cmd => {
+      const score = this.fuzzyMatch(query, cmd.label);
+      if (query === '' || score >= 0) results.push({ ...cmd, score: query === '' ? 0 : score, type: 'command' });
+    });
+    // Search rooms (if graph loaded)
+    if (nodes.length > 0) {
+      nodes.forEach(n => {
+        const score = this.fuzzyMatch(query, n.id);
+        if (query === '' || score >= 0) results.push({
+          section: 'Rooms', icon: '●', label: n.id, hint: n.type, score: query === '' ? 0 : score,
+          type: 'room', action: () => {
+            if (currentMode === '2d') smoothPanTo(n.x, n.y);
+            else mode3D.focusNode(n.id);
+            hoveredNodeId = n.id;
+            searchHighlight = n.id; searchHighlightTime = performance.now();
+            renderActive();
+          }
+        });
+      });
+    }
+    // Sort by score (desc), then label
+    results.sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+    return results.slice(0, Config.commandPalette.maxResults);
+  },
+
+  render(results) {
+    this.currentResults = results;
+    this.selectedIndex = 0;
+    const container = document.getElementById('cmd-results');
+    if (results.length === 0) {
+      container.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--dim);font-family:JetBrains Mono,monospace;font-size:.7rem">// NO RESULTS</div>';
+      return;
+    }
+    let html = '', lastSection = '';
+    results.forEach((r, i) => {
+      if (r.section !== lastSection) {
+        html += `<div class="cmd-section">${r.section}</div>`;
+        lastSection = r.section;
+      }
+      html += `<div class="cmd-item ${i === 0 ? 'selected' : ''}" data-index="${i}">
+        <span class="cmd-icon">${r.icon}</span>
+        <span class="cmd-label">${r.label}</span>
+        <span class="cmd-hint">${r.hint}</span>
+      </div>`;
+    });
+    container.innerHTML = html;
+    container.querySelectorAll('.cmd-item').forEach(el => {
+      el.addEventListener('click', () => this.execute(parseInt(el.dataset.index)));
+      el.addEventListener('mouseenter', () => this.select(parseInt(el.dataset.index)));
+    });
+  },
+
+  select(index) {
+    if (index < 0 || index >= this.currentResults.length) return;
+    this.selectedIndex = index;
+    document.querySelectorAll('.cmd-item').forEach((el, i) => {
+      el.classList.toggle('selected', i === index);
+    });
+  },
+
+  execute(index) {
+    const item = this.currentResults[index];
+    if (item && item.action) {
+      Logger.info('CMD', 'Executing: ' + item.label);
+      item.action();
+    }
+    this.close();
+  },
+
+  open() {
+    document.getElementById('command-palette-overlay').style.display = 'flex';
+    const input = document.getElementById('cmd-input');
+    input.value = '';
+    this.render(this.search(''));
+    setTimeout(() => input.focus(), 50);
+    Logger.debug('CMD', 'Palette opened');
+  },
+
+  close() {
+    document.getElementById('command-palette-overlay').style.display = 'none';
+  },
+};
+
+window.openCommandPalette = () => CommandPalette.open();
+window.closeCommandPalette = () => CommandPalette.close();
+
+document.getElementById('cmd-input').addEventListener('input', e => {
+  CommandPalette.render(CommandPalette.search(e.target.value));
+});
+document.getElementById('cmd-input').addEventListener('keydown', e => {
+  if (e.code === 'ArrowDown') { e.preventDefault(); CommandPalette.select(Math.min(CommandPalette.selectedIndex + 1, CommandPalette.currentResults.length - 1)); }
+  else if (e.code === 'ArrowUp') { e.preventDefault(); CommandPalette.select(Math.max(CommandPalette.selectedIndex - 1, 0)); }
+  else if (e.code === 'Enter') { e.preventDefault(); CommandPalette.execute(CommandPalette.selectedIndex); }
+  else if (e.code === 'Escape') { e.preventDefault(); CommandPalette.close(); }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   GRAPH METRICS — structural analysis (diameter, density, clustering)
+   ═══════════════════════════════════════════════════════════════ */
+const GraphMetrics = {
+  /** Compute all metrics after graph is loaded. O(V*E) for BFS-from-all. */
+  compute() {
+    if (!nodes.length || !startNode) { this.clear(); return; }
+    Logger.info('METRICS', 'Computing graph metrics', { nodes: nodes.length, links: links.length });
+    const t0 = performance.now();
+
+    // Build adjacency list
+    const adj = new Map();
+    nodes.forEach(n => adj.set(n.id, []));
+    links.forEach(l => {
+      adj.get(l.source.id)?.push(l.target.id);
+      adj.get(l.target.id)?.push(l.source.id);
+    });
+
+    // Density: 2*E / (V*(V-1))
+    const density = nodes.length > 1 ? (2 * links.length) / (nodes.length * (nodes.length - 1)) : 0;
+
+    // Average degree
+    const avgDegree = nodes.length > 0 ? (2 * links.length) / nodes.length : 0;
+
+    // Diameter: max BFS distance between any two reachable nodes
+    // For large graphs, sample instead of all-pairs (O(V*E) → O(sample*E))
+    const sampleSize = nodes.length > 500 ? 50 : nodes.length;
+    const sample = nodes.length > 500
+      ? nodes.filter((_, i) => i % Math.ceil(nodes.length / sampleSize) === 0)
+      : nodes;
+    let diameter = 0;
+    sample.forEach(src => {
+      const dist = new Map([[src.id, 0]]);
+      const queue = [src.id];
+      while (queue.length) {
+        const curr = queue.shift();
+        const d = dist.get(curr);
+        for (const nb of (adj.get(curr) || [])) {
+          if (!dist.has(nb)) { dist.set(nb, d + 1); queue.push(nb); if (d + 1 > diameter) diameter = d + 1; }
+        }
+      }
+    });
+
+    // Clustering coefficient: for each node, triangles / possible triangles
+    // C(v) = 2*E(neighbors) / (deg(v)*(deg(v)-1))
+    let clusteringSum = 0, clusteringCount = 0;
+    nodes.forEach(n => {
+      const neighbors = adj.get(n.id) || [];
+      const deg = neighbors.length;
+      if (deg < 2) return;
+      let triangles = 0;
+      const neighborSet = new Set(neighbors);
+      for (let i = 0; i < neighbors.length; i++) {
+        for (const nb2 of (adj.get(neighbors[i]) || [])) {
+          if (neighborSet.has(nb2) && nb2 !== n.id) triangles++;
+        }
+      }
+      triangles /= 2; // each triangle counted twice
+      clusteringSum += (2 * triangles) / (deg * (deg - 1));
+      clusteringCount++;
+    });
+    const clustering = clusteringCount > 0 ? clusteringSum / clusteringCount : 0;
+
+    // Update UI
+    document.getElementById('i-diameter').textContent = diameter;
+    document.getElementById('i-density').textContent = density.toFixed(3);
+    document.getElementById('i-avgdegree').textContent = avgDegree.toFixed(1);
+    document.getElementById('i-clustering').textContent = clustering.toFixed(3);
+
+    Logger.info('METRICS', 'Metrics computed', { ms: (performance.now() - t0).toFixed(1), diameter, density: density.toFixed(3), avgDegree: avgDegree.toFixed(1), clustering: clustering.toFixed(3) });
+  },
+
+  clear() {
+    ['i-diameter', 'i-density', 'i-avgdegree', 'i-clustering'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+  },
+};
 
 /* ═══════════════════════════════════════════════════════════════
    MODE TOGGLE — switches the graph zone in-place, NO page navigation

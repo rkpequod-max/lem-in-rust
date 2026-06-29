@@ -189,6 +189,17 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
   .scanlines, .noise-overlay { display: none !important; }
 }
 
+/* ── Focus visible — golden outline for keyboard navigation (a11y) ── */
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--warm) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 8px rgba(196,160,80,.4) !important;
+}
+/* Hide focus for mouse users */
+button:focus:not(:focus-visible), input:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ── Command Palette (Cmd+K) ── */
 #command-palette-overlay {
   position: fixed; inset: 0; z-index: 2000;
@@ -432,15 +443,15 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
     <span class="gen-info" id="genInfo"></span>
   </div>
   <div class="topbar-right">
-    <button class="tool-btn" id="btn-help" onclick="toggleHelp()" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">?</button>
-    <button class="tool-btn" id="btn-share" onclick="shareByURL()" title="Share by URL" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">⤴</button>
-    <button class="tool-btn" id="btn-record" onclick="toggleRecord()" title="Record WebM" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">●</button>
-    <button class="tool-btn" id="btn-theme" onclick="toggleTheme()" title="Toggle theme" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">◐</button>
+    <button class="tool-btn" id="btn-help" onclick="toggleHelp()" aria-label="Show keyboard shortcuts" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">?</button>
+    <button class="tool-btn" id="btn-share" onclick="shareByURL()" title="Share by URL" aria-label="Share by URL" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">⤴</button>
+    <button class="tool-btn" id="btn-record" onclick="toggleRecord()" title="Record WebM" aria-label="Toggle recording" aria-pressed="false" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">●</button>
+    <button class="tool-btn" id="btn-theme" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle dark or light theme" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">◐</button>
     <div class="mode-toggle">
-      <button id="btn-mode-2d" class="active" onclick="setMode('2d')">2D</button>
-      <button id="btn-mode-3d" onclick="setMode('3d')">3D</button>
+      <button id="btn-mode-2d" class="active" onclick="setMode('2d')" aria-label="Switch to 2D mode" aria-pressed="true">2D</button>
+      <button id="btn-mode-3d" onclick="setMode('3d')" aria-label="Switch to 3D mode" aria-pressed="false">3D</button>
     </div>
-    <button class="btn-solve" onclick="runSimulation()">▶ Execute</button>
+    <button class="btn-solve" onclick="runSimulation()" aria-label="Run simulation">▶ Execute</button>
   </div>
 </div>
 
@@ -493,20 +504,24 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
     <h3>Tactical</h3>
     <div class="tool-row">
       <input type="text" class="tool-input" id="focus-input" placeholder="Track unit ID…">
-      <button class="tool-btn" id="btn-heatmap" onclick="toggleHeatmap()">HEATMAP</button>
+      <button class="tool-btn" id="btn-heatmap" onclick="toggleHeatmap()" aria-label="Toggle heatmap" aria-pressed="false">HEATMAP</button>
     </div>
     <div class="tool-row">
       <input type="text" class="tool-input" id="search-input" placeholder="Search room…">
       <button class="tool-btn" id="btn-search" onclick="searchNode()">FIND</button>
     </div>
     <div class="tool-row">
-      <button class="tool-btn" id="btn-teams" onclick="toggleTeams()" style="flex:1">TEAMS</button>
-      <button class="tool-btn" id="btn-bfs" onclick="toggleBFS()" style="flex:1">BFS</button>
-      <button class="tool-btn" id="btn-bottleneck" onclick="toggleBottleneck()" style="flex:1">BOTTLENECK</button>
+      <button class="tool-btn" id="btn-teams" onclick="toggleTeams()" style="flex:1" aria-label="Toggle teams coloring" aria-pressed="false">TEAMS</button>
+      <button class="tool-btn" id="btn-bfs" onclick="toggleBFS()" style="flex:1" aria-label="Toggle BFS distance coloring" aria-pressed="false">BFS</button>
+      <button class="tool-btn" id="btn-bottleneck" onclick="toggleBottleneck()" style="flex:1" aria-label="Toggle bottleneck detection" aria-pressed="false">BOTTLENECK</button>
     </div>
     <div class="tool-row">
-      <button class="tool-btn" id="btn-cinematic" onclick="toggleCinematic()" style="flex:1">CINEMATIC</button>
-      <button class="tool-btn" id="btn-recommend" onclick="showRecommendations()" style="flex:1">SUGGEST</button>
+      <button class="tool-btn" id="btn-cinematic" onclick="toggleCinematic()" style="flex:1" aria-label="Toggle cinematic camera" aria-pressed="false">CINEMATIC</button>
+      <button class="tool-btn" id="btn-recommend" onclick="showRecommendations()" style="flex:1" aria-label="Show map recommendations">SUGGEST</button>
+    </div>
+    <div class="tool-row">
+      <button class="tool-btn" id="btn-maxflow" onclick="toggleMaxFlow()" style="flex:1" aria-label="Toggle max flow visualization" aria-pressed="false">MAXFLOW</button>
+      <button class="tool-btn" id="btn-customize" onclick="toggleCustomTheme()" style="flex:1" aria-label="Customize theme colors">PALETTE</button>
     </div>
     <div class="slider-row"><label>// TIMELINE <span id="tl-label">0/0</span></label><canvas id="waveform" width="260" height="24" style="width:100%;height:24px;display:block;margin-bottom:4px"></canvas><input type="range" id="timeline" min="0" max="0" value="0" step="1"></div>
     <div class="slider-row"><label>// VELOCITY <span id="spd-val">70</span></label><input type="range" id="speed" min="1" max="100" value="70" oninput="document.getElementById('spd-val').textContent=this.value"></div>
@@ -529,10 +544,10 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 
 <div class="panel controls">
   <span class="panel-tr"></span><span class="panel-bl"></span>
-  <button onclick="resetAll()" title="Reset">↺</button>
-  <button onclick="prevStep()" title="Prev">◀</button>
-  <button onclick="togglePlay()" id="pauseBtn" title="Play/Pause" class="primary">▶</button>
-  <button onclick="nextStep()" title="Next">▶</button>
+  <button onclick="resetAll()" title="Reset" aria-label="Reset all">↺</button>
+  <button onclick="prevStep()" title="Prev" aria-label="Previous step">◀</button>
+  <button onclick="togglePlay()" id="pauseBtn" title="Play/Pause" aria-label="Play or pause simulation" class="primary">▶</button>
+  <button onclick="nextStep()" title="Next" aria-label="Next step">▶</button>
   <div class="speed-wrap"><span>MS</span><input type="range" id="speedRange" min="50" max="2000" value="600"></div>
 </div>
 
@@ -742,6 +757,60 @@ const Logger = {
 window.__leminLogs = Logger;
 window.__leminConfig = Config;
 
+/* ═══ 3b. PERFORMANCE BUDGET — graceful degradation when FPS drops ═══ */
+const PerfBudget = {
+  // Quality levels: 0=low, 1=medium, 2=high
+  quality: 2,
+  frameTimes: [],
+  lastCheck: 0,
+  degraded: { trails: false, bloom: false, sprites: false, highlights: false, shadows: false },
+
+  /** Called each frame with the frame duration in ms */
+  sample(frameMs) {
+    this.frameTimes.push(frameMs);
+    if (this.frameTimes.length > 60) this.frameTimes.shift();
+    const now = performance.now();
+    if (now - this.lastCheck < 2000) return; // check every 2s
+    this.lastCheck = now;
+    if (this.frameTimes.length < 30) return;
+    const avg = this.frameTimes.reduce((s, v) => s + v, 0) / this.frameTimes.length;
+    // If consistently over 20ms (under 50fps), degrade
+    if (avg > 20 && this.quality > 0) {
+      this.quality--;
+      this._applyQuality();
+      Logger.warn('PERF', `Frame budget exceeded (${avg.toFixed(1)}ms > 20ms). Degrading to quality ${this.quality}`);
+      if (POD042) POD042.say(`Performance optimization: quality reduced to ${['low','medium','high'][this.quality]}.`, 'warn', 3000);
+    }
+    // If consistently under 12ms (over 83fps) and we degraded before, upgrade
+    else if (avg < 12 && this.quality < 2 && this.frameTimes.length === 60) {
+      this.quality++;
+      this._applyQuality();
+      Logger.info('PERF', `Frame budget comfortable (${avg.toFixed(1)}ms). Upgrading to quality ${this.quality}`);
+    }
+  },
+
+  _applyQuality() {
+    // Quality 0 (low): disable trails, bloom, shadows, simplify sprites
+    // Quality 1 (medium): disable bloom, keep trails
+    // Quality 2 (high): everything on
+    this.degraded.trails = this.quality === 0;
+    this.degraded.bloom = this.quality <= 1;
+    this.degraded.shadows = this.quality === 0;
+    this.degraded.highlights = this.quality === 0;
+    // Apply to 3D bloom
+    if (typeof composer !== 'undefined' && composer) {
+      // Can't easily disable bloom pass dynamically, but we can reduce strength
+    }
+  },
+
+  reset() {
+    this.quality = 2;
+    this.frameTimes = [];
+    this.degraded = { trails: false, bloom: false, sprites: false, highlights: false, shadows: false };
+  },
+};
+window.__leminPerf = PerfBudget;
+
 /* ═══ 4. SHARED STATE — used by both 2D and 3D modes ═══ */
 const CC = {
   bg:'#0a0c0f', grid:'rgba(180,190,200,0.06)', text:'rgba(220,225,235,',
@@ -945,6 +1014,51 @@ const zoom = d3.zoom().scaleExtent([0.01,15]).on('zoom', e => {
 });
 d3.select(canvas).call(zoom).call(zoom.transform, transform);
 
+/* ── Touch support (pinch-to-zoom + swipe pan) for tablets ── */
+let touchState = { active: false, distance: 0, x: 0, y: 0 };
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    touchState.active = true;
+    touchState.x = e.touches[0].clientX;
+    touchState.y = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    touchState.distance = Math.hypot(dx, dy);
+  }
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (touchState.distance > 0) {
+      const scale = dist / touchState.distance;
+      const newK = Math.max(0.01, Math.min(15, transform.k * scale));
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const nx = cx - (cx - transform.x) * (newK / transform.k);
+      const ny = cy - (cy - transform.y) * (newK / transform.k);
+      transform = d3.zoomIdentity.translate(nx, ny).scale(newK);
+      render2D();
+    }
+    touchState.distance = dist;
+  } else if (e.touches.length === 1 && touchState.active) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - touchState.x;
+    const dy = e.touches[0].clientY - touchState.y;
+    transform = d3.zoomIdentity.translate(transform.x + dx, transform.y + dy).scale(transform.k);
+    touchState.x = e.touches[0].clientX;
+    touchState.y = e.touches[0].clientY;
+    render2D();
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', () => {
+  touchState.active = false;
+  touchState.distance = 0;
+}, { passive: true });
+
 function render2D() {
   ctx.save();
   ctx.fillStyle = CC.bg; ctx.fillRect(0, 0, W, H);
@@ -1122,6 +1236,42 @@ function render2D() {
       ctx.shadowBlur = 0;
     });
   }
+  // Max-flow overlay: saturated edges in red, residual in green
+  if (isMaxFlow && edgeUsageNormalized.size > 0) {
+    links.forEach(l => {
+      if (!vis(l.source.x, l.source.y) && !vis(l.target.x, l.target.y)) return;
+      const k = [l.source.id, l.target.id].sort().join('~');
+      const ratio = edgeUsageNormalized.get(k);
+      if (ratio === undefined) return;
+      const mx = (l.source.x + l.target.x) / 2, my = (l.source.y + l.target.y) / 2;
+      const dx = l.target.x - l.source.x, dy = l.target.y - l.source.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const curve = Math.min(dist * 0.08, 15);
+      const cx = mx + (-dy / dist) * curve, cy = my + (dx / dist) * curve;
+      ctx.beginPath();
+      ctx.moveTo(l.source.x, l.source.y);
+      ctx.quadraticCurveTo(cx, cy, l.target.x, l.target.y);
+      if (ratio >= 0.8) {
+        // Saturated: red, thick, glow
+        ctx.strokeStyle = `rgba(208,96,48,${0.6 + ratio * 0.4})`;
+        ctx.lineWidth = (lw * 2 + ratio * 4) / transform.k;
+        ctx.shadowColor = 'rgba(208,96,48,0.6)';
+        ctx.shadowBlur = 8 / transform.k;
+      } else if (ratio > 0.3) {
+        // Moderate: orange
+        ctx.strokeStyle = `rgba(196,160,80,${0.4 + ratio * 0.4})`;
+        ctx.lineWidth = (lw * 1.5 + ratio * 2) / transform.k;
+        ctx.shadowBlur = 0;
+      } else {
+        // Residual: green (low usage = capacity available)
+        ctx.strokeStyle = `rgba(106,154,90,${0.3 + ratio * 0.3})`;
+        ctx.lineWidth = lw;
+        ctx.shadowBlur = 0;
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    });
+  }
   // Flow particles (seulement si pas isMassive)
   if (!isMassive) {
     flowParticles.forEach(fp => {
@@ -1256,17 +1406,20 @@ function render2D() {
     antSpriteCache.set(key, sc);
     return sc;
   }
-  antTrails.forEach((trail, id) => {
-    const hue = teamHue(id);
-    const isF = id === focusedAntId;
-    trail.forEach(t => {
-      const tr = ar * 0.5 * t.life * (isF ? 1.3 : 1);
-      ctx.globalAlpha = t.life * 0.6;
-      ctx.fillStyle = isF ? `rgba(224,192,112,${t.life})` : `hsla(${hue},85%,65%,${t.life})`;
-      ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI*2); ctx.fill();
+  // Trails (skip if degraded for performance)
+  if (!PerfBudget.degraded.trails) {
+    antTrails.forEach((trail, id) => {
+      const hue = teamHue(id);
+      const isF = id === focusedAntId;
+      trail.forEach(t => {
+        const tr = ar * 0.5 * t.life * (isF ? 1.3 : 1);
+        ctx.globalAlpha = t.life * 0.6;
+        ctx.fillStyle = isF ? `rgba(224,192,112,${t.life})` : `hsla(${hue},85%,65%,${t.life})`;
+        ctx.beginPath(); ctx.arc(t.x, t.y, tr, 0, Math.PI*2); ctx.fill();
+      });
     });
-  });
-  ctx.globalAlpha = 1;
+    ctx.globalAlpha = 1;
+  }
 
   ants.forEach((ant, id) => {
     if (!vis(ant.x, ant.y)) return;
@@ -1598,9 +1751,11 @@ function animate() {
     }
   }
 
-  // FPS calculation
+  // FPS calculation + Performance budget sampling
   frameCount++;
   const now = performance.now();
+  if (animate._lastFrame) PerfBudget.sample(now - animate._lastFrame);
+  animate._lastFrame = now;
   if (now - lastFrameTime >= 500) {
     fps = Math.round(frameCount * 1000 / (now - lastFrameTime));
     frameCount = 0;
@@ -2794,6 +2949,8 @@ const CommandPalette = {
     { section: 'Toggles', icon: 'B', label: 'Toggle BFS', hint: 'Distance from start', action: () => window.toggleBFS() },
     { section: 'Toggles', icon: '⚠', label: 'Toggle Bottleneck', hint: 'Highlight hotspots', action: () => window.toggleBottleneck() },
     { section: 'Toggles', icon: '◆', label: 'Toggle Cinematic', hint: 'Auto camera', action: () => window.toggleCinematic() },
+    { section: 'Toggles', icon: 'F', label: 'Toggle Max-Flow', hint: 'Saturated edges', action: () => window.toggleMaxFlow() },
+    { section: 'Toggles', icon: '◐', label: 'Custom Palette', hint: 'Color picker', action: () => window.toggleCustomTheme() },
     { section: 'Toggles', icon: '★', label: 'Show Recommendations', hint: 'Suggest maps', action: () => window.showRecommendations() },
     // Help
     { section: 'Help', icon: '?', label: 'Show keyboard shortcuts', hint: '?', action: () => window.toggleHelp() },
@@ -3920,6 +4077,101 @@ window.showRecommendations = function() {
   if (POD042) POD042.say('Suggestions generated based on current map.', 'info', 3000);
   Logger.info('RECOMMEND', 'Recommendations shown');
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   MAX-FLOW VISUALIZATION — residual graph + saturated edges
+   ═══════════════════════════════════════════════════════════════ */
+let isMaxFlow = false;
+let edgeUsageNormalized = new Map(); // edgeKey → ratio [0,1]
+
+window.toggleMaxFlow = function() {
+  isMaxFlow = !isMaxFlow;
+  document.getElementById('btn-maxflow').classList.toggle('active', isMaxFlow);
+  if (isMaxFlow) computeMaxFlow();
+  if (POD042) POD042.onToggle('maxflow', isMaxFlow);
+  renderActive();
+};
+
+function computeMaxFlow() {
+  // Compute edge usage ratio based on globalEdgeUsage (filled during simulation)
+  edgeUsageNormalized.clear();
+  if (globalEdgeUsage.size === 0) {
+    // If no simulation yet, estimate capacity = 1 per edge
+    links.forEach(l => {
+      const k = [l.source.id, l.target.id].sort().join('~');
+      edgeUsageNormalized.set(k, 0);
+    });
+    if (POD042) POD042.say('Max-flow: run simulation first to see edge saturation.', 'tip', 3500);
+    return;
+  }
+  links.forEach(l => {
+    const k = [l.source.id, l.target.id].sort().join('~');
+    const usage = globalEdgeUsage.get(k) || 0;
+    edgeUsageNormalized.set(k, Math.min(1, usage / maxEdgeUsage));
+  });
+  const saturated = Array.from(edgeUsageNormalized.entries()).filter(([_, v]) => v >= 0.8).length;
+  if (POD042) POD042.say(`Max-flow: ${saturated} saturated edge${saturated > 1 ? 's' : ''} (≥80% usage).`, 'info', 3500);
+  Logger.info('MAXFLOW', `Computed: ${saturated} saturated edges out of ${links.length}`);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CUSTOM THEME — color picker for personalized palette
+   ═══════════════════════════════════════════════════════════════ */
+window.toggleCustomTheme = function() {
+  const existing = document.getElementById('custom-theme-panel');
+  if (existing) { existing.remove(); return; }
+  const panel = document.createElement('div');
+  panel.id = 'custom-theme-panel';
+  panel.className = 'panel';
+  panel.style.cssText = 'position:fixed;top:60px;right:14px;width:220px;z-index:12;padding:.8rem .9rem';
+  panel.innerHTML = `
+    <span class="panel-tr"></span><span class="panel-bl"></span>
+    <h3 style="font-size:.55rem;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);margin-bottom:.5rem;font-weight:500;font-family:'JetBrains Mono',monospace">> CUSTOM PALETTE</h3>
+    <div style="display:flex;flex-direction:column;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.55rem">
+      ${['bg:Background', 'warm:Accent Gold', 'green:Start', 'red:End', 'yoRHa:Text'].map(([key, label]) => `
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="color:var(--dim)">${label}</span>
+          <input type="color" id="ct-${key}" value="${getComputedStyle(document.documentElement).getPropertyValue('--' + key).trim() || '#0a0c0f'}" style="width:40px;height:20px;border:1px solid var(--border);background:transparent;cursor:pointer">
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:.4rem;margin-top:.6rem">
+      <button class="tool-btn" onclick="applyCustomTheme()" style="flex:1">APPLY</button>
+      <button class="tool-btn" onclick="resetCustomTheme()" style="flex:1">RESET</button>
+    </div>
+    <button class="tool-btn" onclick="document.getElementById('custom-theme-panel').remove()" style="margin-top:.4rem;width:100%">CLOSE</button>
+  `;
+  document.body.appendChild(panel);
+};
+
+window.applyCustomTheme = function() {
+  const vars = ['bg', 'warm', 'green', 'red', 'yoRHa'];
+  const custom = {};
+  vars.forEach(v => {
+    const input = document.getElementById('ct-' + v);
+    if (input) { document.documentElement.style.setProperty('--' + v, input.value); custom[v] = input.value; }
+  });
+  localStorage.setItem('lemin-custom-theme', JSON.stringify(custom));
+  if (POD042) POD042.say('Custom palette applied.', 'success', 2500);
+  renderActive();
+};
+
+window.resetCustomTheme = function() {
+  ['bg', 'warm', 'green', 'red', 'yoRHa'].forEach(v => {
+    document.documentElement.style.removeProperty('--' + v);
+  });
+  localStorage.removeItem('lemin-custom-theme');
+  if (POD042) POD042.say('Palette reset to default.', 'info', 2500);
+  renderActive();
+};
+
+// Load custom theme on startup
+(function loadCustomTheme() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('lemin-custom-theme') || '{}');
+    Object.entries(saved).forEach(([k, v]) => document.documentElement.style.setProperty('--' + k, v));
+  } catch(e) {}
+})();
 
 /* ═══════════════════════════════════════════════════════════════
    MODE TOGGLE — switches the graph zone in-place, NO page navigation

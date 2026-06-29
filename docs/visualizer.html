@@ -2265,11 +2265,12 @@ const mode3D = (() => {
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
-    // Idle ants (parked in a node) — semi-transparent, smaller
-    const idleGeometry = new THREE.SphereGeometry(5, 16, 16);  // smaller
-    const idleMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.5, metalness: 0.2, transparent: true, opacity: 0.35, depthWrite: false });
+    // Idle ants (parked in a node) — semi-transparent, rendered ON TOP of nodes
+    const idleGeometry = new THREE.SphereGeometry(6, 16, 16);
+    const idleMaterial = new THREE.MeshBasicMaterial({ color: COL.ant, transparent: true, opacity: 0.6, depthTest: false });
     antIdleMesh = new THREE.InstancedMesh(idleGeometry, idleMaterial, MAX_ANTS);
     antIdleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    antIdleMesh.renderOrder = 999;  // render after nodes, so always visible
     scene.add(antIdleMesh);
     antGlowMesh = null;
     dummyAnt = new THREE.Object3D();
@@ -2767,7 +2768,7 @@ const mode3D = (() => {
     animationRunning = true;
 
     let instanceCount = 0;   // moving ants (full opacity)
-    let idleCount = 0;       // parked ants (semi-transparent)
+    let idleCount = 0;       // parked ants (semi-transparent, on top of nodes)
     let trackedPos = null;
     antsMap3D.forEach((ant, id) => {
       if (ant.targetPos) {
@@ -2775,13 +2776,16 @@ const mode3D = (() => {
         // Check if ant is "parked" (very close to target = in a node)
         const dist = ant.currentPos.distanceTo(ant.targetPos);
         dummyAnt.position.copy(ant.currentPos);
-        dummyAnt.updateMatrix();
-        if (dist < 2) {
-          // Parked in a node — render as semi-transparent idle mesh
+        // For idle ants: lift slightly above the node center so they're visible
+        if (dist < 5) {
+          // Parked — lift up by node radius so visible on top of the node
+          dummyAnt.position.y += 18;  // above the node surface
+          dummyAnt.updateMatrix();
           antIdleMesh.setMatrixAt(idleCount, dummyAnt.matrix);
           idleCount++;
         } else {
-          // Moving — render as full-opacity active mesh
+          // Moving — full opacity active mesh at actual position
+          dummyAnt.updateMatrix();
           antInstancedMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
           if (antGlowMesh) antGlowMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
           instanceCount++;

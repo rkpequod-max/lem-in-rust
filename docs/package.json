@@ -1,0 +1,15 @@
+{
+  "name": "lem-in-rust",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "lem_in_rust_bg.wasm",
+    "lem_in_rust.js",
+    "lem_in_rust.d.ts"
+  ],
+  "main": "lem_in_rust.js",
+  "types": "lem_in_rust.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

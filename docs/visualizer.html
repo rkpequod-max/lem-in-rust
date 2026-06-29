@@ -2278,24 +2278,23 @@ const mode3D = (() => {
     antIdleMesh = null;  // not needed — we make NODES transparent instead
     dummyAnt = new THREE.Object3D();
 
-    // Premium node materials — MeshPhysicalMaterial, luminosité réduite 50%
-    // roughness augmenté, clearcoat/reflectivity/ior divisés par 2 pour moins de brillance
-    matRoom = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.4, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2, ior: 1.2, reflectivity: 0.4 });
-    matStart = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.4, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2, ior: 1.2, reflectivity: 0.4, emissive: COL.start, emissiveIntensity: 0.1 });
-    matEnd = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.4, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2, ior: 1.2, reflectivity: 0.4, emissive: COL.end, emissiveIntensity: 0.1 });
-    matRoomDim = new THREE.MeshPhysicalMaterial({ color: COL.roomDim, roughness: 0.6, metalness: 0.1, clearcoat: 0.15, clearcoatRoughness: 0.3, ior: 1.1, reflectivity: 0.25 });
-    matStartDim = new THREE.MeshPhysicalMaterial({ color: COL.startDim, roughness: 0.6, metalness: 0.1, clearcoat: 0.15, clearcoatRoughness: 0.3, ior: 1.1, reflectivity: 0.25 });
-    matEndDim = new THREE.MeshPhysicalMaterial({ color: COL.endDim, roughness: 0.6, metalness: 0.1, clearcoat: 0.15, clearcoatRoughness: 0.3, ior: 1.1, reflectivity: 0.25 });
+    // Premium node materials — luminosité réduite encore 50% (total -75% vs original)
+    matRoom = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.7, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, ior: 1.1, reflectivity: 0.2 });
+    matStart = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.7, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, ior: 1.1, reflectivity: 0.2, emissive: COL.start, emissiveIntensity: 0.05 });
+    matEnd = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.7, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, ior: 1.1, reflectivity: 0.2, emissive: COL.end, emissiveIntensity: 0.05 });
+    matRoomDim = new THREE.MeshPhysicalMaterial({ color: COL.roomDim, roughness: 0.85, metalness: 0.05, clearcoat: 0.08, clearcoatRoughness: 0.5, ior: 1.05, reflectivity: 0.12 });
+    matStartDim = new THREE.MeshPhysicalMaterial({ color: COL.startDim, roughness: 0.85, metalness: 0.05, clearcoat: 0.08, clearcoatRoughness: 0.5, ior: 1.05, reflectivity: 0.12 });
+    matEndDim = new THREE.MeshPhysicalMaterial({ color: COL.endDim, roughness: 0.85, metalness: 0.05, clearcoat: 0.08, clearcoatRoughness: 0.5, ior: 1.05, reflectivity: 0.12 });
 
     // Links — PBR with subtle metalness for depth
-    matLinkBase = new THREE.MeshPhysicalMaterial({ color: COL.linkBase, roughness: 0.5, metalness: 0.4, clearcoat: 0.15, clearcoatRoughness: 0.4, transparent: true, opacity: 0.8 });
-    matLinkDim = new THREE.MeshStandardMaterial({ color: COL.linkDim, roughness: 0.8, metalness: 0.1, transparent: true, opacity: 0.2 });
-    matLinkHover = new THREE.MeshPhysicalMaterial({ color: COL.linkHover, roughness: 0.2, metalness: 0.6, clearcoat: 0.4, clearcoatRoughness: 0.1, emissive: COL.linkHover, emissiveIntensity: 0.08 });
+    matLinkBase = new THREE.MeshPhysicalMaterial({ color: COL.linkBase, roughness: 0.7, metalness: 0.2, clearcoat: 0.08, clearcoatRoughness: 0.5, transparent: true, opacity: 0.8 });
+    matLinkDim = new THREE.MeshStandardMaterial({ color: COL.linkDim, roughness: 0.9, metalness: 0.05, transparent: true, opacity: 0.2 });
+    matLinkHover = new THREE.MeshPhysicalMaterial({ color: COL.linkHover, roughness: 0.4, metalness: 0.3, clearcoat: 0.2, clearcoatRoughness: 0.3, emissive: COL.linkHover, emissiveIntensity: 0.04 });
 
     // Semi-transparent node materials — used when an ant is parked inside the node
-    matRoomTrans = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.4, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2, ior: 1.2, reflectivity: 0.4, transparent: true, opacity: 0.15, depthWrite: false });
-    matStartTrans = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.4, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2, ior: 1.2, reflectivity: 0.4, emissive: COL.start, emissiveIntensity: 0.1, transparent: true, opacity: 0.15, depthWrite: false });
-    matEndTrans = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.4, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2, ior: 1.2, reflectivity: 0.4, emissive: COL.end, emissiveIntensity: 0.1, transparent: true, opacity: 0.15, depthWrite: false });
+    matRoomTrans = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.7, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, ior: 1.1, reflectivity: 0.2, transparent: true, opacity: 0.15, depthWrite: false });
+    matStartTrans = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.7, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, ior: 1.1, reflectivity: 0.2, emissive: COL.start, emissiveIntensity: 0.05, transparent: true, opacity: 0.15, depthWrite: false });
+    matEndTrans = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.7, metalness: 0.05, clearcoat: 0.25, clearcoatRoughness: 0.4, ior: 1.1, reflectivity: 0.2, emissive: COL.end, emissiveIntensity: 0.05, transparent: true, opacity: 0.15, depthWrite: false });
 
     // Heatmap — viridis-inspired scientific colormap (blue→green→yellow→red)
     heatmapMaterials = [];
@@ -2410,7 +2409,7 @@ const mode3D = (() => {
       if (isStart || isEnd) {
         if (!isHuge3D) {
           const ringGeo = new THREE.TorusGeometry(SCALES.nodeStartEnd * 1.3, 2.5, 12, 64);  // high detail
-          const ringMat = new THREE.MeshPhysicalMaterial({ color: isStart ? COL.start : COL.end, roughness: 0.3, metalness: 0.4, clearcoat: 0.4, clearcoatRoughness: 0.2, emissive: isStart ? COL.start : COL.end, emissiveIntensity: 0.1 });
+          const ringMat = new THREE.MeshPhysicalMaterial({ color: isStart ? COL.start : COL.end, roughness: 0.5, metalness: 0.2, clearcoat: 0.2, clearcoatRoughness: 0.4, emissive: isStart ? COL.start : COL.end, emissiveIntensity: 0.05 });
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = Math.PI / 2;
           mesh.add(ring);

@@ -302,6 +302,67 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 .pod042-hint-action { color: var(--warm); cursor: pointer; transition: color .2s; }
 .pod042-hint-action:hover { color: var(--warm-bright); text-decoration: underline; }
 
+/* ── Light theme ── */
+:root[data-theme="light"] {
+  --bg: #f0ede4; --bg-deep: #e8e4d8; --panel: rgba(245,242,235,.92); --border: rgba(120,100,50,.15);
+  --text: #2a2520; --dim: #8a8275; --accent: #5a5550; --yoRHa: #4a4540; --warm: #8a6a20; --warm-bright: #a08030;
+  --red: #8b2020; --green: #4a7a3a; --ember: #c06030;
+}
+:root[data-theme="light"] body { background: var(--bg); }
+:root[data-theme="light"] .topbar { background: linear-gradient(180deg,rgba(240,237,228,.96),rgba(240,237,228,.8)); }
+:root[data-theme="light"] .vignette { background: radial-gradient(ellipse at center,transparent 40%,rgba(100,80,40,.15) 100%); }
+:root[data-theme="light"] .scanlines { display: none; }
+
+/* ── Onboarding spotlight ── */
+#onboarding-overlay {
+  position: fixed; inset: 0; z-index: 3000; pointer-events: none;
+  display: none;
+}
+#onboarding-overlay.active { display: block; pointer-events: auto; }
+#onboarding-spotlight {
+  position: absolute; border: 2px solid var(--warm); border-radius: 4px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.75), 0 0 20px var(--warm);
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+}
+#onboarding-tooltip {
+  position: absolute; background: var(--panel); backdrop-filter: blur(20px);
+  border: 1px solid var(--warm); padding: 1rem 1.2rem; max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 3001;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+}
+#onboarding-tooltip::before { content:''; position:absolute; top:-1px; left:-1px; width:10px; height:10px; border-top:1px solid var(--warm); border-left:1px solid var(--warm); }
+#onboarding-tooltip::after { content:''; position:absolute; bottom:-1px; right:-1px; width:10px; height:10px; border-bottom:1px solid var(--warm); border-right:1px solid var(--warm); }
+.onboarding-title { font-size: .65rem; color: var(--warm); letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 6px rgba(196,160,80,.3); }
+.onboarding-text { font-size: .7rem; color: var(--text); line-height: 1.6; font-family: 'Inter', sans-serif; margin-bottom: .8rem; }
+.onboarding-actions { display: flex; justify-content: space-between; align-items: center; }
+.onboarding-step { font-size: .5rem; color: var(--dim); font-family: 'JetBrains Mono', monospace; letter-spacing: .1em; }
+.onboarding-btn { background: transparent; border: 1px solid var(--warm); color: var(--warm); padding: .3rem .8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: .55rem; letter-spacing: .1em; text-transform: uppercase; transition: all .2s; }
+.onboarding-btn:hover { background: var(--warm); color: var(--bg); }
+.onboarding-btn.skip { border-color: var(--border); color: var(--dim); }
+
+/* ── Mini-graph (focus ant) ── */
+#mini-graph {
+  position: absolute; bottom: 60px; right: 14px; z-index: 11;
+  width: 200px; height: 80px; display: none;
+  background: var(--panel); backdrop-filter: blur(20px); border: 1px solid var(--warm);
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+#mini-graph::before { content:''; position:absolute; top:-1px; left:-1px; width:8px; height:8px; border-top:1px solid var(--warm); border-left:1px solid var(--warm); }
+.mini-graph-label { position: absolute; top: 4px; left: 8px; font-size: .45rem; color: var(--warm); font-family: 'JetBrains Mono', monospace; letter-spacing: .1em; text-transform: uppercase; z-index: 2; }
+
+/* ── Recording indicator ── */
+#record-indicator {
+  position: fixed; top: 60px; right: 14px; z-index: 700;
+  display: none; align-items: center; gap: .4rem;
+  background: rgba(139,32,32,.9); backdrop-filter: blur(12px);
+  padding: .3rem .7rem; border: 1px solid #c04040;
+  font-family: 'JetBrains Mono', monospace; font-size: .55rem; color: #fff;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+#record-indicator.active { display: flex; }
+.record-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4040; animation: record-pulse 1s infinite; }
+@keyframes record-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
 </style>
 </head>
@@ -327,6 +388,9 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
   </div>
   <div class="topbar-right">
     <button class="tool-btn" id="btn-help" onclick="toggleHelp()" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">?</button>
+    <button class="tool-btn" id="btn-share" onclick="shareByURL()" title="Share by URL" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">⤴</button>
+    <button class="tool-btn" id="btn-record" onclick="toggleRecord()" title="Record WebM" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">●</button>
+    <button class="tool-btn" id="btn-theme" onclick="toggleTheme()" title="Toggle theme" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">◐</button>
     <div class="mode-toggle">
       <button id="btn-mode-2d" class="active" onclick="setMode('2d')">2D</button>
       <button id="btn-mode-3d" onclick="setMode('3d')">3D</button>
@@ -455,6 +519,30 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 </div>
 
 <div id="toast-container" style="position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none"></div>
+
+<!-- Recording indicator -->
+<div id="record-indicator"><span class="record-dot"></span>REC</div>
+
+<!-- Mini-graph for focused ant -->
+<canvas id="mini-graph" width="200" height="80">
+  <div class="mini-graph-label">ROUTE TRACK</div>
+</canvas>
+
+<!-- Onboarding overlay -->
+<div id="onboarding-overlay">
+  <div id="onboarding-spotlight"></div>
+  <div id="onboarding-tooltip">
+    <div class="onboarding-title" id="ob-title">// STEP 1</div>
+    <div class="onboarding-text" id="ob-text"></div>
+    <div class="onboarding-actions">
+      <button class="onboarding-btn skip" onclick="Onboarding.skip()">SKIP</button>
+      <div>
+        <span class="onboarding-step" id="ob-step">1 / 4</span>
+        <button class="onboarding-btn" id="ob-next" onclick="Onboarding.next()" style="margin-left:.8rem">NEXT →</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Command Palette (Cmd+K) -->
 <div id="command-palette-overlay" onclick="if(event.target===this)closeCommandPalette()">
@@ -597,7 +685,7 @@ const CC = {
 
 let wasmReady = false;
 (async () => {
-  try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; loadPrefs(); initWasmWorker(); }
+  try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; loadPrefs(); initWasmWorker(); loadFromURL(); setTimeout(() => Onboarding.start(), 1500); }
   catch(e) { document.getElementById('loadingMsg').textContent = 'ERROR: ' + e; }
 })();
 
@@ -1342,6 +1430,7 @@ document.getElementById('focus-input').addEventListener('input', e => {
   if (focusedAntId) lockedNodeId = null;
   rebuildEdgeUsageUpTo(step);
   if (POD042 && focusedAntId) POD042.onAntFocus(focusedAntId);
+  updateMiniGraph();
   renderRightPanel(); renderActive();
 });
 document.getElementById('timeline').addEventListener('input', function() {
@@ -1416,6 +1505,8 @@ function animate() {
         POD042._solutionAnalyzed = false;  // reset if user rewinds
       }
     }
+    // Mini-graph update when ant is focused
+    if (focusedAntId && currentMode === '2d') MiniGraph.render();
   }
 
   // FPS calculation
@@ -2606,6 +2697,10 @@ const CommandPalette = {
     { section: 'Toggles', icon: '⚠', label: 'Toggle Bottleneck', hint: 'Highlight hotspots', action: () => window.toggleBottleneck() },
     // Help
     { section: 'Help', icon: '?', label: 'Show keyboard shortcuts', hint: '?', action: () => window.toggleHelp() },
+    { section: 'Help', icon: '◐', label: 'Toggle dark/light theme', hint: 'Theme', action: () => window.toggleTheme() },
+    { section: 'Help', icon: '⤴', label: 'Share by URL', hint: 'Copy link', action: () => window.shareByURL() },
+    { section: 'Help', icon: '●', label: 'Toggle recording (WebM)', hint: 'Export', action: () => window.toggleRecord() },
+    { section: 'Help', icon: '◆', label: 'Restart onboarding', hint: 'Tour', action: () => { localStorage.removeItem('lemin-onboarded'); Onboarding.start(); } },
   ],
 
   // Fuzzy match: returns score (higher = better), or -1 if no match
@@ -3030,6 +3125,281 @@ const POD042 = {
 window.POD042 = POD042;
 // Start idle tip rotation on load
 setTimeout(() => POD042._startIdleRotation(), 2000);
+
+/* ═══════════════════════════════════════════════════════════════
+   ONBOARDING — 4-step spotlight tour for first-time users
+   ═══════════════════════════════════════════════════════════════ */
+const Onboarding = {
+  steps: [
+    { selector: '.gen-bar', title: '// CHOISIR UNE MAP', text: 'Sélectionnez un générateur pour charger une map officielle 42. Chaque option produit des graphes de complexité différente.' },
+    { selector: '.btn-solve', title: '// LANCER LA SIMULATION', text: 'Cliquez sur Execute pour résoudre le graphe avec l\'algorithme Lem-in compilé en WASM. Les fourmis se déplacent en temps réel.' },
+    { selector: '#canvas', title: '// EXPLORER LE GRAPHE', text: 'Glissez pour pan, molette pour zoom, clic sur un noeud pour isoler son chemin. Survol pour voir les détails en tooltip.' },
+    { selector: '.mode-toggle', title: '// BASCULER 2D / 3D', text: 'Le toggle bascule entre la vue 2D tactique et la vue 3D spatiale — sur la même page, sans rechargement.' },
+  ],
+  current: 0,
+  active: false,
+
+  start() {
+    if (localStorage.getItem('lemin-onboarded')) return;
+    this.active = true;
+    this.current = 0;
+    document.getElementById('onboarding-overlay').classList.add('active');
+    this._showStep();
+  },
+
+  _showStep() {
+    const step = this.steps[this.current];
+    if (!step) { this.complete(); return; }
+    const el = document.querySelector(step.selector);
+    if (!el) { this.current++; this._showStep(); return; }
+    const rect = el.getBoundingClientRect();
+    const spotlight = document.getElementById('onboarding-spotlight');
+    const tooltip = document.getElementById('onboarding-tooltip');
+    // Position spotlight
+    spotlight.style.left = (rect.left - 4) + 'px';
+    spotlight.style.top = (rect.top - 4) + 'px';
+    spotlight.style.width = (rect.width + 8) + 'px';
+    spotlight.style.height = (rect.height + 8) + 'px';
+    // Position tooltip — try right side, fallback below
+    let tx = rect.right + 16, ty = rect.top;
+    if (tx + 340 > window.innerWidth) { tx = rect.left; ty = rect.bottom + 16; }
+    if (ty + 200 > window.innerHeight) ty = Math.max(60, rect.top - 200);
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+    // Update content
+    document.getElementById('ob-title').textContent = step.title;
+    document.getElementById('ob-text').textContent = step.text;
+    document.getElementById('ob-step').textContent = `${this.current + 1} / ${this.steps.length}`;
+    document.getElementById('ob-next').textContent = this.current === this.steps.length - 1 ? '✓ DONE' : 'NEXT →';
+    Logger.debug('ONBOARD', `Step ${this.current + 1}/${this.steps.length}: ${step.title}`);
+  },
+
+  next() {
+    this.current++;
+    if (this.current >= this.steps.length) this.complete();
+    else this._showStep();
+  },
+
+  skip() { this.complete(); },
+
+  complete() {
+    this.active = false;
+    document.getElementById('onboarding-overlay').classList.remove('active');
+    localStorage.setItem('lemin-onboarded', '1');
+    if (POD042) POD042.say('Onboarding complete. Welcome, Operator.', 'success', 3000);
+    Logger.info('ONBOARD', 'Onboarding completed');
+  },
+};
+window.Onboarding = Onboarding;
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME — dark/light toggle
+   ═══════════════════════════════════════════════════════════════ */
+window.toggleTheme = function() {
+  const root = document.documentElement;
+  const isLight = root.getAttribute('data-theme') === 'light';
+  root.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  localStorage.setItem('lemin-theme', isLight ? 'dark' : 'light');
+  if (POD042) POD042.say(`Theme: ${isLight ? 'dark' : 'light'}`, 'tip', 2000);
+  renderActive();
+  Logger.info('THEME', 'Switched to ' + (isLight ? 'dark' : 'light'));
+};
+// Load saved theme
+if (localStorage.getItem('lemin-theme') === 'light') {
+  document.documentElement.setAttribute('data-theme', 'light');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARE BY URL — encode map + config in base64
+   ═══════════════════════════════════════════════════════════════ */
+window.shareByURL = async function() {
+  const map = document.getElementById('inputMap').value;
+  const config = { mode: currentMode, isHeatmap, isTeams, isBFS, isBottleneck };
+  const data = { map, config };
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    if (encoded.length > 8000) {
+      if (POD042) POD042.say('Map too large for URL sharing. Use copy-paste instead.', 'warn', 3500);
+      return;
+    }
+    const url = location.origin + location.pathname + '?d=' + encoded;
+    await navigator.clipboard.writeText(url);
+    if (POD042) POD042.say('Share URL copied to clipboard.', 'success', 3000);
+    showToast('URL copied to clipboard', 'success');
+    Logger.info('SHARE', 'URL generated, length: ' + encoded.length);
+  } catch(e) {
+    if (POD042) POD042.say('Share failed: ' + e.message, 'warn', 3000);
+    Logger.error('SHARE', 'Failed: ' + e.message);
+  }
+};
+
+// Load shared data from URL on startup
+function loadFromURL() {
+  const params = new URLSearchParams(location.search);
+  const d = params.get('d');
+  if (!d) return false;
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(d))));
+    if (data.map) document.getElementById('inputMap').value = data.map;
+    if (data.config) {
+      if (data.config.mode === '3d') setTimeout(() => setMode('3d'), 500);
+      if (data.config.isHeatmap) setTimeout(() => toggleHeatmap(), 600);
+      if (data.config.isTeams) setTimeout(() => toggleTeams(), 700);
+      if (data.config.isBFS) setTimeout(() => toggleBFS(), 800);
+      if (data.config.isBottleneck) setTimeout(() => toggleBottleneck(), 900);
+    }
+    Logger.info('SHARE', 'Loaded shared data from URL');
+    return true;
+  } catch(e) {
+    Logger.error('SHARE', 'Failed to load from URL: ' + e.message);
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RECORDING — WebM export via MediaRecorder
+   ═══════════════════════════════════════════════════════════════ */
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
+window.toggleRecord = function() {
+  if (isRecording) stopRecord();
+  else startRecord();
+};
+
+function startRecord() {
+  try {
+    const stream = canvas.captureStream(30); // 30 FPS
+    recordedChunks = [];
+    const mimeTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    let mimeType = '';
+    for (const mt of mimeTypes) { if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; } }
+    mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lem-in-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Recording saved', 'success');
+      if (POD042) POD042.say('Recording exported.', 'success', 3000);
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    document.getElementById('record-indicator').classList.add('active');
+    document.getElementById('btn-record').style.color = '#c04040';
+    document.getElementById('btn-record').style.borderColor = '#c04040';
+    if (POD042) POD042.say('Recording started. Click ● again to stop.', 'info', 3000);
+    Logger.info('RECORD', 'Recording started');
+  } catch(e) {
+    if (POD042) POD042.say('Recording not supported: ' + e.message, 'warn', 3000);
+    Logger.error('RECORD', 'Failed: ' + e.message);
+  }
+}
+
+function stopRecord() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    document.getElementById('record-indicator').classList.remove('active');
+    document.getElementById('btn-record').style.color = '';
+    document.getElementById('btn-record').style.borderColor = '';
+    Logger.info('RECORD', 'Recording stopped');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MINI-GRAPH — focused ant route visualization
+   ═══════════════════════════════════════════════════════════════ */
+const MiniGraph = {
+  canvas: null,
+  ctx: null,
+
+  init() {
+    this.canvas = document.getElementById('mini-graph');
+    this.ctx = this.canvas.getContext('2d');
+  },
+
+  show() {
+    if (!this.canvas) this.init();
+    this.canvas.style.display = 'block';
+    this.render();
+  },
+
+  hide() {
+    if (this.canvas) this.canvas.style.display = 'none';
+  },
+
+  render() {
+    if (!this.canvas || this.canvas.style.display === 'none') return;
+    const ctx = this.ctx, w = 200, h = 80;
+    ctx.fillStyle = 'rgba(8,10,14,0.92)';
+    ctx.fillRect(0, 0, w, h);
+    if (!focusedAntId || !globalAntJourneys.has(focusedAntId)) { this.hide(); return; }
+    const journey = globalAntJourneys.get(focusedAntId);
+    if (journey.length < 2) return;
+    // Draw label
+    ctx.fillStyle = '#c4a050';
+    ctx.font = '6px JetBrains Mono';
+    ctx.textAlign = 'left';
+    ctx.fillText('ROUTE TRACK // #' + focusedAntId, 8, 12);
+    // Draw path as horizontal line with nodes
+    const padding = 15;
+    const usableW = w - padding * 2;
+    const stepX = usableW / (journey.length - 1);
+    const centerY = h / 2 + 5;
+    // Path line
+    ctx.strokeStyle = 'rgba(196,160,80,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < journey.length; i++) {
+      const x = padding + i * stepX;
+      if (i === 0) ctx.moveTo(x, centerY); else ctx.lineTo(x, centerY);
+    }
+    ctx.stroke();
+    // Nodes
+    for (let i = 0; i < journey.length; i++) {
+      const x = padding + i * stepX;
+      const isStart = i === 0, isEnd = i === journey.length - 1;
+      const isCurrent = currentTrackedAntPath.length > 0 && i === currentTrackedAntPath.length - 1;
+      ctx.beginPath();
+      ctx.arc(x, centerY, isStart || isEnd ? 3 : 2, 0, Math.PI * 2);
+      ctx.fillStyle = isStart ? '#5a9a4a' : isEnd ? '#a83030' : isCurrent ? '#e0c070' : '#4a525c';
+      ctx.fill();
+      if (isCurrent) {
+        ctx.beginPath();
+        ctx.arc(x, centerY, 5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(224,192,112,0.6)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      // Node label (every 3rd node to avoid clutter)
+      if (i % Math.max(1, Math.floor(journey.length / 5)) === 0 || isStart || isEnd) {
+        ctx.fillStyle = 'rgba(180,190,205,0.6)';
+        ctx.font = '5px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(journey[i].substring(0, 6), x, centerY + 12);
+      }
+    }
+    // Progress bar
+    if (currentTrackedAntPath.length > 0 && journey.length > 0) {
+      const progress = currentTrackedAntPath.length / journey.length;
+      ctx.fillStyle = 'rgba(196,160,80,0.6)';
+      ctx.fillRect(padding, h - 6, usableW * progress, 2);
+    }
+  },
+};
+window.MiniGraph = MiniGraph;
+
+// Show/hide mini-graph based on focusedAntId
+function updateMiniGraph() {
+  if (focusedAntId && globalAntJourneys.has(focusedAntId)) MiniGraph.show();
+  else MiniGraph.hide();
+}
 
 /* ═══════════════════════════════════════════════════════════════
    MODE TOGGLE — switches the graph zone in-place, NO page navigation

@@ -2155,7 +2155,7 @@ window.runSimulation = async function() {
 const mode3D = (() => {
   let scene, camera, renderer, labelRenderer, controls, composer;
   let nodesGroup, linksGroup, labelsGroup;
-  let antInstancedMesh, antGlowMesh, dummyAnt;
+  let antInstancedMesh, antGlowMesh, antIdleMesh, dummyAnt;
   const nodeMeshes = new Map(), linkMeshes = new Map();
   let antsMap3D = new Map();
   let nodeFocusTarget = null, isCameraTrackingAnt = false;
@@ -2179,7 +2179,7 @@ const mode3D = (() => {
     linkBase: 0x484f58,     // muted gray-blue for links
     linkDim: 0x21262d,      // very dark for dimmed links
     linkHover: 0xd29922,    // GitHub yellow — analytical highlight
-    ant: 0xd29922,          // yellow — visible but not glowing
+    ant: 0xf85149,          // red — same as end node for visual consistency
     fog: 0x0d1117
   };
 
@@ -2258,13 +2258,19 @@ const mode3D = (() => {
     labelsGroup = new THREE.Group();
     scene.add(nodesGroup, linksGroup, labelsGroup);
 
-    // Core ants — smooth spheres with subtle sheen
+    // Core ants — red, smooth spheres (moving = full opacity)
     const MAX_ANTS = 100000;
-    const antGeometry = new THREE.SphereGeometry(7, 20, 20);  // higher detail
-    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.35, metalness: 0.3 });
+    const antGeometry = new THREE.SphereGeometry(7, 20, 20);
+    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.35, metalness: 0.3, emissive: COL.ant, emissiveIntensity: 0.15 });
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
+    // Idle ants (parked in a node) — semi-transparent, smaller
+    const idleGeometry = new THREE.SphereGeometry(5, 16, 16);  // smaller
+    const idleMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.5, metalness: 0.2, transparent: true, opacity: 0.35, depthWrite: false });
+    antIdleMesh = new THREE.InstancedMesh(idleGeometry, idleMaterial, MAX_ANTS);
+    antIdleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(antIdleMesh);
     antGlowMesh = null;
     dummyAnt = new THREE.Object3D();
 
@@ -2760,21 +2766,33 @@ const mode3D = (() => {
     if (!initialized || currentMode !== '3d') { animationRunning = false; return; }
     animationRunning = true;
 
-    let instanceCount = 0;
+    let instanceCount = 0;   // moving ants (full opacity)
+    let idleCount = 0;       // parked ants (semi-transparent)
     let trackedPos = null;
     antsMap3D.forEach((ant, id) => {
       if (ant.targetPos) {
         ant.currentPos.lerp(ant.targetPos, 0.25);
+        // Check if ant is "parked" (very close to target = in a node)
+        const dist = ant.currentPos.distanceTo(ant.targetPos);
         dummyAnt.position.copy(ant.currentPos);
         dummyAnt.updateMatrix();
-        antInstancedMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
-        if (antGlowMesh) antGlowMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
-        instanceCount++;
+        if (dist < 2) {
+          // Parked in a node — render as semi-transparent idle mesh
+          antIdleMesh.setMatrixAt(idleCount, dummyAnt.matrix);
+          idleCount++;
+        } else {
+          // Moving — render as full-opacity active mesh
+          antInstancedMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
+          if (antGlowMesh) antGlowMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
+          instanceCount++;
+        }
         if (id === focusedAntId) trackedPos = dummyAnt.position.clone();
       }
     });
     antInstancedMesh.count = instanceCount;
     antInstancedMesh.instanceMatrix.needsUpdate = true;
+    antIdleMesh.count = idleCount;
+    antIdleMesh.instanceMatrix.needsUpdate = true;
     if (antGlowMesh) { antGlowMesh.count = instanceCount; antGlowMesh.instanceMatrix.needsUpdate = true; }
 
     if (trackedPos && isCameraTrackingAnt && !isDragging3D) {
@@ -2896,6 +2914,7 @@ const mode3D = (() => {
     antsMap3D.clear();
     antInstancedMesh.count = 0;
     antInstancedMesh.instanceMatrix.needsUpdate = true;
+    if (antIdleMesh) { antIdleMesh.count = 0; antIdleMesh.instanceMatrix.needsUpdate = true; }
     if (antGlowMesh) {
       antGlowMesh.count = 0;
       antGlowMesh.instanceMatrix.needsUpdate = true;

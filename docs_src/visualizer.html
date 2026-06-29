@@ -164,6 +164,20 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 #canvas-3d-container canvas:active{cursor:grabbing}
 .label-3d{color:rgba(212,216,220,.7);font-family:'JetBrains Mono',monospace;font-size:11px;pointer-events:none;text-shadow:0 2px 4px rgba(0,0,0,.9);letter-spacing:1px;transition:opacity .2s ease,background .2s,font-size .2s;white-space:nowrap}
 .label-3d.highlighted{font-size:13px;font-weight:700;color:#fff !important;text-shadow:0 0 8px var(--warm),0 0 16px var(--warm);background:rgba(12,15,20,.85);padding:4px 10px;border:1px solid var(--warm);box-shadow:0 4px 15px rgba(0,0,0,.9);z-index:100}
+
+.left-panel { transition: transform .3s cubic-bezier(.4,0,.2,1); }
+.right-panel {
+  animation: panelFadeIn .3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.turn-badge { animation: badgeFadeIn .3s cubic-bezier(.4,0,.2,1); }
+@keyframes badgeFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
 </style>
 </head>
 <body>
@@ -187,6 +201,7 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
     <span class="gen-info" id="genInfo"></span>
   </div>
   <div class="topbar-right">
+    <button class="tool-btn" id="btn-help" onclick="toggleHelp()" style="border:1px solid var(--border);color:var(--dim);padding:.3rem .5rem;font-size:.7rem;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace">?</button>
     <div class="mode-toggle">
       <button id="btn-mode-2d" class="active" onclick="setMode('2d')">2D</button>
       <button id="btn-mode-3d" onclick="setMode('3d')">3D</button>
@@ -204,6 +219,7 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 
 <div class="panel left-panel">
   <span class="panel-tr"></span><span class="panel-bl"></span>
+  <button id="btn-collapse-left" onclick="toggleLeftPanel()" style="position:absolute;top:6px;right:6px;background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:.8rem;z-index:5;padding:2px 6px">◀</button>
   <div class="lp-section">
     <h3>Map Data</h3>
     <textarea class="map-input" id="inputMap" spellcheck="false">4
@@ -235,6 +251,15 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
     <div class="tool-row">
       <input type="text" class="tool-input" id="focus-input" placeholder="Track unit ID…">
       <button class="tool-btn" id="btn-heatmap" onclick="toggleHeatmap()">HEATMAP</button>
+    </div>
+    <div class="tool-row">
+      <input type="text" class="tool-input" id="search-input" placeholder="Search room…">
+      <button class="tool-btn" id="btn-search" onclick="searchNode()">FIND</button>
+    </div>
+    <div class="tool-row">
+      <button class="tool-btn" id="btn-teams" onclick="toggleTeams()" style="flex:1">TEAMS</button>
+      <button class="tool-btn" id="btn-bfs" onclick="toggleBFS()" style="flex:1">BFS</button>
+      <button class="tool-btn" id="btn-bottleneck" onclick="toggleBottleneck()" style="flex:1">BOTTLENECK</button>
     </div>
     <div class="slider-row"><label>// TIMELINE <span id="tl-label">0/0</span></label><input type="range" id="timeline" min="0" max="0" value="0" step="1"></div>
     <div class="slider-row"><label>// VELOCITY <span id="spd-val">70</span></label><input type="range" id="speed" min="1" max="100" value="70" oninput="document.getElementById('spd-val').textContent=this.value"></div>
@@ -273,6 +298,35 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 </div>
 <div class="loading" id="loadingMsg">// LOADING WASM MODULE…</div>
 
+<canvas id="minimap" width="180" height="120" style="position:absolute;bottom:60px;right:14px;z-index:10;display:none;cursor:pointer"></canvas>
+
+<div id="perf-monitor" style="position:absolute;bottom:60px;left:14px;z-index:10;font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--dim);display:none;letter-spacing:.05em;line-height:1.6;pointer-events:none">
+  <div>FPS <span id="perf-fps" style="color:var(--warm)">—</span></div>
+  <div>NODES <span id="perf-nodes" style="color:var(--text)">0</span> · LINKS <span id="perf-links" style="color:var(--text)">0</span></div>
+  <div>ANTS <span id="perf-ants" style="color:var(--text)">0</span> · STEP <span id="perf-step" style="color:var(--text)">0</span></div>
+</div>
+
+<div id="toast-container" style="position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none"></div>
+
+<div id="help-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)toggleHelp()">
+  <div class="panel" style="position:relative;width:400px;max-width:90vw;padding:2rem">
+    <span class="panel-tr"></span><span class="panel-bl"></span>
+    <h3 style="font-size:.7rem;text-transform:uppercase;letter-spacing:.15em;color:var(--warm);margin-bottom:1.5rem;font-family:'JetBrains Mono',monospace">// KEYBOARD REFERENCE</h3>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:.6rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.65rem">
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">SPACE</kbd><span style="color:var(--text)">Play / Pause simulation</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">←</kbd><span style="color:var(--text)">Previous step</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">→</kbd><span style="color:var(--text)">Next step</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">H</kbd><span style="color:var(--text)">Toggle heatmap</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">F</kbd><span style="color:var(--text)">Fullscreen toggle</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">ESC</kbd><span style="color:var(--text)">Close panels / clear focus</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">DRAG</kbd><span style="color:var(--text)">Pan canvas / move node</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">CLICK</kbd><span style="color:var(--text)">Isolate node path</span>
+      <kbd style="background:rgba(196,160,80,.1);border:1px solid var(--border);padding:2px 8px;color:var(--warm)">WHEEL</kbd><span style="color:var(--text)">Zoom in / out</span>
+    </div>
+    <button onclick="toggleHelp()" style="margin-top:1.5rem;background:transparent;border:1px solid var(--warm);color:var(--warm);padding:.4rem 1rem;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;width:100%">CLOSE</button>
+  </div>
+</div>
+
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" } }
 </script>
@@ -296,7 +350,7 @@ const CC = {
 
 let wasmReady = false;
 (async () => {
-  try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; }
+  try { await init(); wasmReady = true; document.getElementById('loadingMsg').style.display = 'none'; loadPrefs(); }
   catch(e) { document.getElementById('loadingMsg').textContent = 'ERROR: ' + e; }
 })();
 
@@ -318,6 +372,7 @@ window.genOfficial = async function(opt, btn) {
     const lk = ls.filter(l => l.includes('-') && !l.startsWith('#') && !l.match(/^\S+ -?\d+ -?\d+$/)).length;
     const n = file.match(/_(\d+)\./)[1];
     document.getElementById('genInfo').textContent = `${a} units · ${rm} rooms · ${lk} links · #${n}/10`;
+    showToast('Map loaded: ' + rm + ' rooms', 'success');
   } catch(e) { document.getElementById('genInfo').textContent = 'ERROR: ' + e; }
 };
 
@@ -329,6 +384,22 @@ let globalAntJourneys = new Map(), uniquePaths = [], currentPathDisplayIndex = 0
 let globalEdgeUsage = new Map(), maxEdgeUsage = 1, currentTrackedAntPath = [];
 let isMassive = false;
 let currentMode = '2d';
+
+// Phase 2 globals
+let searchHighlight = null, searchHighlightTime = 0;
+let showMinimap = false;
+const minimap = document.getElementById('minimap');
+const mmCtx = minimap.getContext('2d');
+let flowParticles = []; // {fromX, fromY, toX, toY, progress, hue}
+let isTeams = false;
+let antPathAssignment = new Map(); // antId -> pathIndex
+let isBFS = false;
+let nodeDistances = new Map();
+let isBottleneck = false;
+let leftPanelCollapsed = false;
+let lastFrameTime = performance.now();
+let frameCount = 0;
+let fps = 0;
 
 /* ═══════════════════════════════════════════════════════════════
    2D RENDERER (d3.js + canvas)
@@ -350,6 +421,12 @@ function spawnExplosion(x, y, hue) {
   for (let i = 0; i < n; i++) { const a = Math.random()*Math.PI*2, s = Math.random()*3+1; particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color:`hsl(${hue},85%,55%)`}); }
 }
 function antHue(id) { let h=0; for(const c of String(id)) h=(h*31+c.charCodeAt(0))&0x7FFF; return (h/0x7FFF)*360; }
+function teamHue(antId) {
+  if (!isTeams || !antPathAssignment.has(antId)) return antHue(antId);
+  const teamIdx = antPathAssignment.get(antId);
+  const palette = [0, 30, 60, 120, 180, 210, 270, 300, 340, 90, 150, 240];
+  return palette[teamIdx % palette.length];
+}
 
 const zoom = d3.zoom().scaleExtent([0.01,15]).on('zoom', e => {
   transform = e.transform;
@@ -366,8 +443,16 @@ function render2D() {
   ctx.save();
   ctx.fillStyle = CC.bg; ctx.fillRect(0, 0, W, H);
   if (!nodes.length) {
-    ctx.fillStyle = CC.text+'0.3)'; ctx.font = '300 14px Inter'; ctx.textAlign = 'center';
-    ctx.fillText('// AWAITING MAP DATA', W/2, H/2); ctx.restore(); return;
+    ctx.fillStyle = CC.text+'0.4)';
+    ctx.font = '300 16px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText('// AWAITING MAP DATA', W/2, H/2 - 20);
+    ctx.font = '400 11px JetBrains Mono';
+    ctx.fillStyle = CC.text+'0.2)';
+    ctx.fillText('Select a generator option above or paste a map', W/2, H/2 + 10);
+    ctx.fillText('then press ▶ EXECUTE', W/2, H/2 + 28);
+    ctx.restore();
+    return;
   }
   const gs = 60 * transform.k;
   if (gs > 10) {
@@ -446,6 +531,23 @@ function render2D() {
       ctx.lineWidth = lw; ctx.stroke();
     }
   });
+  // Flow particles (seulement si pas isMassive)
+  if (!isMassive) {
+    flowParticles.forEach(fp => {
+      const x = fp.fromX + (fp.toX - fp.fromX) * fp.progress;
+      const y = fp.fromY + (fp.toY - fp.fromY) * fp.progress;
+      const alpha = Math.sin(fp.progress * Math.PI); // fade in/out
+      ctx.globalAlpha = alpha * 0.6;
+      ctx.fillStyle = `hsl(${fp.hue},85%,70%)`;
+      ctx.shadowColor = `hsl(${fp.hue},85%,70%)`;
+      ctx.shadowBlur = 4/transform.k;
+      ctx.beginPath();
+      ctx.arc(x, y, 2/transform.k, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    ctx.globalAlpha = 1;
+  }
   ctx.lineCap = 'butt';
   nodes.forEach(n => {
     if (!vis(n.x, n.y)) return;
@@ -469,7 +571,17 @@ function render2D() {
       hasRing = true;
     } else {
       glowColor = 'rgba(180,190,205,0.15)';
-      grad0 = '#7a828e'; grad1 = '#4a525c'; grad2 = '#1e242a';
+      if (isBFS && nodeDistances.has(n.id)) {
+        const dist = nodeDistances.get(n.id);
+        const maxDist = Math.max(...nodeDistances.values()) || 1;
+        const ratio = dist / maxDist;
+        const hue = 120 - ratio * 120; // 120=green, 0=red
+        grad0 = `hsl(${hue},70%,60%)`;
+        grad1 = `hsl(${hue},60%,40%)`;
+        grad2 = `hsl(${hue},50%,20%)`;
+      } else {
+        grad0 = '#7a828e'; grad1 = '#4a525c'; grad2 = '#1e242a';
+      }
       strokeColor = 'rgba(180,190,205,0.8)';
     }
 
@@ -506,6 +618,30 @@ function render2D() {
       ctx.beginPath(); ctx.arc(n.x, n.y, r*1.6, 0, Math.PI*2);
       ctx.strokeStyle = ringColor;
       ctx.lineWidth = 1/transform.k;
+      ctx.stroke();
+    }
+
+    // Bottleneck ring
+    if (isBottleneck && roomVisits.has(n.id)) {
+      const visits = roomVisits.get(n.id);
+      const maxV = Math.max(...roomVisits.values()) || 1;
+      if (visits > maxV * 0.4) {
+        const ratio = visits / maxV;
+        const pulse = 0.5 + Math.sin(performance.now() * 0.003) * 0.3;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r*2.5, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(208,96,48,${ratio * pulse})`;
+        ctx.lineWidth = 2/transform.k;
+        ctx.stroke();
+      }
+    }
+
+    // Search flash ring
+    if (searchHighlight === n.id && (performance.now() - searchHighlightTime < 1500)) {
+      const elapsed = performance.now() - searchHighlightTime;
+      const pulse = 1.2 + Math.sin(elapsed * 0.01) * 0.4;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r * pulse * 2, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(224,192,112,0.8)';
+      ctx.lineWidth = 3/transform.k;
       ctx.stroke();
     }
 
@@ -557,7 +693,7 @@ function render2D() {
   ctx.globalAlpha = 1;
   const ar = Math.max(2.5, 5.5/transform.k);
   antTrails.forEach((trail, id) => {
-    const hue = antHue(id);
+    const hue = teamHue(id);
     const isF = id === focusedAntId;
     trail.forEach(t => {
       const tr = ar * 0.5 * t.life * (isF ? 1.3 : 1);
@@ -571,7 +707,7 @@ function render2D() {
   ants.forEach((ant, id) => {
     if (!vis(ant.x, ant.y)) return;
     const f = id === focusedAntId, r = f ? ar*1.4 : ar;
-    const hue = antHue(id);
+    const hue = teamHue(id);
 
     // 1. OUTER GLOW (radial gradient)
     const glowGrad = ctx.createRadialGradient(ant.x, ant.y, 0, ant.x, ant.y, r*2.5);
@@ -604,6 +740,7 @@ function render2D() {
       ctx.strokeStyle = 'rgba(224,192,112,0.25)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
     }
   });
+  renderMinimap();
   ctx.restore();
 }
 
@@ -624,7 +761,10 @@ d3.select(canvas).on('mousedown.drag', function(e) {
 canvas.addEventListener('mousemove', e => {
   const mx = (e.clientX - transform.x)/transform.k, my = (e.clientY - transform.y)/transform.k;
   if (dragNode) {
-    if (Math.abs(e.clientX-dragStart.x) > 4 || Math.abs(e.clientY-dragStart.y) > 4) isDragging = true;
+    if (Math.abs(e.clientX-dragStart.x) > 4 || Math.abs(e.clientY-dragStart.y) > 4) {
+      isDragging = true;
+      canvas.style.cursor = 'grabbing';
+    }
     if (isDragging) { dragNode.x = mx; dragNode.y = my; render2D(); }
     return;
   }
@@ -638,16 +778,21 @@ canvas.addEventListener('mousemove', e => {
   const tt = document.getElementById('tooltip'), prev = hoveredNodeId;
   hoveredNodeId = best ? best.id : null;
   if (best) {
+    canvas.style.cursor = 'pointer';
     tt.style.opacity = '1'; tt.style.left = e.clientX+'px'; tt.style.top = e.clientY+'px';
     document.getElementById('tt-name').textContent = best.id;
     document.getElementById('tt-visits').textContent = roomVisits.get(best.id)||0;
     document.getElementById('tt-degree').textContent = best.degree||0;
     document.getElementById('tt-type').textContent = best.type === 'start' ? 'START' : best.type === 'end' ? 'END' : 'NODE';
-  } else tt.style.opacity = '0';
+  } else {
+    canvas.style.cursor = 'grab';
+    tt.style.opacity = '0';
+  }
   if (prev !== hoveredNodeId) render2D();
 });
 window.addEventListener('mouseup', () => {
   if (dragNode) {
+    canvas.style.cursor = 'grab';
     if (!isDragging) {
       if (focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; }
       lockedNodeId = lockedNodeId === dragNode.id ? null : dragNode.id;
@@ -658,6 +803,7 @@ window.addEventListener('mouseup', () => {
   }
 });
 canvas.addEventListener('mouseleave', () => {
+  canvas.style.cursor = 'grab';
   document.getElementById('tooltip').style.opacity = '0'; hoveredNodeId = null; render2D();
 });
 window.addEventListener('resize', () => {
@@ -672,6 +818,15 @@ window.addEventListener('keydown', e => {
   if (e.code === 'ArrowRight') { e.preventDefault(); nextStep(); }
   if (e.code === 'ArrowLeft') { e.preventDefault(); prevStep(); }
   if (e.key.toLowerCase() === 'h') toggleHeatmap();
+  if (e.key.toLowerCase() === 'f') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  if (e.code === 'Escape') {
+    document.getElementById('help-overlay').style.display = 'none';
+    if (lockedNodeId) { lockedNodeId = null; renderRightPanel(); renderActive(); }
+    if (focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; renderRightPanel(); renderActive(); }
+  }
 });
 
 function processUniquePaths() {
@@ -789,7 +944,7 @@ function animate() {
       if (dx*dx+dy*dy < 0.16) {
         ant.x = ant.targetX; ant.y = ant.targetY;
         delete ant.targetX; delete ant.targetY;
-        if (ant.nid === endNode?.id && ant.justArrived) { spawnExplosion(ant.x, ant.y, antHue(id)); ant.justArrived = false; }
+        if (ant.nid === endNode?.id && ant.justArrived) { spawnExplosion(ant.x, ant.y, teamHue(id)); ant.justArrived = false; }
       } else {
         // Record trail point before updating position
         if (!isMassive || id === focusedAntId) {
@@ -814,8 +969,33 @@ function animate() {
       else if (trail.length > 0) trailsActive = true;
     });
 
-    if (moving || particles.length > 0 || trailsActive) render2D();
+    // Update flow particles progress
+    for (let i = flowParticles.length-1; i >= 0; i--) {
+      flowParticles[i].progress += 0.04;
+      if (flowParticles[i].progress >= 1) flowParticles.splice(i, 1);
+    }
+
+    if (moving || particles.length > 0 || trailsActive || flowParticles.length > 0) render2D();
   }
+
+  // FPS calculation
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFrameTime >= 500) {
+    fps = Math.round(frameCount * 1000 / (now - lastFrameTime));
+    frameCount = 0;
+    lastFrameTime = now;
+    const pm = document.getElementById('perf-monitor');
+    if (pm) {
+      pm.style.display = (playing || nodes.length > 0) ? 'block' : 'none';
+      document.getElementById('perf-fps').textContent = fps;
+      document.getElementById('perf-nodes').textContent = nodes.length;
+      document.getElementById('perf-links').textContent = links.length;
+      document.getElementById('perf-ants').textContent = ants.size;
+      document.getElementById('perf-step').textContent = step + 1;
+    }
+  }
+
   // 3D ant interpolation handled inside mode3D.animate3D()
   requestAnimationFrame(animate);
 }
@@ -868,10 +1048,37 @@ function parseMoves(line, fwd) {
     }
   });
 }
+function addFlowParticles(line) {
+  if (!line || isMassive) return;
+  line.split(' ').forEach(tok => {
+    if (!tok.startsWith('L')) return;
+    const d = tok.indexOf('-'), id = tok.substring(1,d), tn = tok.substring(d+1);
+    const target = nodeMap.get(tn);
+    if (!target) return;
+    let prev = startNode;
+    for (let i = step-1; i >= 0; i--) {
+      const f = moves[i].split(' ').find(p => p.startsWith(`L${id}-`));
+      if (f) { prev = nodeMap.get(f.substring(f.indexOf('-')+1)); break; }
+    }
+    if (prev && prev !== target) {
+      flowParticles.push({
+        fromX: prev.x, fromY: prev.y,
+        toX: target.x, toY: target.y,
+        progress: 0,
+        hue: teamHue(id)
+      });
+    }
+  });
+  if (flowParticles.length > 200) flowParticles.splice(0, flowParticles.length - 200);
+}
 function execFwd() {
   if (step >= moves.length-1) return false;
   step++; parseMoves(moves[step], true);
+  addFlowParticles(moves[step]);
   rebuildEdgeUsageUpTo(step); updateUI(); renderRightPanel(); renderActive();
+  if (step === moves.length-1) {
+    showToast('Simulation complete', 'success');
+  }
   return true;
 }
 function execBwd() {
@@ -899,10 +1106,11 @@ window.prevStep = function() { if (playing) togglePlay(); execBwd(); };
 window.toggleHeatmap = function() {
   isHeatmap = !isHeatmap;
   document.getElementById('btn-heatmap').classList.toggle('active', isHeatmap);
+  savePrefs();
   renderActive();
 };
 window.resetAll = function() {
-  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear();
+  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0;
   globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
   roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
   step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -951,7 +1159,7 @@ window.runSimulation = async function() {
   const out = document.getElementById('output'); out.innerHTML = '';
   try {
     const result = parse_and_solve(input);
-    nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear();
+    nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0;
     globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
     roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
     step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1002,6 +1210,8 @@ window.runSimulation = async function() {
       }
     }
     processUniquePaths();
+    computePathAssignments();
+    computeBFSDistances();
     const fr = new Set();
     if (moves.length > 0) for (const tok of moves[0].split(' ')) {
       const m = tok.match(/L\d+-(\S+)/); if (m) fr.add(m[1]);
@@ -1041,6 +1251,8 @@ window.runSimulation = async function() {
     document.getElementById('tl-label').textContent = `0/${moves.length}`;
     document.getElementById('timeline').max = moves.length;
     document.getElementById('timeline').value = 0;
+    showMinimap = nodes.length > 200;
+    showToast(`Map loaded: ${nodes.length} rooms, ${links.length} links`, 'success');
     d3.select(canvas).transition().duration(400).call(zoom.transform, d3.zoomIdentity.translate(W/2, H/2).scale(Math.min(0.5, 300/Math.sqrt(nodes.length))));
     if (mode3D && currentMode === '3d') mode3D.buildScene();
     renderActive();
@@ -1065,6 +1277,8 @@ const mode3D = (() => {
   let specialAnimations = [];
   let initialized = false;
   let animationRunning = false;
+  let bgParticles;
+  let flowParticles3D = []; // { fromPos, toPos, progress, mesh }
 
   // NieR Automata palette — brightened for visibility on dark bg
   const COL = {
@@ -1213,6 +1427,34 @@ const mode3D = (() => {
         controls.update();
       }
     }, { passive: false });
+
+    // Grille au sol
+    const gridHelper = new THREE.GridHelper(SCALES.graphSize * 3, 60, 0xc4a050, 0x2a3038);
+    gridHelper.position.y = -SCALES.graphSize * 0.5;
+    gridHelper.material.opacity = 0.15;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
+
+    // Particules de fond (poussière d'ambre)
+    const particleCount = 300;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      particlePositions[i*3] = (Math.random() - 0.5) * SCALES.graphSize * 4;
+      particlePositions[i*3+1] = (Math.random() - 0.5) * SCALES.graphSize * 2;
+      particlePositions[i*3+2] = (Math.random() - 0.5) * SCALES.graphSize * 4;
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    const particleMat = new THREE.PointsMaterial({
+      color: 0xc4a050,
+      size: 3,
+      transparent: true,
+      opacity: 0.4,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    bgParticles = new THREE.Points(particleGeo, particleMat);
+    scene.add(bgParticles);
   }
 
   function cancelCameraFocus() {
@@ -1497,6 +1739,26 @@ const mode3D = (() => {
         ant = { currentPos: startPos.clone(), targetPos: startPos.clone(), nodeId: startNode.id };
         antsMap3D.set(antId, ant);
       }
+      
+      // Spawn flow particle in 3D
+      if (!isMassive) {
+        const fromPos = ant.currentPos.clone();
+        const toPos = new THREE.Vector3(targetNode.x3d || 0, targetNode.y3d || 0, targetNode.z3d || 0);
+        const pGeo = new THREE.SphereGeometry(3, 8, 8);
+        const pHue = teamHue(antId);
+        const pColor = new THREE.Color(`hsl(${pHue},85%,65%)`);
+        const pMat = new THREE.MeshBasicMaterial({ color: pColor, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+        const pMesh = new THREE.Mesh(pGeo, pMat);
+        pMesh.position.copy(fromPos);
+        scene.add(pMesh);
+        flowParticles3D.push({
+          fromPos,
+          toPos,
+          progress: 0,
+          mesh: pMesh
+        });
+      }
+
       ant.targetPos.set(targetNode.x3d || 0, targetNode.y3d || 0, targetNode.z3d || 0);
       ant.nodeId = targetName;
     } else {
@@ -1652,6 +1914,31 @@ const mode3D = (() => {
       }
     });
 
+    // Update flowParticles3D
+    for (let i = flowParticles3D.length - 1; i >= 0; i--) {
+      const fp = flowParticles3D[i];
+      fp.progress += 0.04;
+      if (fp.progress >= 1) {
+        scene.remove(fp.mesh);
+        fp.mesh.geometry.dispose();
+        fp.mesh.material.dispose();
+        flowParticles3D.splice(i, 1);
+      } else {
+        fp.mesh.position.lerpVectors(fp.fromPos, fp.toPos, fp.progress);
+        fp.mesh.material.opacity = Math.sin(fp.progress * Math.PI) * 0.8;
+      }
+    }
+
+    // Drift bgParticles
+    if (bgParticles) {
+      bgParticles.rotation.y += 0.0003;
+      const positions = bgParticles.geometry.attributes.position.array;
+      for (let i = 0; i < positions.length; i += 3) {
+        positions[i+1] += Math.sin(performance.now() * 0.0005 + i) * 0.1;
+      }
+      bgParticles.geometry.attributes.position.needsUpdate = true;
+    }
+
     controls.update();
     if (composer) composer.render();
     else renderer.render(scene, camera);
@@ -1683,6 +1970,12 @@ const mode3D = (() => {
       antGlowMesh.count = 0;
       antGlowMesh.instanceMatrix.needsUpdate = true;
     }
+    flowParticles3D.forEach(fp => {
+      scene.remove(fp.mesh);
+      fp.mesh.geometry.dispose();
+      fp.mesh.material.dispose();
+    });
+    flowParticles3D = [];
     nodeFocusTarget = null; isCameraTrackingAnt = false;
   }
 
@@ -1722,7 +2015,202 @@ window.setMode = function(mode) {
     mode3D.hide();
     render2D();
   }
+  savePrefs();
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 2 FUNCTIONS
+   ═══════════════════════════════════════════════════════════════ */
+window.searchNode = function() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  if (!q) return;
+  let found = nodes.find(n => n.id.toLowerCase() === q);
+  if (!found) found = nodes.find(n => n.id.toLowerCase().includes(q));
+  if (!found) found = nodes.find(n => n.id.toLowerCase().startsWith(q));
+  if (found) {
+    if (currentMode === '2d') smoothPanTo(found.x, found.y);
+    else mode3D.focusNode(found.id);
+    hoveredNodeId = found.id;
+    searchHighlight = found.id;
+    searchHighlightTime = performance.now();
+    renderActive();
+  } else {
+    showToast('Room not found: ' + q, 'error');
+  }
+};
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    searchNode();
+  }
+});
+
+window.toggleHelp = function() {
+  const o = document.getElementById('help-overlay');
+  o.style.display = o.style.display === 'flex' ? 'none' : 'flex';
+};
+
+window.toggleTeams = function() {
+  isTeams = !isTeams;
+  document.getElementById('btn-teams').classList.toggle('active', isTeams);
+  if (isTeams) computePathAssignments();
+  savePrefs();
+  renderActive();
+};
+
+function computePathAssignments() {
+  antPathAssignment.clear();
+  const pathMap = new Map();
+  let idx = 0;
+  globalAntJourneys.forEach((path, antId) => {
+    const key = path.join(',');
+    if (!pathMap.has(key)) { pathMap.set(key, idx); idx++; }
+    antPathAssignment.set(antId, pathMap.get(key));
+  });
+}
+
+window.toggleBFS = function() {
+  isBFS = !isBFS;
+  document.getElementById('btn-bfs').classList.toggle('active', isBFS);
+  if (isBFS) computeBFSDistances();
+  savePrefs();
+  renderActive();
+};
+
+function computeBFSDistances() {
+  nodeDistances.clear();
+  if (!startNode) return;
+  nodeDistances.set(startNode.id, 0);
+  let queue = [startNode.id];
+  while (queue.length > 0) {
+    let curr = queue.shift();
+    let d = nodeDistances.get(curr);
+    links.forEach(l => {
+      let neighbor = null;
+      if (l.source.id === curr) neighbor = l.target.id;
+      else if (l.target.id === curr) neighbor = l.source.id;
+      if (neighbor && !nodeDistances.has(neighbor)) {
+        nodeDistances.set(neighbor, d + 1);
+        queue.push(neighbor);
+      }
+    });
+  }
+}
+
+window.toggleBottleneck = function() {
+  isBottleneck = !isBottleneck;
+  document.getElementById('btn-bottleneck').classList.toggle('active', isBottleneck);
+  savePrefs();
+  renderActive();
+};
+
+window.toggleLeftPanel = function() {
+  leftPanelCollapsed = !leftPanelCollapsed;
+  const lp = document.querySelector('.left-panel');
+  const btn = document.getElementById('btn-collapse-left');
+  if (leftPanelCollapsed) {
+    lp.style.transform = 'translateX(-280px)';
+    btn.textContent = '▶';
+    btn.style.right = '-20px';
+  } else {
+    lp.style.transform = 'translateX(0)';
+    btn.textContent = '◀';
+    btn.style.right = '6px';
+  }
+  savePrefs();
+};
+
+function showToast(msg, type='info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  const colors = { info: 'var(--warm)', error: '#c04040', success: '#7aba5a' };
+  toast.style.cssText = `background:var(--panel);border:1px solid ${colors[type]};backdrop-filter:blur(12px);padding:.5rem 1rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:${colors[type]};box-shadow:0 4px 16px rgba(0,0,0,.5),0 0 12px ${colors[type]}33;letter-spacing:.05em;opacity:0;transform:translateY(-10px);transition:all .3s cubic-bezier(.4,0,.2,1)`;
+  toast.textContent = '// ' + msg;
+  container.appendChild(toast);
+  requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
+function renderMinimap() {
+  if (!showMinimap || !nodes.length || currentMode !== '2d') { minimap.style.display = 'none'; return; }
+  minimap.style.display = 'block';
+  const mw = 180, mh = 120;
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  nodes.forEach(n => { minX=Math.min(minX,n.x); maxX=Math.max(maxX,n.x); minY=Math.min(minY,n.y); maxY=Math.max(maxY,n.y); });
+  const sx = mw / (maxX-minX || 1), sy = mh / (maxY-minY || 1);
+  const s = Math.min(sx, sy) * 0.9;
+  const ox = (mw - (maxX-minX)*s) / 2 - minX*s;
+  const oy = (mh - (maxY-minY)*s) / 2 - minY*s;
+  mmCtx.fillStyle = 'rgba(8,10,14,0.92)';
+  mmCtx.fillRect(0, 0, mw, mh);
+  mmCtx.strokeStyle = 'rgba(196,160,80,0.3)';
+  mmCtx.lineWidth = 1;
+  mmCtx.strokeRect(0.5, 0.5, mw-1, mh-1);
+  mmCtx.strokeStyle = 'rgba(180,190,205,0.15)';
+  mmCtx.lineWidth = 0.5;
+  links.forEach(l => {
+    mmCtx.beginPath();
+    mmCtx.moveTo(l.source.x*s+ox, l.source.y*s+oy);
+    mmCtx.lineTo(l.target.x*s+ox, l.target.y*s+oy);
+    mmCtx.stroke();
+  });
+  nodes.forEach(n => {
+    const isS = n.type==='start', isE = n.type==='end';
+    mmCtx.fillStyle = isS ? '#5a9a4a' : isE ? '#a83030' : '#4a525c';
+    mmCtx.beginPath();
+    mmCtx.arc(n.x*s+ox, n.y*s+oy, isS||isE ? 2.5 : 1.5, 0, Math.PI*2);
+    mmCtx.fill();
+  });
+  const vL = (-transform.x)/transform.k, vR = (W-transform.x)/transform.k;
+  const vT = (-transform.y)/transform.k, vB = (H-transform.y)/transform.k;
+  mmCtx.strokeStyle = 'rgba(224,192,112,0.8)';
+  mmCtx.lineWidth = 1;
+  mmCtx.strokeRect(vL*s+ox, vT*s+oy, (vR-vL)*s, (vB-vT)*s);
+}
+
+minimap.addEventListener('click', e => {
+  const rect = minimap.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  nodes.forEach(n => { minX=Math.min(minX,n.x); maxX=Math.max(maxX,n.x); minY=Math.min(minY,n.y); maxY=Math.max(maxY,n.y); });
+  const sx = 180 / (maxX-minX || 1), sy = 120 / (maxY-minY || 1);
+  const s = Math.min(sx, sy) * 0.9;
+  const ox = (180 - (maxX-minX)*s) / 2 - minX*s;
+  const oy = (120 - (maxY-minY)*s) / 2 - minY*s;
+  const wx = (mx - ox) / s, wy = (my - oy) / s;
+  smoothPanTo(wx, wy);
+});
+
+function savePrefs() {
+  const prefs = {
+    mode: currentMode,
+    isHeatmap, isTeams, isBFS, isBottleneck,
+    speed: document.getElementById('speed').value,
+    leftPanelCollapsed
+  };
+  localStorage.setItem('lemin-prefs', JSON.stringify(prefs));
+}
+
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem('lemin-prefs') || '{}');
+    if (p.mode === '3d') setMode('3d');
+    if (p.isHeatmap) { isHeatmap = false; toggleHeatmap(); }
+    if (p.isTeams) { isTeams = false; toggleTeams(); }
+    if (p.isBFS) { isBFS = false; toggleBFS(); }
+    if (p.isBottleneck) { isBottleneck = false; toggleBottleneck(); }
+    if (p.speed) {
+      document.getElementById('speed').value = p.speed;
+      document.getElementById('spd-val').textContent = p.speed;
+    }
+    if (p.leftPanelCollapsed) { leftPanelCollapsed = false; toggleLeftPanel(); }
+  } catch(e) {}
+}
 </script>
 </body>
 </html>

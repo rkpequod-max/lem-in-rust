@@ -249,6 +249,60 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 .insight-card.accent .insight-val { color: var(--warm); }
 .insight-lbl { font-size: .45rem; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; font-family: 'JetBrains Mono', monospace; }
 
+/* ── POD 042 — tactical assistant (NieR Automata style) ── */
+#pod042 {
+  position: fixed; bottom: 60px; right: 14px; z-index: 15;
+  width: 280px;
+  background: var(--panel); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(196,160,80,.05);
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  font-family: 'JetBrains Mono', monospace;
+}
+#pod042::before { content:''; position:absolute; top:-1px; left:-1px; width:12px; height:12px; border-top:1px solid var(--warm); border-left:1px solid var(--warm); pointer-events:none; }
+#pod042::after { content:''; position:absolute; bottom:-1px; right:-1px; width:12px; height:12px; border-bottom:1px solid var(--warm); border-right:1px solid var(--warm); pointer-events:none; }
+#pod042.collapsed { width: auto; }
+#pod042.collapsed #pod042-body, #pod042.collapsed #pod042-hint { display: none; }
+.pod042-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .5rem .7rem; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: border-color .2s;
+}
+#pod042.collapsed .pod042-header { border-bottom: none; }
+.pod042-header:hover { background: rgba(196,160,80,.04); }
+.pod042-title {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .6rem; color: var(--warm); letter-spacing: .12em; text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(196,160,80,.3);
+}
+.pod042-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--warm);
+  box-shadow: 0 0 6px var(--warm);
+  animation: pod042-pulse 2s infinite ease-in-out;
+}
+@keyframes pod042-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.7); }
+}
+.pod042-collapse-btn {
+  background: transparent; border: none; color: var(--dim); cursor: pointer;
+  font-size: .7rem; padding: 0; line-height: 1; transition: color .2s;
+}
+.pod042-collapse-btn:hover { color: var(--warm); }
+#pod042-body {
+  padding: .6rem .7rem; font-size: .58rem; line-height: 1.6; letter-spacing: .02em;
+  min-height: 2.5rem; transition: opacity .3s ease; color: var(--yoRHa);
+}
+#pod042-hint {
+  padding: .35rem .7rem; border-top: 1px solid var(--border);
+  font-size: .45rem; color: var(--dim); letter-spacing: .08em; text-transform: uppercase;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pod042-hint-action { color: var(--warm); cursor: pointer; transition: color .2s; }
+.pod042-hint-action:hover { color: var(--warm-bright); text-decoration: underline; }
+
+
 </style>
 </head>
 <body>
@@ -382,6 +436,22 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
   <div>FPS <span id="perf-fps" style="color:var(--warm)">—</span></div>
   <div>NODES <span id="perf-nodes" style="color:var(--text)">0</span> · LINKS <span id="perf-links" style="color:var(--text)">0</span></div>
   <div>ANTS <span id="perf-ants" style="color:var(--text)">0</span> · STEP <span id="perf-step" style="color:var(--text)">0</span></div>
+</div>
+
+<!-- POD 042 — Tactical Support Unit -->
+<div id="pod042">
+  <div class="pod042-header" onclick="POD042.toggle()">
+    <div class="pod042-title">
+      <span class="pod042-status-dot"></span>
+      <span>◆ POD 042</span>
+    </div>
+    <button class="pod042-collapse-btn" onclick="event.stopPropagation(); POD042.toggle()">▼</button>
+  </div>
+  <div id="pod042-body">// AWAITING DATA…</div>
+  <div id="pod042-hint">
+    <span id="pod042-hint-text">TACTICAL SUPPORT</span>
+    <span class="pod042-hint-action" onclick="event.stopPropagation(); POD042.dismiss()">DISMISS</span>
+  </div>
 </div>
 
 <div id="toast-container" style="position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none"></div>
@@ -1271,6 +1341,7 @@ document.getElementById('focus-input').addEventListener('input', e => {
   focusedAntId = e.target.value.trim() || null;
   if (focusedAntId) lockedNodeId = null;
   rebuildEdgeUsageUpTo(step);
+  if (POD042 && focusedAntId) POD042.onAntFocus(focusedAntId);
   renderRightPanel(); renderActive();
 });
 document.getElementById('timeline').addEventListener('input', function() {
@@ -1332,6 +1403,19 @@ function animate() {
     }
 
     if (moving || particles.length > 0 || trailsActive || flowParticles.length > 0) render2D();
+
+    // POD 042: anomaly detection + solution complete check
+    if (POD042 && currentMode === '2d') {
+      POD042.checkAnomalies();
+      // Detect simulation completion
+      if (playing && arrived === totalAnts && totalAnts > 0 && !POD042._solutionAnalyzed) {
+        POD042._solutionAnalyzed = true;
+        POD042.analyzeSolution();
+      }
+      if (!playing && POD042._solutionAnalyzed && arrived < totalAnts) {
+        POD042._solutionAnalyzed = false;  // reset if user rewinds
+      }
+    }
   }
 
   // FPS calculation
@@ -1463,11 +1547,14 @@ window.toggleHeatmap = function() {
   isHeatmap = !isHeatmap;
   document.getElementById('btn-heatmap').classList.toggle('active', isHeatmap);
   savePrefs();
+  if (POD042) POD042.onToggle('heatmap', isHeatmap);
   renderActive();
 };
 window.resetAll = function() {
   nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear(); antSpriteCache.clear(); nodeQuadtree = null;
   GraphMetrics.clear();
+  if (POD042) POD042.reset();
+  if (POD042) POD042._solutionAnalyzed = false;
   globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
   roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
   step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1697,7 +1784,7 @@ window.runSimulation = async function() {
     // Build quadtree for O(log n) hit-testing
     nodeQuadtree = d3.quadtree().x(d => d.x).y(d => d.y).addAll(nodes);
     // Compute graph metrics (diameter, density, clustering) — async-safe, non-blocking
-    setTimeout(() => GraphMetrics.compute(), 0);
+    setTimeout(() => { GraphMetrics.compute(); POD042.analyzeGraph(); }, 0);
     document.getElementById('s-ants').textContent = totalAnts;
     document.getElementById('s-turn').textContent = `0/${moves.length}`;
     document.getElementById('s-paths').textContent = fr.size;
@@ -2717,6 +2804,234 @@ const GraphMetrics = {
 };
 
 /* ═══════════════════════════════════════════════════════════════
+   POD 042 — Tactical Support Unit (expert rules assistant)
+   Communication style: terse, military, NieR Automata pod
+   ═══════════════════════════════════════════════════════════════ */
+const POD042 = {
+  messageQueue: [],
+  currentMsg: null,
+  msgTimer: null,
+  collapsed: false,
+  idleTimer: null,
+  tipIndex: 0,
+  lastAnomalyCheck: 0,
+  antLastMoveStep: new Map(),  // antId → last step it moved
+
+  tips: [
+    "TIP: Press ⌘K to open the command palette.",
+    "TIP: Toggle BFS to visualize distance from start.",
+    "TIP: Enable Heatmap to see link usage intensity.",
+    "TIP: Click a node to isolate its path.",
+    "TIP: Teams mode colors ants by assigned route.",
+    "TIP: Press F for fullscreen tactical display.",
+    "TIP: Drag nodes to manually reposition them.",
+    "TIP: Bottleneck mode highlights overused nodes.",
+    "TIP: Use the timeline to scrub through cycles.",
+    "TIP: Switch to 3D for spatial graph analysis.",
+  ],
+
+  /** Queue a message. type: info | warn | success | tip */
+  say(message, type = 'info', duration = 4000) {
+    this.messageQueue.push({ message, type, duration, t: performance.now() });
+    Logger.info('POD042', `[${type}] ${message}`);
+    this._processQueue();
+  },
+
+  _processQueue() {
+    if (this.currentMsg || this.messageQueue.length === 0) return;
+    if (this.collapsed) { this.messageQueue = []; return; }
+    this.currentMsg = this.messageQueue.shift();
+    this._render(this.currentMsg);
+    this.msgTimer = setTimeout(() => {
+      this.currentMsg = null;
+      this._processQueue();
+    }, this.currentMsg.duration);
+  },
+
+  _render(msg) {
+    const body = document.getElementById('pod042-body');
+    const hint = document.getElementById('pod042-hint-text');
+    const colors = { info: 'var(--yoRHa)', warn: 'var(--ember)', success: '#7aba5a', tip: 'var(--warm)' };
+    const hints = { info: 'ANALYSIS', warn: 'WARNING', success: 'CONFIRMED', tip: 'SUGGESTION' };
+    body.style.opacity = '0';
+    setTimeout(() => {
+      body.textContent = '> ' + msg.message;
+      body.style.color = colors[msg.type] || 'var(--yoRHa)';
+      hint.textContent = hints[msg.type] || 'TACTICAL SUPPORT';
+      body.style.opacity = '1';
+    }, 150);
+  },
+
+  /** Toggle collapsed state */
+  toggle() {
+    this.collapsed = !this.collapsed;
+    const el = document.getElementById('pod042');
+    el.classList.toggle('collapsed', this.collapsed);
+    const btn = el.querySelector('.pod042-collapse-btn');
+    btn.textContent = this.collapsed ? '▲' : '▼';
+    if (!this.collapsed && !this.currentMsg) this._startIdleRotation();
+    if (this.collapsed) { clearTimeout(this.idleTimer); if (this.msgTimer) { clearTimeout(this.msgTimer); this.currentMsg = null; } }
+    else this._processQueue();
+  },
+
+  /** Dismiss current message */
+  dismiss() {
+    if (this.msgTimer) clearTimeout(this.msgTimer);
+    this.currentMsg = null;
+    this.messageQueue = [];
+    this._startIdleRotation();
+  },
+
+  _startIdleRotation() {
+    clearTimeout(this.idleTimer);
+    if (this.collapsed) return;
+    const showTip = () => {
+      if (this.currentMsg || this.collapsed) return;
+      const tip = this.tips[this.tipIndex % this.tips.length];
+      this.tipIndex++;
+      this._render({ message: tip, type: 'tip', duration: 0 });
+      this.idleTimer = setTimeout(showTip, 6000);
+    };
+    this.idleTimer = setTimeout(showTip, 1000);
+  },
+
+  /* ═══ EXPERT RULES ═══ */
+
+  /** Called after graph is loaded + metrics computed */
+  analyzeGraph() {
+    if (!nodes.length) return;
+    const n = nodes.length, e = links.length, ants = totalAnts;
+    const density = n > 1 ? (2 * e) / (n * (n - 1)) : 0;
+    const diameter = parseInt(document.getElementById('i-diameter')?.textContent) || 0;
+    const hasSuperposition = document.getElementById('inputMap')?.value?.includes('##start') && ants > 50;
+
+    this.say(`Graph loaded. ${n} rooms, ${e} links, ${ants} units.`, 'info', 3500);
+
+    setTimeout(() => {
+      if (density > 0.3) this.say(`High density (${density.toFixed(2)}) — flow potential: GOOD. Multiple paths likely available.`, 'success', 4000);
+      else if (density < 0.1) this.say(`Low density (${density.toFixed(2)}) — expect bottlenecks. Few alternative routes.`, 'warn', 4000);
+      else this.say(`Density: ${density.toFixed(2)} — standard graph topology.`, 'info', 3500);
+    }, 800);
+
+    setTimeout(() => {
+      if (diameter > 10) this.say(`Long graph (diameter ${diameter}) — ants will travel far. Consider BFS mode.`, 'tip', 4000);
+      else if (diameter <= 4 && ants > 100) this.say(`Compact graph (diameter ${diameter}) with ${ants} units — high congestion risk.`, 'warn', 4000);
+    }, 1600);
+
+    setTimeout(() => {
+      if (ants > 500) this.say(`Large unit count (${ants}) — 3D mode recommended for spatial overview.`, 'tip', 3500);
+    }, 2400);
+  },
+
+  /** Called when simulation completes (all ants arrived) */
+  analyzeSolution() {
+    if (!moves.length) return;
+    const turns = moves.length;
+    const paths = uniquePaths.length;
+    const avgPathLen = uniquePaths.length > 0
+      ? (uniquePaths.reduce((s, p) => s + p.length, 0) / uniquePaths.length).toFixed(1)
+      : '?';
+
+    this.say(`Solution complete. ${turns} cycles, ${paths} route${paths > 1 ? 's' : ''}, avg ${avgPathLen} hops.`, 'success', 4500);
+
+    // Theoretical lower bound: ceil(ants / paths) + longestPath - 1
+    setTimeout(() => {
+      if (paths > 0 && uniquePaths.length > 0) {
+        const maxPathLen = Math.max(...uniquePaths.map(p => p.length));
+        const theoretical = Math.ceil(totalAnts / paths) + maxPathLen - 1;
+        const ratio = turns / theoretical;
+        if (ratio < 1.1) this.say(`Optimal solution. ${turns} cycles vs theoretical ~${theoretical}. Efficiency: ${(100/ratio).toFixed(0)}%.`, 'success', 4500);
+        else if (ratio < 1.3) this.say(`Acceptable solution. ${turns} cycles vs ~${theoretical} theoretical. Room for improvement.`, 'info', 4500);
+        else this.say(`Suboptimal solution. ${turns} cycles vs ~${theoretical} theoretical. Consider path optimization.`, 'warn', 4500);
+      }
+    }, 1200);
+
+    setTimeout(() => {
+      if (paths === 1) this.say(`Single route used — algorithm found only 1 path. Graph may be linear.`, 'warn', 4000);
+      else if (paths > 5) this.say(`${paths} routes active — good path diversity.`, 'success', 3500);
+    }, 2400);
+  },
+
+  /** Called periodically during simulation to detect anomalies */
+  checkAnomalies() {
+    if (!playing || !moves.length) return;
+    const now = performance.now();
+    if (now - this.lastAnomalyCheck < 3000) return;  // throttle to every 3s
+    this.lastAnomalyCheck = now;
+
+    // Track ant movements
+    if (step >= 0 && moves[step]) {
+      moves[step].split(' ').forEach(tok => {
+        if (!tok.startsWith('L')) return;
+        const d = tok.indexOf('-');
+        if (d < 0) return;
+        const id = tok.substring(1, d);
+        this.antLastMoveStep.set(id, step);
+      });
+    }
+
+    // Detect stuck ants (haven't moved in 5+ cycles)
+    if (step > 5) {
+      for (const [antId, lastStep] of this.antLastMoveStep) {
+        if (step - lastStep >= 5 && ants.has(antId)) {
+          const ant = ants.get(antId);
+          if (ant.nid !== endNode?.id) {
+            this.say(`Unit ${antId} stationary for ${step - lastStep} cycles. Possible congestion at ${ant.nid}.`, 'warn', 3500);
+            this.antLastMoveStep.set(antId, step);  // don't repeat
+            break;  // one anomaly at a time
+          }
+        }
+      }
+    }
+
+    // Detect unused nodes (never visited)
+    if (step === moves.length - 1 && arrived === totalAnts) {
+      const visited = new Set(roomVisits.keys());
+      const unvisited = nodes.filter(n => n.type === 'room' && !visited.has(n.id));
+      if (unvisited.length > 0 && unvisited.length <= 3) {
+        this.say(`${unvisited.length} node(s) never visited: ${unvisited.map(n => n.id).join(', ')}. Redundant?`, 'warn', 4500);
+      }
+    }
+  },
+
+  /** Called when user focuses an ant */
+  onAntFocus(antId) {
+    if (!antId) return;
+    const journey = globalAntJourneys.get(antId);
+    if (journey) {
+      const hops = journey.length - 1;
+      this.say(`Tracking unit ${antId}. Route: ${hops} hops, ${journey.length} steps.`, 'info', 3500);
+    }
+  },
+
+  /** Called when user toggles a visualization */
+  onToggle(name, enabled) {
+    const msgs = {
+      heatmap: enabled ? 'Heatmap active. Bright links = heavy usage.' : 'Heatmap disabled.',
+      teams: enabled ? 'Teams mode active. Ants colored by route.' : 'Teams mode disabled.',
+      bfs: enabled ? 'BFS coloring active. Green = close to start, red = far.' : 'BFS disabled.',
+      bottleneck: enabled ? 'Bottleneck detection active. Pulsing rings = hotspots.' : 'Bottleneck disabled.',
+    };
+    if (msgs[name]) this.say(msgs[name], 'tip', 3000);
+  },
+
+  /** Reset state */
+  reset() {
+    this.messageQueue = [];
+    this.currentMsg = null;
+    this.antLastMoveStep.clear();
+    if (this.msgTimer) clearTimeout(this.msgTimer);
+    document.getElementById('pod042-body').textContent = '// AWAITING DATA…';
+    document.getElementById('pod042-body').style.color = 'var(--yoRHa)';
+    this._startIdleRotation();
+  },
+};
+
+window.POD042 = POD042;
+// Start idle tip rotation on load
+setTimeout(() => POD042._startIdleRotation(), 2000);
+
+/* ═══════════════════════════════════════════════════════════════
    MODE TOGGLE — switches the graph zone in-place, NO page navigation
    ═══════════════════════════════════════════════════════════════ */
 window.setMode = function(mode) {
@@ -2770,6 +3085,7 @@ window.toggleTeams = function() {
   document.getElementById('btn-teams').classList.toggle('active', isTeams);
   if (isTeams) computePathAssignments();
   savePrefs();
+  if (POD042) POD042.onToggle('teams', isTeams);
   renderActive();
 };
 
@@ -2789,6 +3105,7 @@ window.toggleBFS = function() {
   document.getElementById('btn-bfs').classList.toggle('active', isBFS);
   if (isBFS) computeBFSDistances();
   savePrefs();
+  if (POD042) POD042.onToggle('bfs', isBFS);
   renderActive();
 };
 
@@ -2816,6 +3133,7 @@ window.toggleBottleneck = function() {
   isBottleneck = !isBottleneck;
   document.getElementById('btn-bottleneck').classList.toggle('active', isBottleneck);
   savePrefs();
+  if (POD042) POD042.onToggle('bottleneck', isBottleneck);
   renderActive();
 };
 

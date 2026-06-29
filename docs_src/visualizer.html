@@ -3695,6 +3695,9 @@ window.Patterns = Patterns;
    ═══════════════════════════════════════════════════════════════ */
 let cinematicMode = false;
 let cinematicTimer = null;
+let cinematicTarget = null;       // {x, y} or THREE.Vector3 — current tracked target
+let cinematicTargetSwitchTime = 0; // when we last switched target
+let cinematicZoomBase = 0.5;       // base zoom level for 2D
 
 window.toggleCinematic = function() {
   cinematicMode = !cinematicMode;
@@ -3702,45 +3705,119 @@ window.toggleCinematic = function() {
   document.getElementById('cinematic-indicator').classList.toggle('active', cinematicMode);
   if (cinematicMode) {
     if (POD042) POD042.say('Cinematic mode engaged. Camera is autonomous.', 'info', 3000);
+    cinematicTarget = null;
+    cinematicTargetSwitchTime = 0;
+    // Disable user zoom/pan while cinematic is active (2D)
+    if (currentMode === '2d') d3.select(canvas).on('.zoom', null);
     cinematicLoop();
   } else {
     if (cinematicTimer) clearTimeout(cinematicTimer);
+    // Re-enable zoom/pan
+    if (currentMode === '2d') d3.select(canvas).call(zoom);
   }
   Logger.info('CINEMATIC', 'Mode: ' + (cinematicMode ? 'ON' : 'OFF'));
 };
 
+function cinematicPickTarget() {
+  // Priority: focused ant > busiest area > center of active ants > graph center
+  if (focusedAntId && ants.has(focusedAntId)) {
+    const a = ants.get(focusedAntId);
+    return { x: a.x, y: a.y };
+  }
+  // Find ants that are currently moving (have targetX) OR any ant
+  const allAnts = Array.from(ants.values());
+  if (allAnts.length === 0) {
+    // No ants yet — orbit around graph center
+    if (nodes.length > 0) {
+      let cx = 0, cy = 0;
+      nodes.forEach(n => { cx += n.x; cy += n.y; });
+      return { x: cx / nodes.length, y: cy / nodes.length };
+    }
+    return null;
+  }
+  // Pick the ant closest to the end (most "interesting" — about to finish)
+  // or a random moving ant
+  const movingAnts = allAnts.filter(a => a.targetX !== undefined);
+  if (movingAnts.length > 0) {
+    // Prefer ants near the end node
+    if (endNode) {
+      movingAnts.sort((a, b) => {
+        const da = Math.hypot(a.x - endNode.x, a.y - endNode.y);
+        const db = Math.hypot(b.x - endNode.x, b.y - endNode.y);
+        return da - db;
+      });
+      return { x: movingAnts[0].x, y: movingAnts[0].y };
+    }
+    return { x: movingAnts[0].x, y: movingAnts[0].y };
+  }
+  // Fallback: random ant
+  const r = allAnts[Math.floor(Math.random() * allAnts.length)];
+  return { x: r.x, y: r.y };
+}
+
 function cinematicLoop() {
   if (!cinematicMode) return;
-  // Pick target: busiest node, or focus ant, or random active ant
-  let target = null;
-  if (focusedAntId && ants.has(focusedAntId)) {
-    target = ants.get(focusedAntId);
-  } else if (ants.size > 0) {
-    // Find the ant that moved most recently
-    const activeAnts = Array.from(ants.values()).filter(a => a.targetX !== undefined);
-    if (activeAnts.length > 0) target = activeAnts[Math.floor(Math.random() * activeAnts.length)];
+  const now = performance.now();
+  // Switch target every 3-5 seconds, or if target lost
+  if (!cinematicTarget || now - cinematicTargetSwitchTime > 3500) {
+    const newTarget = cinematicPickTarget();
+    if (newTarget) {
+      cinematicTarget = newTarget;
+      cinematicTargetSwitchTime = now;
+    }
   }
-  if (target) {
+
+  if (cinematicTarget) {
     if (currentMode === '2d') {
-      const nX = transform.x + ((W / 2 - target.x * transform.k) - transform.x) * 0.05;
-      const nY = transform.y + ((H / 2 - target.y * transform.k) - transform.y) * 0.05;
-      const targetScale = 0.8;
-      const nScale = transform.k + (targetScale - transform.k) * 0.03;
+      // Smooth lerp toward target — 0.04 = slow & cinematic
+      const k = transform.k;
+      const targetScreenX = W / 2 - cinematicTarget.x * k;
+      const targetScreenY = H / 2 - cinematicTarget.y * k;
+      const nX = transform.x + (targetScreenX - transform.x) * 0.04;
+      const nY = transform.y + (targetScreenY - transform.y) * 0.04;
+      // Adaptive zoom: zoom in more when ants are clustered, less when spread
+      let targetScale = 0.6;
+      if (ants.size > 0) {
+        // Compute spread of ants
+        const antArr = Array.from(ants.values());
+        let spread = 0;
+        antArr.forEach(a => { spread += Math.hypot(a.x - cinematicTarget.x, a.y - cinematicTarget.y); });
+        spread /= antArr.length;
+        // More spread = zoom out, less spread = zoom in
+        targetScale = Math.max(0.3, Math.min(1.2, 800 / (spread + 200)));
+      }
+      const nScale = k + (targetScale - k) * 0.02;
       suppressZoom = true;
       d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(nX, nY).scale(nScale));
       suppressZoom = false;
-    } else if (mode3D) {
-      // 3D: slowly orbit
-      const t = performance.now() * 0.0002;
-      const dist = 3000;
-      const cx = controls.target.x, cy = controls.target.y, cz = controls.target.z;
-      camera.position.x = cx + Math.cos(t) * dist;
-      camera.position.z = cz + Math.sin(t) * dist;
-      camera.position.y = cy + 1500;
-      camera.lookAt(controls.target);
+      render2D();
+    } else if (currentMode === '3d' && mode3D && mode3D.initialized) {
+      // 3D: smooth orbit + track target
+      const t = now * 0.00015; // very slow orbit
+      // Find the 3D position of the target ant
+      let targetVec = null;
+      if (focusedAntId && antsMap3D.has(focusedAntId)) {
+        targetVec = antsMap3D.get(focusedAntId).currentPos;
+      } else {
+        // Use graph center
+        targetVec = controls.target.clone();
+      }
+      if (targetVec) {
+        // Lerp controls.target toward the ant
+        controls.target.lerp(targetVec, 0.03);
+        // Orbit around the target
+        const dist = 3500;
+        const heightOffset = 1200;
+        camera.position.x = controls.target.x + Math.cos(t) * dist;
+        camera.position.z = controls.target.z + Math.sin(t) * dist;
+        camera.position.y = controls.target.y + heightOffset;
+        camera.lookAt(controls.target);
+        controls.update();
+      }
     }
   }
-  cinematicTimer = setTimeout(cinematicLoop, 50);
+  // ~30fps for cinematic (smooth enough, low CPU)
+  cinematicTimer = setTimeout(cinematicLoop, 33);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3849,6 +3926,12 @@ window.showRecommendations = function() {
    ═══════════════════════════════════════════════════════════════ */
 window.setMode = function(mode) {
   if (mode === currentMode) return;
+  // If cinematic is on, re-bind zoom handlers properly for the new mode
+  const wasCinematic = cinematicMode;
+  if (wasCinematic && currentMode === '2d') {
+    // Re-enable zoom before switching (so it doesn't leak)
+    d3.select(canvas).call(zoom);
+  }
   currentMode = mode;
   document.getElementById('btn-mode-2d').classList.toggle('active', mode === '2d');
   document.getElementById('btn-mode-3d').classList.toggle('active', mode === '3d');
@@ -3857,6 +3940,10 @@ window.setMode = function(mode) {
   } else {
     mode3D.hide();
     render2D();
+  }
+  // Re-apply cinematic zoom disable if needed
+  if (wasCinematic && mode === '2d') {
+    d3.select(canvas).on('.zoom', null);
   }
   savePrefs();
 };

@@ -298,8 +298,6 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 </div>
 <div class="loading" id="loadingMsg">// LOADING WASM MODULE…</div>
 
-<canvas id="minimap" width="180" height="120" style="position:absolute;bottom:60px;right:14px;z-index:10;display:none;cursor:pointer"></canvas>
-
 <div id="perf-monitor" style="position:absolute;bottom:60px;left:14px;z-index:10;font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--dim);display:none;letter-spacing:.05em;line-height:1.6;pointer-events:none">
   <div>FPS <span id="perf-fps" style="color:var(--warm)">—</span></div>
   <div>NODES <span id="perf-nodes" style="color:var(--text)">0</span> · LINKS <span id="perf-links" style="color:var(--text)">0</span></div>
@@ -387,9 +385,7 @@ let currentMode = '2d';
 
 // Phase 2 globals
 let searchHighlight = null, searchHighlightTime = 0;
-let showMinimap = false;
-const minimap = document.getElementById('minimap');
-const mmCtx = minimap.getContext('2d');
+
 let flowParticles = []; // {fromX, fromY, toX, toY, progress, hue}
 let isTeams = false;
 let antPathAssignment = new Map(); // antId -> pathIndex
@@ -493,44 +489,129 @@ function render2D() {
     }
   }
   ctx.lineCap = 'round';
-  links.forEach(l => {
-    if (!vis(l.source.x, l.source.y) && !vis(l.target.x, l.target.y)) return;
-    const k = [l.source.id,l.target.id].sort().join('~');
-    const hov = hoveredNodeId && (l.source.id === hoveredNodeId || l.target.id === hoveredNodeId);
-    const mx = (l.source.x + l.target.x) / 2, my = (l.source.y + l.target.y) / 2;
-    const dx = l.target.x - l.source.x, dy = l.target.y - l.source.y;
-    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-    const curve = Math.min(dist * 0.08, 15);
-    const cx = mx + (-dy / dist) * curve, cy = my + (dx / dist) * curve;
-    ctx.beginPath();
-    ctx.moveTo(l.source.x, l.source.y);
-    ctx.quadraticCurveTo(cx, cy, l.target.x, l.target.y);
-    if (iso) {
+  const isLargeMap = nodes.length > 200;
+  
+  if (iso) {
+    // Separate into two batches: highlighted and dimmed
+    const highlightPath = [];
+    const dimmedPath = [];
+    
+    links.forEach(l => {
+      if (!vis(l.source.x, l.source.y) && !vis(l.target.x, l.target.y)) return;
+      const k = [l.source.id,l.target.id].sort().join('~');
+      const hov = hoveredNodeId && (l.source.id === hoveredNodeId || l.target.id === hoveredNodeId);
+      
+      const pts = { sX: l.source.x, sY: l.source.y, tX: l.target.x, tY: l.target.y };
+      if (!isLargeMap) {
+        const dx = l.target.x - l.source.x, dy = l.target.y - l.source.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const curve = Math.min(dist * 0.08, 15);
+        pts.cX = (l.source.x + l.target.x)/2 + (-dy / dist) * curve;
+        pts.cY = (l.source.y + l.target.y)/2 + (dx / dist) * curve;
+      }
+      
       if (isoL.has(k) || hov) {
-        ctx.strokeStyle = 'rgba(224,192,112,0.9)'; ctx.lineWidth = 2.5/transform.k;
-        ctx.shadowColor = 'rgba(224,192,112,0.5)'; ctx.shadowBlur = 6/transform.k;
-        ctx.stroke(); ctx.shadowBlur = 0;
-      } else { ctx.strokeStyle = CC.dimmed; ctx.lineWidth = lw; ctx.stroke(); }
+        highlightPath.push(pts);
+      } else {
+        dimmedPath.push(pts);
+      }
+    });
+    
+    // Draw dimmed
+    ctx.strokeStyle = CC.dimmed; ctx.lineWidth = lw;
+    ctx.beginPath();
+    dimmedPath.forEach(p => {
+      ctx.moveTo(p.sX, p.sY);
+      if (isLargeMap) ctx.lineTo(p.tX, p.tY);
+      else ctx.quadraticCurveTo(p.cX, p.cY, p.tX, p.tY);
+    });
+    ctx.stroke();
+    
+    // Draw highlighted
+    ctx.strokeStyle = 'rgba(224,192,112,0.9)'; ctx.lineWidth = 2.5/transform.k;
+    if (!isLargeMap) {
+      ctx.shadowColor = 'rgba(224,192,112,0.5)'; ctx.shadowBlur = 6/transform.k;
     }
-    else if (hov) {
+    ctx.beginPath();
+    highlightPath.forEach(p => {
+      ctx.moveTo(p.sX, p.sY);
+      if (isLargeMap) ctx.lineTo(p.tX, p.tY);
+      else ctx.quadraticCurveTo(p.cX, p.cY, p.tX, p.tY);
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  } else {
+    // Not isolating
+    const normalPath = [];
+    const hoverPath = [];
+    const heatmapLinks = [];
+    
+    links.forEach(l => {
+      if (!vis(l.source.x, l.source.y) && !vis(l.target.x, l.target.y)) return;
+      const k = [l.source.id,l.target.id].sort().join('~');
+      const hov = hoveredNodeId && (l.source.id === hoveredNodeId || l.target.id === hoveredNodeId);
+      
+      const pts = { sX: l.source.x, sY: l.source.y, tX: l.target.x, tY: l.target.y };
+      if (!isLargeMap) {
+        const dx = l.target.x - l.source.x, dy = l.target.y - l.source.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const curve = Math.min(dist * 0.08, 15);
+        pts.cX = (l.source.x + l.target.x)/2 + (-dy / dist) * curve;
+        pts.cY = (l.source.y + l.target.y)/2 + (dx / dist) * curve;
+      }
+      
+      if (hov) {
+        hoverPath.push(pts);
+      } else if (isHeatmap && globalEdgeUsage.has(k)) {
+        pts.k = k;
+        heatmapLinks.push(pts);
+      } else {
+        normalPath.push(pts);
+      }
+    });
+    
+    // Draw normal
+    const linkAlpha = nodes.length > 1500 ? 0.12 : nodes.length > 500 ? 0.22 : 0.42;
+    ctx.strokeStyle = `rgba(180,190,205,${linkAlpha})`; ctx.lineWidth = lw;
+    ctx.beginPath();
+    normalPath.forEach(p => {
+      ctx.moveTo(p.sX, p.sY);
+      if (isLargeMap) ctx.lineTo(p.tX, p.tY);
+      else ctx.quadraticCurveTo(p.cX, p.cY, p.tX, p.tY);
+    });
+    ctx.stroke();
+    
+    // Draw hover
+    if (hoverPath.length > 0) {
       ctx.strokeStyle = 'rgba(224,192,112,0.85)'; ctx.lineWidth = 2.5/transform.k;
-      ctx.shadowColor = 'rgba(224,192,112,0.4)'; ctx.shadowBlur = 4/transform.k;
-      ctx.stroke(); ctx.shadowBlur = 0;
+      if (!isLargeMap) {
+        ctx.shadowColor = 'rgba(224,192,112,0.4)'; ctx.shadowBlur = 4/transform.k;
+      }
+      ctx.beginPath();
+      hoverPath.forEach(p => {
+        ctx.moveTo(p.sX, p.sY);
+        if (isLargeMap) ctx.lineTo(p.tX, p.tY);
+        else ctx.quadraticCurveTo(p.cX, p.cY, p.tX, p.tY);
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     }
-    else if (isHeatmap && globalEdgeUsage.has(k)) {
-      const i = Math.min(1, globalEdgeUsage.get(k)/maxEdgeUsage);
+    
+    // Draw heatmap individually (few links usually)
+    heatmapLinks.forEach(p => {
+      const i = Math.min(1, globalEdgeUsage.get(p.k)/maxEdgeUsage);
       const hue = 25 + i * 15;
       ctx.strokeStyle = `hsla(${hue},75%,${45+i*40}%,${0.45+i*0.55})`;
       ctx.lineWidth = lw*1.5 + i*4/transform.k;
-      if (i > 0.6) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5/transform.k; }
-      ctx.stroke(); ctx.shadowBlur = 0;
-    }
-    else {
-      const linkAlpha = nodes.length > 1500 ? 0.2 : nodes.length > 500 ? 0.3 : 0.42;
-      ctx.strokeStyle = `rgba(180,190,205,${linkAlpha})`;
-      ctx.lineWidth = lw; ctx.stroke();
-    }
-  });
+      if (i > 0.6 && !isLargeMap) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5/transform.k; }
+      ctx.beginPath();
+      ctx.moveTo(p.sX, p.sY);
+      if (isLargeMap) ctx.lineTo(p.tX, p.tY);
+      else ctx.quadraticCurveTo(p.cX, p.cY, p.tX, p.tY);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    });
+  }
   // Flow particles (seulement si pas isMassive)
   if (!isMassive) {
     flowParticles.forEach(fp => {
@@ -585,22 +666,33 @@ function render2D() {
       strokeColor = 'rgba(180,190,205,0.8)';
     }
 
-    // 1. HALO GLOW EXTERNE
-    const glowGrad = ctx.createRadialGradient(n.x, n.y, r*0.8, n.x, n.y, r*2.2);
-    glowGrad.addColorStop(0, glowColor);
-    glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glowGrad;
-    ctx.beginPath(); ctx.arc(n.x, n.y, r*2.2, 0, Math.PI*2); ctx.fill();
+    // 1. HALO GLOW EXTERNE (seulement si petite map ou start/end)
+    if (!isLargeMap || isS || isE) {
+      const glowGrad = ctx.createRadialGradient(n.x, n.y, r*0.8, n.x, n.y, r*2.2);
+      glowGrad.addColorStop(0, glowColor);
+      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r*2.2, 0, Math.PI*2); ctx.fill();
+    }
 
-    // 2. NOEUD PRINCIPAL avec dégradé radial 3-stop
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6/transform.k; ctx.shadowOffsetY = 3/transform.k;
+    // 2. NOEUD PRINCIPAL
+    if (!isLargeMap) {
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6/transform.k; ctx.shadowOffsetY = 3/transform.k;
+    }
     ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-    const grad = ctx.createRadialGradient(n.x - r*0.35, n.y - r*0.35, 0, n.x, n.y, r);
-    grad.addColorStop(0, grad0);
-    grad.addColorStop(0.6, grad1);
-    grad.addColorStop(1, grad2);
-    ctx.fillStyle = grad; ctx.fill();
-    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    if (!isLargeMap || isS || isE) {
+      const grad = ctx.createRadialGradient(n.x - r*0.35, n.y - r*0.35, 0, n.x, n.y, r);
+      grad.addColorStop(0, grad0);
+      grad.addColorStop(0.6, grad1);
+      grad.addColorStop(1, grad2);
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = grad1;
+    }
+    ctx.fill();
+    if (!isLargeMap) {
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    }
 
     // 3. STROKE BRIGHT
     ctx.strokeStyle = strokeColor;
@@ -740,7 +832,6 @@ function render2D() {
       ctx.strokeStyle = 'rgba(224,192,112,0.25)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
     }
   });
-  renderMinimap();
   ctx.restore();
 }
 
@@ -1251,7 +1342,6 @@ window.runSimulation = async function() {
     document.getElementById('tl-label').textContent = `0/${moves.length}`;
     document.getElementById('timeline').max = moves.length;
     document.getElementById('timeline').value = 0;
-    showMinimap = nodes.length > 200;
     showToast(`Map loaded: ${nodes.length} rooms, ${links.length} links`, 'success');
     d3.select(canvas).transition().duration(400).call(zoom.transform, d3.zoomIdentity.translate(W/2, H/2).scale(Math.min(0.5, 300/Math.sqrt(nodes.length))));
     if (mode3D && currentMode === '3d') mode3D.buildScene();
@@ -2136,55 +2226,7 @@ function showToast(msg, type='info') {
   }, 2500);
 }
 
-function renderMinimap() {
-  if (!showMinimap || !nodes.length || currentMode !== '2d') { minimap.style.display = 'none'; return; }
-  minimap.style.display = 'block';
-  const mw = 180, mh = 120;
-  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-  nodes.forEach(n => { minX=Math.min(minX,n.x); maxX=Math.max(maxX,n.x); minY=Math.min(minY,n.y); maxY=Math.max(maxY,n.y); });
-  const sx = mw / (maxX-minX || 1), sy = mh / (maxY-minY || 1);
-  const s = Math.min(sx, sy) * 0.9;
-  const ox = (mw - (maxX-minX)*s) / 2 - minX*s;
-  const oy = (mh - (maxY-minY)*s) / 2 - minY*s;
-  mmCtx.fillStyle = 'rgba(8,10,14,0.92)';
-  mmCtx.fillRect(0, 0, mw, mh);
-  mmCtx.strokeStyle = 'rgba(196,160,80,0.3)';
-  mmCtx.lineWidth = 1;
-  mmCtx.strokeRect(0.5, 0.5, mw-1, mh-1);
-  mmCtx.strokeStyle = 'rgba(180,190,205,0.15)';
-  mmCtx.lineWidth = 0.5;
-  links.forEach(l => {
-    mmCtx.beginPath();
-    mmCtx.moveTo(l.source.x*s+ox, l.source.y*s+oy);
-    mmCtx.lineTo(l.target.x*s+ox, l.target.y*s+oy);
-    mmCtx.stroke();
-  });
-  nodes.forEach(n => {
-    const isS = n.type==='start', isE = n.type==='end';
-    mmCtx.fillStyle = isS ? '#5a9a4a' : isE ? '#a83030' : '#4a525c';
-    mmCtx.beginPath();
-    mmCtx.arc(n.x*s+ox, n.y*s+oy, isS||isE ? 2.5 : 1.5, 0, Math.PI*2);
-    mmCtx.fill();
-  });
-  const vL = (-transform.x)/transform.k, vR = (W-transform.x)/transform.k;
-  const vT = (-transform.y)/transform.k, vB = (H-transform.y)/transform.k;
-  mmCtx.strokeStyle = 'rgba(224,192,112,0.8)';
-  mmCtx.lineWidth = 1;
-  mmCtx.strokeRect(vL*s+ox, vT*s+oy, (vR-vL)*s, (vB-vT)*s);
-}
 
-minimap.addEventListener('click', e => {
-  const rect = minimap.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-  nodes.forEach(n => { minX=Math.min(minX,n.x); maxX=Math.max(maxX,n.x); minY=Math.min(minY,n.y); maxY=Math.max(maxY,n.y); });
-  const sx = 180 / (maxX-minX || 1), sy = 120 / (maxY-minY || 1);
-  const s = Math.min(sx, sy) * 0.9;
-  const ox = (180 - (maxX-minX)*s) / 2 - minX*s;
-  const oy = (120 - (maxY-minY)*s) / 2 - minY*s;
-  const wx = (mx - ox) / s, wy = (my - oy) / s;
-  smoothPanTo(wx, wy);
-});
 
 function savePrefs() {
   const prefs = {

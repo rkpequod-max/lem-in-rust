@@ -425,6 +425,7 @@ function teamHue(antId) {
 }
 
 const spriteCache = new Map();
+const antSpriteCache = new Map();  // Module-level ant sprite cache — survives across render2D calls
 function getOrCreateNodeSprite(type, isBFS, bfsHue, isHovered, isLargeMap) {
   const key = `${type}_${isBFS ? bfsHue : ''}_${isHovered ? 'h' : ''}_${isLargeMap ? 'l' : ''}`;
   if (spriteCache.has(key)) return spriteCache.get(key);
@@ -815,6 +816,36 @@ function render2D() {
   }
   ctx.globalAlpha = 1;
   const ar = Math.max(2.5, 5.5/transform.k);
+  // Ant sprite cache — eliminates per-frame createRadialGradient (huge perf win)
+  function getAntSprite(hue, isFocused) {
+    const key = isFocused ? 'foc' : Math.round(hue / 10) * 10; // bucket hues to limit cache size
+    if (antSpriteCache.has(key)) return antSpriteCache.get(key);
+    const size = 64;
+    const sc = document.createElement('canvas');
+    sc.width = sc.height = size;
+    const sctx = sc.getContext('2d');
+    const cx = size/2, cy = size/2, r = size * 0.18;
+    // Outer glow
+    const glowGrad = sctx.createRadialGradient(cx, cy, 0, cx, cy, r*2.5);
+    if (isFocused) { glowGrad.addColorStop(0, 'rgba(224,192,112,0.5)'); glowGrad.addColorStop(1, 'rgba(224,192,112,0)'); }
+    else { glowGrad.addColorStop(0, `hsla(${hue},85%,65%,0.4)`); glowGrad.addColorStop(1, `hsla(${hue},85%,65%,0)`); }
+    sctx.fillStyle = glowGrad;
+    sctx.beginPath(); sctx.arc(cx, cy, r*2.5, 0, Math.PI*2); sctx.fill();
+    // Core
+    sctx.shadowColor = isFocused ? 'rgba(224,192,112,0.8)' : `hsla(${hue},85%,65%,0.6)`;
+    sctx.shadowBlur = isFocused ? 12 : 6;
+    sctx.beginPath(); sctx.arc(cx, cy, r, 0, Math.PI*2);
+    const grad = sctx.createRadialGradient(cx - r*0.3, cy - r*0.3, 0, cx, cy, r);
+    if (isFocused) { grad.addColorStop(0, '#fff0c0'); grad.addColorStop(0.5, '#e0c070'); grad.addColorStop(1, '#a08030'); }
+    else { grad.addColorStop(0, `hsl(${hue},95%,80%)`); grad.addColorStop(0.5, `hsl(${hue},85%,65%)`); grad.addColorStop(1, `hsl(${hue},70%,45%)`); }
+    sctx.fillStyle = grad; sctx.fill();
+    sctx.shadowBlur = 0;
+    // Center dot
+    sctx.beginPath(); sctx.arc(cx - r*0.25, cy - r*0.25, r*0.3, 0, Math.PI*2);
+    sctx.fillStyle = 'rgba(255,255,255,0.9)'; sctx.fill();
+    antSpriteCache.set(key, sc);
+    return sc;
+  }
   antTrails.forEach((trail, id) => {
     const hue = teamHue(id);
     const isF = id === focusedAntId;
@@ -831,31 +862,11 @@ function render2D() {
     if (!vis(ant.x, ant.y)) return;
     const f = id === focusedAntId, r = f ? ar*1.4 : ar;
     const hue = teamHue(id);
-
-    // 1. OUTER GLOW (radial gradient)
-    const glowGrad = ctx.createRadialGradient(ant.x, ant.y, 0, ant.x, ant.y, r*2.5);
-    if (f) { glowGrad.addColorStop(0, 'rgba(224,192,112,0.5)'); glowGrad.addColorStop(1, 'rgba(224,192,112,0)'); }
-    else { glowGrad.addColorStop(0, `hsla(${hue},85%,65%,0.4)`); glowGrad.addColorStop(1, `hsla(${hue},85%,65%,0)`); }
-    ctx.fillStyle = glowGrad;
-    ctx.beginPath(); ctx.arc(ant.x, ant.y, r*2.5, 0, Math.PI*2); ctx.fill();
-
-    // 2. CORE avec shadow glow
-    ctx.shadowColor = f ? 'rgba(224,192,112,0.8)' : `hsla(${hue},85%,65%,0.6)`;
-    ctx.shadowBlur = (f ? 12 : 6) / transform.k;
-    ctx.beginPath(); ctx.arc(ant.x, ant.y, r, 0, Math.PI*2);
-    const grad = ctx.createRadialGradient(ant.x - r*0.3, ant.y - r*0.3, 0, ant.x, ant.y, r);
-    if (f) { grad.addColorStop(0, '#fff0c0'); grad.addColorStop(0.5, '#e0c070'); grad.addColorStop(1, '#a08030'); }
-    else { grad.addColorStop(0, `hsl(${hue},95%,80%)`); grad.addColorStop(0.5, `hsl(${hue},85%,65%)`); grad.addColorStop(1, `hsl(${hue},70%,45%)`); }
-    ctx.fillStyle = grad; ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // 3. BRIGHT CENTER DOT
-    if (!isMassive || f) {
-      ctx.beginPath(); ctx.arc(ant.x - r*0.25, ant.y - r*0.25, r*0.3, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
-    }
-
-    // 4. PULSING RINGS (focused only)
+    // Draw cached sprite instead of creating gradients each frame
+    const sprite = getAntSprite(hue, f);
+    const spriteSize = r * 5; // sprite covers glow area
+    ctx.drawImage(sprite, ant.x - spriteSize/2, ant.y - spriteSize/2, spriteSize, spriteSize);
+    // Pulsing rings (focused only) — cheap, keep dynamic
     if (f) {
       ctx.beginPath(); ctx.arc(ant.x, ant.y, r*2.2, 0, Math.PI*2);
       ctx.strokeStyle = 'rgba(224,192,112,0.6)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
@@ -880,37 +891,48 @@ d3.select(canvas).on('mousedown.drag', function(e) {
     dragStart = {x:e.clientX, y:e.clientY};
   } else if (lockedNodeId) { lockedNodeId = null; renderRightPanel(); render2D(); }
 }, {capture:true});
+// Throttled mousemove — max 1 render per frame via rAF
+let mouseMovePending = false;
+let lastMouseEvent = null;
 canvas.addEventListener('mousemove', e => {
-  const mx = (e.clientX - transform.x)/transform.k, my = (e.clientY - transform.y)/transform.k;
-  if (dragNode) {
-    if (Math.abs(e.clientX-dragStart.x) > 4 || Math.abs(e.clientY-dragStart.y) > 4) {
-      isDragging = true;
-      canvas.style.cursor = 'grabbing';
+  lastMouseEvent = e;
+  if (mouseMovePending) return;
+  mouseMovePending = true;
+  requestAnimationFrame(() => {
+    mouseMovePending = false;
+    if (!lastMouseEvent) return;
+    const e = lastMouseEvent;
+    const mx = (e.clientX - transform.x)/transform.k, my = (e.clientY - transform.y)/transform.k;
+    if (dragNode) {
+      if (Math.abs(e.clientX-dragStart.x) > 4 || Math.abs(e.clientY-dragStart.y) > 4) {
+        isDragging = true;
+        canvas.style.cursor = 'grabbing';
+      }
+      if (isDragging) { dragNode.x = mx; dragNode.y = my; render2D(); }
+      return;
     }
-    if (isDragging) { dragNode.x = mx; dragNode.y = my; render2D(); }
-    return;
-  }
-  const thr = 28/transform.k; let best = null, bestD = Infinity;
-  for (const n of nodes) {
-    const dx = n.x-mx, dy = n.y-my;
-    if (Math.abs(dx) > thr || Math.abs(dy) > thr) continue;
-    const d = dx*dx+dy*dy;
-    if (d < thr*thr && d < bestD) { best = n; bestD = d; }
-  }
-  const tt = document.getElementById('tooltip'), prev = hoveredNodeId;
-  hoveredNodeId = best ? best.id : null;
-  if (best) {
-    canvas.style.cursor = 'pointer';
-    tt.style.opacity = '1'; tt.style.left = e.clientX+'px'; tt.style.top = e.clientY+'px';
-    document.getElementById('tt-name').textContent = best.id;
-    document.getElementById('tt-visits').textContent = roomVisits.get(best.id)||0;
-    document.getElementById('tt-degree').textContent = best.degree||0;
-    document.getElementById('tt-type').textContent = best.type === 'start' ? 'START' : best.type === 'end' ? 'END' : 'NODE';
-  } else {
-    canvas.style.cursor = 'grab';
-    tt.style.opacity = '0';
-  }
-  if (prev !== hoveredNodeId) render2D();
+    const thr = 28/transform.k; let best = null, bestD = Infinity;
+    for (const n of nodes) {
+      const dx = n.x-mx, dy = n.y-my;
+      if (Math.abs(dx) > thr || Math.abs(dy) > thr) continue;
+      const d = dx*dx+dy*dy;
+      if (d < thr*thr && d < bestD) { best = n; bestD = d; }
+    }
+    const tt = document.getElementById('tooltip'), prev = hoveredNodeId;
+    hoveredNodeId = best ? best.id : null;
+    if (best) {
+      canvas.style.cursor = 'pointer';
+      tt.style.opacity = '1'; tt.style.left = e.clientX+'px'; tt.style.top = e.clientY+'px';
+      document.getElementById('tt-name').textContent = best.id;
+      document.getElementById('tt-visits').textContent = roomVisits.get(best.id)||0;
+      document.getElementById('tt-degree').textContent = best.degree||0;
+      document.getElementById('tt-type').textContent = best.type === 'start' ? 'START' : best.type === 'end' ? 'END' : 'NODE';
+    } else {
+      canvas.style.cursor = 'grab';
+      tt.style.opacity = '0';
+    }
+    if (prev !== hoveredNodeId) render2D();
+  });
 });
 window.addEventListener('mouseup', () => {
   if (dragNode) {
@@ -2050,20 +2072,31 @@ const mode3D = (() => {
       }
     }
 
-    // Drift bgParticles
-    if (bgParticles) {
+    // Drift bgParticles — only when simulation is active (perf: skip idle sin() loop)
+    if (bgParticles && (playing || antsMap3D.size > 0)) {
       bgParticles.rotation.y += 0.0003;
-      const positions = bgParticles.geometry.attributes.position.array;
-      for (let i = 0; i < positions.length; i += 3) {
-        positions[i+1] += Math.sin(performance.now() * 0.0005 + i) * 0.1;
+      // Reduced update: only every 3rd frame to cut CPU
+      if (!animate3D._bgFrame) animate3D._bgFrame = 0;
+      animate3D._bgFrame++;
+      if (animate3D._bgFrame % 3 === 0) {
+        const positions = bgParticles.geometry.attributes.position.array;
+        const t = performance.now() * 0.0005;
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i+1] += Math.sin(t + i) * 0.1;
+        }
+        bgParticles.geometry.attributes.position.needsUpdate = true;
       }
-      bgParticles.geometry.attributes.position.needsUpdate = true;
     }
 
     controls.update();
-    if (composer) composer.render();
-    else renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
+    // Skip rendering when truly idle (no animation, no drag, no focus) — huge battery/perf saver
+    const hasActivity = playing || antsMap3D.size > 0 || nodeFocusTarget || isCameraTrackingAnt || isDragging3D || flowParticles3D.length > 0 || specialAnimations.length > 0;
+    if (hasActivity || !animate3D._lastRender || performance.now() - animate3D._lastRender > 33) {
+      if (composer) composer.render();
+      else renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+      animate3D._lastRender = performance.now();
+    }
     requestAnimationFrame(animate3D);
   }
 

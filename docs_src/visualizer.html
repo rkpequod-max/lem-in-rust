@@ -2202,6 +2202,9 @@ const mode3D = (() => {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;  // cinematic tone mapping
+    renderer.toneMappingExposure = 1.1;
+    renderer.outputEncoding = THREE.sRGBEncoding;  // correct color space
     document.getElementById('canvas-3d-container').appendChild(renderer.domElement);
 
     labelRenderer = new CSS2DRenderer();
@@ -2217,16 +2220,19 @@ const mode3D = (() => {
     controls.dampingFactor = 0.05;
     controls.maxDistance = 15000;
 
-    // Scientific lighting — flat, neutral, no colored lights
-    // Single key light + soft ambient = clean matte shading
-    scene.add(new THREE.AmbientLight(0xc0c8d0, 0.8));  // soft cool ambient
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    keyLight.position.set(800, 1500, 600);
+    // Premium studio lighting — 3-point setup for depth without glow
+    // Key + Fill + Rim = professional product visualization
+    scene.add(new THREE.AmbientLight(0x404858, 0.45));  // very subtle ambient
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    keyLight.position.set(600, 1200, 800);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xa0b0c0, 0.4);
-    fillLight.position.set(-600, -400, -600);
+    const fillLight = new THREE.DirectionalLight(0x8090a0, 0.35);
+    fillLight.position.set(-800, 400, -600);
     scene.add(fillLight);
-    // No PointLights (they create hotspots), no colored lights
+    const rimLight = new THREE.DirectionalLight(0xa0b8d0, 0.5);
+    rimLight.position.set(200, -600, 1200);
+    scene.add(rimLight);
+    // No PointLights — they create uneven hotspots
 
     // Post-processing — minimal bloom for scientific clarity
     // Bloom creates halos that obscure data; keep it very subtle
@@ -2252,29 +2258,29 @@ const mode3D = (() => {
     labelsGroup = new THREE.Group();
     scene.add(nodesGroup, linksGroup, labelsGroup);
 
-    // Core ants — small, precise spheres (no glow halo for scientific clarity)
+    // Core ants — smooth spheres with subtle sheen
     const MAX_ANTS = 100000;
-    const antGeometry = new THREE.SphereGeometry(7, 16, 16);
-    const antMaterial = new THREE.MeshBasicMaterial({ color: COL.ant });
+    const antGeometry = new THREE.SphereGeometry(7, 20, 20);  // higher detail
+    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.35, metalness: 0.3 });
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
-    // No antGlowMesh — additive blending creates washed-out overlaps
-    antGlowMesh = null;  // explicitly null, animate3D checks for it
+    antGlowMesh = null;
     dummyAnt = new THREE.Object3D();
 
-    // Materials — matte Lambert for clean, flat scientific shading
-    // No emissive, no metalness — data viz should be readable, not decorative
-    matRoom = new THREE.MeshLambertMaterial({ color: COL.room });
-    matStart = new THREE.MeshLambertMaterial({ color: COL.start });
-    matEnd = new THREE.MeshLambertMaterial({ color: COL.end });
-    matRoomDim = new THREE.MeshLambertMaterial({ color: COL.roomDim });
-    matStartDim = new THREE.MeshLambertMaterial({ color: COL.startDim });
-    matEndDim = new THREE.MeshLambertMaterial({ color: COL.endDim });
+    // Premium materials — MeshStandard for PBR shading (roughness/metalness)
+    // Calibrated for architectural visualization quality: smooth, subtle, non-glowy
+    matRoom = new THREE.MeshStandardMaterial({ color: COL.room, roughness: 0.55, metalness: 0.25 });
+    matStart = new THREE.MeshStandardMaterial({ color: COL.start, roughness: 0.4, metalness: 0.2, emissive: COL.start, emissiveIntensity: 0.08 });
+    matEnd = new THREE.MeshStandardMaterial({ color: COL.end, roughness: 0.4, metalness: 0.2, emissive: COL.end, emissiveIntensity: 0.08 });
+    matRoomDim = new THREE.MeshStandardMaterial({ color: COL.roomDim, roughness: 0.8, metalness: 0.1 });
+    matStartDim = new THREE.MeshStandardMaterial({ color: COL.startDim, roughness: 0.7, metalness: 0.1 });
+    matEndDim = new THREE.MeshStandardMaterial({ color: COL.endDim, roughness: 0.7, metalness: 0.1 });
 
-    matLinkBase = new THREE.MeshBasicMaterial({ color: COL.linkBase, transparent: true, opacity: 0.6 });
-    matLinkDim = new THREE.MeshBasicMaterial({ color: COL.linkDim, transparent: true, opacity: 0.15 });
-    matLinkHover = new THREE.MeshBasicMaterial({ color: COL.linkHover });
+    // Links — PBR with subtle metalness for depth
+    matLinkBase = new THREE.MeshStandardMaterial({ color: COL.linkBase, roughness: 0.6, metalness: 0.35, transparent: true, opacity: 0.75 });
+    matLinkDim = new THREE.MeshStandardMaterial({ color: COL.linkDim, roughness: 0.8, metalness: 0.1, transparent: true, opacity: 0.2 });
+    matLinkHover = new THREE.MeshStandardMaterial({ color: COL.linkHover, roughness: 0.3, metalness: 0.5, emissive: COL.linkHover, emissiveIntensity: 0.1 });
 
     // Heatmap — viridis-inspired scientific colormap (blue→green→yellow→red)
     heatmapMaterials = [];
@@ -2366,14 +2372,14 @@ const mode3D = (() => {
     const norm = normalizeGraphData(nodes);
     nodes.forEach((n, i) => { n.x3d = norm[i].x3d; n.y3d = norm[i].y3d; n.z3d = norm[i].z3d; });
 
-    // LOD: choose geometry detail based on map size — fewer triangles on large maps
+    // LOD: choose geometry detail based on map size — smooth spheres for premium quality
     const isLarge3D = nodes.length > 500;
     const isHuge3D = nodes.length > 1500;
-    // detail=0 (20 tris) for huge, detail=1 (80 tris) for large, detail=2 (320 tris) for small
+    // Use SphereGeometry for premium smoothness (vs faceted Icosahedron/Octahedron)
     const geoNode = isHuge3D
-      ? new THREE.OctahedronGeometry(SCALES.nodeBase, 0)   // 8 tris — minimal
-      : new THREE.IcosahedronGeometry(SCALES.nodeBase, isLarge3D ? 0 : 1);
-    const geoSpecial = new THREE.IcosahedronGeometry(SCALES.nodeStartEnd, isLarge3D ? 1 : 2);
+      ? new THREE.IcosahedronGeometry(SCALES.nodeBase, 0)
+      : new THREE.SphereGeometry(SCALES.nodeBase, isLarge3D ? 16 : 24, isLarge3D ? 12 : 18);
+    const geoSpecial = new THREE.SphereGeometry(SCALES.nodeStartEnd, isLarge3D ? 20 : 32, isLarge3D ? 16 : 24);
 
     nodes.forEach(n => {
       const isStart = n.type === 'start';
@@ -2385,21 +2391,18 @@ const mode3D = (() => {
       nodesGroup.add(mesh);
       nodeMeshes.set(n.id, mesh);
 
-      // Clean scientific markers for start/end — thin outline ring, no glow
+      // Clean premium markers for start/end — smooth torus ring, no glow
       if (isStart || isEnd) {
         if (!isHuge3D) {
-          // Thin wireframe ring as marker (not a glowing sphere)
-          const ringGeo = new THREE.TorusGeometry(SCALES.nodeStartEnd * 1.3, 1.5, 4, 32);
-          const ringMat = new THREE.MeshBasicMaterial({ color: isStart ? COL.start : COL.end, transparent: true, opacity: 0.6 });
+          // Smooth torus ring (higher segments for premium quality)
+          const ringGeo = new THREE.TorusGeometry(SCALES.nodeStartEnd * 1.3, 2, 8, 48);
+          const ringMat = new THREE.MeshStandardMaterial({ color: isStart ? COL.start : COL.end, roughness: 0.3, metalness: 0.6, emissive: isStart ? COL.start : COL.end, emissiveIntensity: 0.15 });
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = Math.PI / 2;
           mesh.add(ring);
           specialAnimations.push({ mesh: ring, speedX: 0, speedY: 0.008, glowSphere: null });
         }
-        // No PointLight — creates hotspots that obscure data
-        // No glow sphere — additive blending washes out overlaps
       }
-      // No room glow spheres — they add visual noise without analytical value
 
       // Skip labels on huge maps (LOD — CSS2DObjects are DOM elements, expensive)
       if (!isHuge3D) {
@@ -2414,8 +2417,8 @@ const mode3D = (() => {
       }
     });
 
-    // LOD: simpler cylinder geometry for large maps (3 segments instead of 6)
-    const cylinderSegs = isHuge3D ? 3 : 6;
+    // LOD: smoother cylinder geometry for premium link quality
+    const cylinderSegs = isHuge3D ? 4 : isLarge3D ? 8 : 12;  // higher = rounder
     const cylinderGeo = new THREE.CylinderGeometry(SCALES.linkWidth, SCALES.linkWidth, 1, cylinderSegs);
     cylinderGeo.translate(0, 0.5, 0);
     cylinderGeo.rotateX(Math.PI / 2);

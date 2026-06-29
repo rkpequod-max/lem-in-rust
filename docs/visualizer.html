@@ -162,8 +162,8 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 #canvas-3d-container{position:fixed;inset:0;z-index:1;display:none}
 #canvas-3d-container canvas{position:absolute;top:0;left:0;cursor:grab}
 #canvas-3d-container canvas:active{cursor:grabbing}
-.label-3d{color:rgba(212,216,220,.7);font-family:'JetBrains Mono',monospace;font-size:11px;pointer-events:none;text-shadow:0 2px 4px rgba(0,0,0,.9);letter-spacing:1px;transition:opacity .2s ease,background .2s,font-size .2s;white-space:nowrap}
-.label-3d.highlighted{font-size:13px;font-weight:700;color:#fff !important;text-shadow:0 0 8px var(--warm),0 0 16px var(--warm);background:rgba(12,15,20,.85);padding:4px 10px;border:1px solid var(--warm);box-shadow:0 4px 15px rgba(0,0,0,.9);z-index:100}
+.label-3d{color:rgba(200,210,220,.85);font-family:'JetBrains Mono',monospace;font-size:10px;pointer-events:none;background:rgba(13,17,23,.8);padding:1px 5px;border-radius:2px;letter-spacing:.5px;transition:opacity .2s ease,background .2s,font-size .2s;white-space:nowrap;border:1px solid rgba(48,54,61,.5)}
+.label-3d.highlighted{font-size:12px;font-weight:600;color:#fff !important;background:rgba(13,17,23,.95);padding:3px 8px;border:1px solid var(--warm);z-index:100}
 
 .left-panel { transition: transform .3s cubic-bezier(.4,0,.2,1); }
 .right-panel {
@@ -2166,18 +2166,21 @@ const mode3D = (() => {
   let bgParticles;
   let flowParticles3D = []; // { fromPos, toPos, progress, mesh }
 
-  // NieR Automata palette — brightened for visibility on dark bg
+  // Scientific analytical palette — muted, high-contrast, non-saturated
+  // Designed for data clarity, not decorative glow
   const COL = {
-    bg: 0x0a0c0f,
-    room: 0x6a7280, roomEmissive: 0x1a1f26,         // was 0x1a1f26 — now warm gray with subtle glow
-    start: 0x5a9a4a, startEmissive: 0x2a4a1a,        // was 0x4a7a3a — brighter green
-    end: 0xb03030, endEmissive: 0x4a1010,            // was 0x8b2020 — brighter red
-    roomDim: 0x2a3038, roomDimEmissive: 0x000000,    // was 0x05070a — visible but muted
-    startDim: 0x2a3a1a, endDim: 0x3a1010,            // was 0x1a2a14 / 0x2a0a0a
-    linkBase: 0x8a9098, linkDim: 0x3a4048,           // was 0x2a3038 / 0x0f1318 — much brighter
-    linkHover: 0xe0c070,                             // was 0xc4a050 — brighter gold
-    ant: 0xe0c070,                                   // was 0xc4a050 — brighter gold
-    fog: 0x0a0c0f
+    bg: 0x0d1117,          // GitHub dark — neutral, not pure black
+    room: 0x8b949e,         // neutral gray (matte, no emissive)
+    start: 0x3fb950,        // GitHub green — clear, non-glowing
+    end: 0xf85149,          // GitHub red — clear, non-glowing
+    roomDim: 0x30363d,      // dark gray for isolated-out nodes
+    startDim: 0x1a3a20,
+    endDim: 0x3a1515,
+    linkBase: 0x484f58,     // muted gray-blue for links
+    linkDim: 0x21262d,      // very dark for dimmed links
+    linkHover: 0xd29922,    // GitHub yellow — analytical highlight
+    ant: 0xd29922,          // yellow — visible but not glowing
+    fog: 0x0d1117
   };
 
   const HEATMAP_LEVELS = 10;
@@ -2193,7 +2196,7 @@ const mode3D = (() => {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(COL.bg);
-    scene.fog = new THREE.FogExp2(COL.fog, 0.00008);  // was 0.00015 — less dense so distant nodes stay visible
+    scene.fog = new THREE.FogExp2(COL.fog, 0.00005);  // very light fog — keep distant nodes visible
 
     camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 10, 50000);
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
@@ -2214,27 +2217,34 @@ const mode3D = (() => {
     controls.dampingFactor = 0.05;
     controls.maxDistance = 15000;
 
-    // Lights — NieR warm tones, boosted for visibility
-    scene.add(new THREE.AmbientLight(0x4a4a55, 2.0));
-    const mainLight = new THREE.DirectionalLight(0xfff4d0, 2.2);
-    mainLight.position.set(1000, 2000, 1000);
-    scene.add(mainLight);
-    const rimLight = new THREE.PointLight(0xc4a050, 1.5, 6000);
-    rimLight.position.set(-1000, 500, -1000);
-    scene.add(rimLight);
-    const fillLight = new THREE.DirectionalLight(0x8a9098, 1.0);
-    fillLight.position.set(-500, -800, 500);
+    // Scientific lighting — flat, neutral, no colored lights
+    // Single key light + soft ambient = clean matte shading
+    scene.add(new THREE.AmbientLight(0xc0c8d0, 0.8));  // soft cool ambient
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(800, 1500, 600);
+    scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0xa0b0c0, 0.4);
+    fillLight.position.set(-600, -400, -600);
     scene.add(fillLight);
+    // No PointLights (they create hotspots), no colored lights
 
-    // Post-processing — bloom for the warm gold glow
+    // Post-processing — minimal bloom for scientific clarity
+    // Bloom creates halos that obscure data; keep it very subtle
     const renderScene = new RenderPass(scene, camera);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.0, 0.6, 0.12);
-    bloomPass.threshold = 0.15;  // était 0.2
-    bloomPass.strength = 1.0;    // était 0.85
-    bloomPass.radius = 0.7;      // était 0.6
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.15, 0.4, 0.1);
+    bloomPass.threshold = 0.7;   // high threshold = only brightest pixels bloom
+    bloomPass.strength = 0.15;   // very subtle
+    bloomPass.radius = 0.4;
     composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
+
+    // Grid helper — spatial reference for scientific context
+    const gridHelper = new THREE.GridHelper(SCALES.graphSize * 3, 30, 0x30363d, 0x21262d);
+    gridHelper.position.y = -SCALES.graphSize * 0.3;
+    gridHelper.material.opacity = 0.5;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
 
     // Groups
     nodesGroup = new THREE.Group();
@@ -2242,40 +2252,39 @@ const mode3D = (() => {
     labelsGroup = new THREE.Group();
     scene.add(nodesGroup, linksGroup, labelsGroup);
 
-    // Core ants (spheres plus grosses et plus détaillées)
+    // Core ants — small, precise spheres (no glow halo for scientific clarity)
     const MAX_ANTS = 100000;
-    const antGeometry = new THREE.SphereGeometry(7, 20, 20);  // était 6, 16
+    const antGeometry = new THREE.SphereGeometry(7, 16, 16);
     const antMaterial = new THREE.MeshBasicMaterial({ color: COL.ant });
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
-
-    // Glow halo mesh (NOUVEAU)
-    const glowGeometry = new THREE.SphereGeometry(14, 16, 16);
-    const glowMaterial = new THREE.MeshBasicMaterial({ color: COL.ant, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false });
-    antGlowMesh = new THREE.InstancedMesh(glowGeometry, glowMaterial, MAX_ANTS);
-    antGlowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    scene.add(antGlowMesh);
+    // No antGlowMesh — additive blending creates washed-out overlaps
+    antGlowMesh = null;  // explicitly null, animate3D checks for it
     dummyAnt = new THREE.Object3D();
 
-    // Materials — emissive added to rooms so they glow on dark bg
-    matRoom = new THREE.MeshStandardMaterial({ color: COL.room, emissive: COL.roomEmissive, emissiveIntensity: 0.4, roughness: 0.35, metalness: 0.6, flatShading: true });
-    matStart = new THREE.MeshStandardMaterial({ color: COL.start, emissive: COL.startEmissive, emissiveIntensity: 0.7, roughness: 0.3, metalness: 0.4, flatShading: true });
-    matEnd = new THREE.MeshStandardMaterial({ color: COL.end, emissive: COL.endEmissive, emissiveIntensity: 0.7, roughness: 0.3, metalness: 0.4, flatShading: true });
-    matRoomDim = new THREE.MeshStandardMaterial({ color: COL.roomDim, emissive: 0x000000, roughness: 0.8, metalness: 0.2, flatShading: true });
-    matStartDim = new THREE.MeshStandardMaterial({ color: COL.startDim, emissive: 0x000000, roughness: 0.8, flatShading: true });
-    matEndDim = new THREE.MeshStandardMaterial({ color: COL.endDim, emissive: 0x000000, roughness: 0.8, flatShading: true });
+    // Materials — matte Lambert for clean, flat scientific shading
+    // No emissive, no metalness — data viz should be readable, not decorative
+    matRoom = new THREE.MeshLambertMaterial({ color: COL.room });
+    matStart = new THREE.MeshLambertMaterial({ color: COL.start });
+    matEnd = new THREE.MeshLambertMaterial({ color: COL.end });
+    matRoomDim = new THREE.MeshLambertMaterial({ color: COL.roomDim });
+    matStartDim = new THREE.MeshLambertMaterial({ color: COL.startDim });
+    matEndDim = new THREE.MeshLambertMaterial({ color: COL.endDim });
 
-    matLinkBase = new THREE.MeshBasicMaterial({ color: COL.linkBase, transparent: true, opacity: 0.7 });
-    matLinkDim = new THREE.MeshBasicMaterial({ color: COL.linkDim, transparent: true, opacity: 0.2 });
+    matLinkBase = new THREE.MeshBasicMaterial({ color: COL.linkBase, transparent: true, opacity: 0.6 });
+    matLinkDim = new THREE.MeshBasicMaterial({ color: COL.linkDim, transparent: true, opacity: 0.15 });
     matLinkHover = new THREE.MeshBasicMaterial({ color: COL.linkHover });
 
-    // Heatmap — gold to ember spectrum, brightened base
+    // Heatmap — viridis-inspired scientific colormap (blue→green→yellow→red)
     heatmapMaterials = [];
     for (let i = 1; i <= HEATMAP_LEVELS; i++) {
       const ratio = i / HEATMAP_LEVELS;
-      const c = new THREE.Color(0xe0c070).lerp(new THREE.Color(0xe07030), ratio);
-      if (ratio > 0.5) c.multiplyScalar(1.0 + ratio * 0.6);
+      let c;
+      if (ratio < 0.25) c = new THREE.Color(0x440154).lerp(new THREE.Color(0x3b528b), ratio * 4);
+      else if (ratio < 0.5) c = new THREE.Color(0x3b528b).lerp(new THREE.Color(0x21918c), (ratio - 0.25) * 4);
+      else if (ratio < 0.75) c = new THREE.Color(0x21918c).lerp(new THREE.Color(0x5ec962), (ratio - 0.5) * 4);
+      else c = new THREE.Color(0x5ec962).lerp(new THREE.Color(0xfde725), (ratio - 0.75) * 4);
       heatmapMaterials.push(new THREE.MeshBasicMaterial({ color: c }));
     }
 
@@ -2314,33 +2323,9 @@ const mode3D = (() => {
       }
     }, { passive: false });
 
-    // Grille au sol
-    const gridHelper = new THREE.GridHelper(SCALES.graphSize * 3, 60, 0xc4a050, 0x2a3038);
-    gridHelper.position.y = -SCALES.graphSize * 0.5;
-    gridHelper.material.opacity = 0.15;
-    gridHelper.material.transparent = true;
-    scene.add(gridHelper);
-
-    // Particules de fond (poussière d'ambre)
-    const particleCount = 300;
-    const particleGeo = new THREE.BufferGeometry();
-    const particlePositions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount; i++) {
-      particlePositions[i*3] = (Math.random() - 0.5) * SCALES.graphSize * 4;
-      particlePositions[i*3+1] = (Math.random() - 0.5) * SCALES.graphSize * 2;
-      particlePositions[i*3+2] = (Math.random() - 0.5) * SCALES.graphSize * 4;
-    }
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const particleMat = new THREE.PointsMaterial({
-      color: 0xc4a050,
-      size: 3,
-      transparent: true,
-      opacity: 0.4,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    bgParticles = new THREE.Points(particleGeo, particleMat);
-    scene.add(bgParticles);
+    // Grid is now created in init() for scientific context (dark, subtle)
+    // Background particles removed — they add visual noise without analytical value
+    bgParticles = null;
   }
 
   function cancelCameraFocus() {
@@ -2400,41 +2385,27 @@ const mode3D = (() => {
       nodesGroup.add(mesh);
       nodeMeshes.set(n.id, mesh);
 
+      // Clean scientific markers for start/end — thin outline ring, no glow
       if (isStart || isEnd) {
-        const color = isStart ? COL.start : COL.end;
-        // Skip wireframe on huge maps (LOD)
         if (!isHuge3D) {
-          const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.5 });
-          const wireSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(SCALES.nodeStartEnd * 1.4, isLarge3D ? 0 : 1), wireMat);
-          mesh.add(wireSphere);
+          // Thin wireframe ring as marker (not a glowing sphere)
+          const ringGeo = new THREE.TorusGeometry(SCALES.nodeStartEnd * 1.3, 1.5, 4, 32);
+          const ringMat = new THREE.MeshBasicMaterial({ color: isStart ? COL.start : COL.end, transparent: true, opacity: 0.6 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = Math.PI / 2;
+          mesh.add(ring);
+          specialAnimations.push({ mesh: ring, speedX: 0, speedY: 0.008, glowSphere: null });
         }
-        // Skip glow sphere on large maps (LOD — transparent meshes are expensive)
-        let glowSphere = null;
-        if (!isLarge3D) {
-          const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false });
-          glowSphere = new THREE.Mesh(new THREE.SphereGeometry(SCALES.nodeStartEnd * 1.9, isLarge3D ? 12 : 24, isLarge3D ? 12 : 24), glowMat);
-          mesh.add(glowSphere);
-        }
-
-        const pl = new THREE.PointLight(color, 2.5, SCALES.graphSize * 0.7);
-        mesh.add(pl);
-        // Only push to specialAnimations if wireSphere exists (for rotation)
-        const wireMesh = mesh.children.find(c => c.material && c.material.wireframe);
-        if (wireMesh) specialAnimations.push({ mesh: wireMesh, speedX: 0.005, speedY: 0.01, glowSphere });
-      } else {
-        // Skip room glow spheres on large maps (LOD — saves 500-1500 transparent meshes)
-        if (!isLarge3D) {
-          const glowMat = new THREE.MeshBasicMaterial({ color: COL.room, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false });
-          const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(SCALES.nodeBase * 1.8, 12, 12), glowMat);
-          mesh.add(glowSphere);
-        }
+        // No PointLight — creates hotspots that obscure data
+        // No glow sphere — additive blending washes out overlaps
       }
+      // No room glow spheres — they add visual noise without analytical value
 
       // Skip labels on huge maps (LOD — CSS2DObjects are DOM elements, expensive)
       if (!isHuge3D) {
         const div = document.createElement('div');
         div.textContent = n.id; div.className = 'label-3d';
-        div.style.color = isStart ? '#8acb7a' : (isEnd ? '#d05050' : 'rgba(220,225,235,0.95)');
+        div.style.color = isStart ? '#3fb950' : (isEnd ? '#f85149' : 'rgba(200,210,220,0.85)');
         const label = new CSS2DObject(div);
         const yOffset = (isStart || isEnd) ? SCALES.nodeStartEnd * 2 : SCALES.nodeBase * 2;
         label.position.set(n.x3d, n.y3d + yOffset, n.z3d);

@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Lem-in • DataSight Engine Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030712;
+            --surface: rgba(15, 23, 42, 0.75);
+            --border: rgba(56, 189, 248, 0.15);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --color-start: #10b981; 
+            --color-end: #ef4444;   
+            --color-active: #38bdf8; 
+            --color-ant: #fbbf24;    
+            --color-time: #a855f7;
+            --font-ui: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--text-main); font-family: var(--font-ui); overflow: hidden; }
+        #canvas-container { position: fixed; inset: 0; z-index: 1; }
+
+        /* HUD Gauche */
+        #hud-left {
+            position: absolute; top: 24px; left: 24px; z-index: 10;
+            width: 360px; display: flex; flex-direction: column; gap: 16px; pointer-events: none;
+        }
+
+        /* HUD Droite */
+        #hud-right {
+            position: absolute; top: 80px; right: 24px; z-index: 10;
+            width: 280px; display: none; flex-direction: column; pointer-events: none;
+        }
+
+        .panel {
+            background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); pointer-events: auto;
+        }
+
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h1 { margin: 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--color-active); }
+        .status-dot { width: 8px; height: 8px; background: var(--color-start); border-radius: 50%; box-shadow: 0 0 10px var(--color-start); transition: background 0.3s; }
+        .status-dot.loading { background: var(--color-ant); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .data-cell { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; border: 1px solid rgba(255,255,255,0.03); }
+        .data-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .data-value { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: #fff; }
+
+        .control-group { margin-bottom: 16px; }
+        .control-group label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        
+        select, input[type="number"], input[type="text"] {
+            width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white;
+            padding: 8px 12px; border-radius: 6px; font-family: var(--font-ui); font-size: 13px; outline: none; transition: 0.2s;
+        }
+        select:focus, input:focus { border-color: var(--color-active); }
+
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 2px; background: rgba(255,255,255,0.1); outline: none; margin: 10px 0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--color-active); border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px var(--color-active); transition: 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+        .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        button {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;
+            padding: 10px 12px; border-radius: 6px; cursor: pointer; font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        button:hover { background: rgba(56, 189, 248, 0.1); border-color: var(--color-active); color: var(--color-active); }
+        button.primary { background: rgba(56, 189, 248, 0.15); border-color: var(--color-active); color: var(--color-active); flex: 1; }
+        button.icon { width: 36px; padding: 0; font-size: 16px; }
+
+        .legend { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .heatmap-gradient { width: 60px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #0284c7 0%, #bae6fd 100%); box-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }
+
+        /* Styles pour la liste déroulante interactive */
+        .path-list {
+            max-height: 350px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 4px;
+            padding-right: 8px; margin-bottom: 12px;
+        }
+        .path-list::-webkit-scrollbar { width: 4px; }
+        .path-list::-webkit-scrollbar-thumb { background: var(--color-active); border-radius: 4px; }
+        
+        .path-node {
+            background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px;
+            font-family: var(--font-mono); font-size: 12px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid transparent; transition: all 0.2s ease; cursor: pointer;
+        }
+        .path-node:hover {
+            border-color: var(--color-active);
+            background: rgba(56, 189, 248, 0.15);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+            transform: translateX(-2px);
+        }
+        .path-node.is-target { border-color: var(--color-active); background: rgba(56, 189, 248, 0.1); font-weight: bold; box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+        .path-node.is-start { color: var(--color-start); border-color: rgba(16, 185, 129, 0.3); }
+        .path-node.is-end { color: var(--color-end); border-color: rgba(239, 68, 68, 0.3); }
+        
+        .path-arrow { text-align: center; color: var(--text-muted); font-size: 12px; margin: -2px 0; }
+
+        #top-right { position: absolute; top: 24px; right: 24px; z-index: 10; display: flex; gap: 8px; pointer-events: auto; }
+
+        #tooltip {
+            position: absolute; background: rgba(3, 7, 18, 0.95); border: 1px solid var(--color-active);
+            padding: 12px; border-radius: 8px; color: white; font-family: var(--font-mono); font-size: 12px;
+            pointer-events: none; opacity: 0; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            transform: translate(15px, 15px); transition: opacity 0.15s ease;
+        }
+
+        /* --- STYLES DES LABELS 3D --- */
+        .label-3d { 
+            color: rgba(255,255,255,0.6); 
+            font-family: var(--font-mono); 
+            font-size: 11px; 
+            pointer-events: none; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); 
+            letter-spacing: 1px; 
+            transition: opacity 0.2s ease, background 0.2s, font-size 0.2s;
+        }
+
+        /* État "Mis en valeur" lors de l'isolation */
+        .label-3d.highlighted {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff !important;
+            text-shadow: 0 0 8px var(--color-active), 0 0 16px var(--color-active);
+            background: rgba(15, 23, 42, 0.85); 
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-active); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.9);
+            z-index: 100; 
+        }
+
+        .hint { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 10px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="top-right">
+        <a href="visualizer.html" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#38bdf8;padding:8px 12px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">2D Mode</a>
+        <button class="icon" id="fullscreen-btn" title="Plein écran">⛶</button>
+        <button class="icon" id="reset-camera-btn" title="Recadrer">🎯</button>
+    </div>
+
+    <div id="hud-left">
+        <div class="panel">
+            <div class="panel-header">
+                <h1>DataSight Engine</h1>
+                <div class="status-dot" id="conn-dot"></div>
+            </div>
+
+            <div class="data-grid">
+                <div class="data-cell"><div class="data-label">Tour actuel</div><div class="data-value" id="s-turn" style="color: var(--color-active);">0/0</div></div>
+                <div class="data-cell"><div class="data-label">Total Fourmis</div><div class="data-value" id="s-total">—</div></div>
+                <div class="data-cell"><div class="data-label">Temps CPU</div><div class="data-value" id="s-time" style="color: var(--color-time);">—</div></div>
+                <div class="data-cell"><div class="data-label">Score (Obj)</div><div class="data-value" id="s-score">—</div></div>
+                <div class="data-cell"><div class="data-label">En Transit</div><div class="data-value" id="s-active" style="color: var(--color-ant);">0</div></div>
+                <div class="data-cell"><div class="data-label">Arrivées</div><div class="data-value" id="s-arrived" style="color: var(--color-start);">0</div></div>
+            </div>
+
+            <div class="control-group">
+                <label>Générateur</label>
+                <div class="btn-row">
+                    <select id="gen-mode" style="flex:1;">
+                        <option value="--flow-ten">Flow 10</option>
+                        <option value="--flow-thousand">Flow 1000</option>
+                        <option value="--big">Big</option>
+                        <option value="--big-superposition">Big Super</option>
+                    </select>
+                    <input type="number" id="gen-ants" placeholder="Qté" style="width: 60px;">
+                    <button class="primary" id="gen-btn" style="flex:none;">GO</button>
+                </div>
+            </div>
+            
+            <div class="control-group" style="margin-bottom: 0;">
+                <label>Cible Caméra (Fourmi)</label>
+                <input type="number" id="track-ant" placeholder="ID fourmi (ex: 1)">
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="control-group">
+                <label><span>Timeline</span> <span id="tl-label">0</span></label>
+                <input type="range" id="timeline" min="0" max="0" value="0">
+            </div>
+            <div class="control-group">
+                <label><span>Vitesse de lecture</span> <span id="spd-val">70%</span></label>
+                <input type="range" id="speed" min="1" max="200" value="70">
+            </div>
+            <div class="btn-row">
+                <button class="icon" id="btn-prev">⏮</button>
+                <button class="primary" id="play-btn">▶ LECTURE</button>
+                <button class="icon" id="btn-next">⏭</button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <span style="margin-right: 5px;">Heatmap :</span>
+                    <span>Moins</span>
+                    <div class="heatmap-gradient"></div>
+                    <span>Plus</span>
+                </div>
+            </div>
+
+            <div class="hint">🖱 Clic & Glisse pour déplacer une salle<br>🖱 Clic simple pour isoler le chemin<br>⌨️ Flèches ou Molettes pour naviguer</div>
+        </div>
+    </div>
+
+    <div id="hud-right">
+        <div class="panel">
+            <div class="panel-header" style="margin-bottom: 12px;">
+                <h1 id="rp-title">Détails Salle</h1>
+            </div>
+            <div id="rp-content">
+                </div>
+            <button id="btn-cycle-path" class="primary" style="width: 100%; display: none;">Chemin suivant</button>
+        </div>
+    </div>
+
+    <div id="tooltip">
+        <div style="color: var(--color-active); margin-bottom: 6px; text-transform: uppercase;" id="tt-name">—</div>
+        <div style="display:flex; justify-content:space-between; gap: 20px;">
+            <span style="color: var(--text-muted);">Passages:</span>
+            <span id="tt-visits" style="color: white;">0</span>
+        </div>
+    </div>
+    
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" } }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // --- MOTEUR 3D ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#030712');
+        scene.fog = new THREE.FogExp2('#030712', 0.00015);
+        
+        const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 10, 50000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(innerWidth, innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        labelRenderer.domElement.style.zIndex = '5';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 15000;
+        
+        // --- CIBLE SMART PAN ---
+        let nodeFocusTarget = null;
+        let isCameraTrackingAnt = false;
+
+        function cancelCameraFocus() {
+            isCameraTrackingAnt = false;
+            if (nodeFocusTarget) nodeFocusTarget = null;
+        }
+
+        // --- NAVIGATION HORIZONTALE / VERTICALE MANUELLE ---
+        renderer.domElement.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                e.preventDefault();
+                const right = new THREE.Vector3();
+                right.setFromMatrixColumn(camera.matrix, 0);
+                const distance = camera.position.distanceTo(controls.target);
+                const panSpeed = distance * 0.001; 
+                right.multiplyScalar(e.deltaX * panSpeed);
+                camera.position.add(right);
+                controls.target.add(right);
+                cancelCameraFocus();
+                controls.update();
+            }
+        }, { passive: false });
+
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT') return;
+            switch(e.code) {
+                case 'ArrowLeft': e.preventDefault(); document.getElementById('btn-prev').click(); break;
+                case 'ArrowRight': e.preventDefault(); document.getElementById('btn-next').click(); break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    e.preventDefault();
+                    const up = new THREE.Vector3();
+                    up.setFromMatrixColumn(camera.matrix, 1); 
+                    const distance = camera.position.distanceTo(controls.target);
+                    const panSpeed = distance * 0.02; 
+                    const direction = e.code === 'ArrowUp' ? 1 : -1;
+                    up.multiplyScalar(direction * panSpeed);
+                    camera.position.add(up);
+                    controls.target.add(up);
+                    cancelCameraFocus();
+                    controls.update();
+                    break;
+            }
+        });
+        
+        // POST-PROCESSING BLOOM
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.5, 0.2, 0.1);
+        bloomPass.threshold = 0.15; bloomPass.strength = 1.2; bloomPass.radius = 0.6;
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene); composer.addPass(bloomPass);
+        
+        scene.add(new THREE.AmbientLight(0x0f172a, 2.0));
+        const mainLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        mainLight.position.set(1000, 2000, 1000); scene.add(mainLight);
+        const rimLight = new THREE.PointLight(0x38bdf8, 1.5);
+        rimLight.position.set(-1000, 500, -1000); scene.add(rimLight);
+
+        // GROUPES
+        const nodesGroup = new THREE.Group();
+        const linksGroup = new THREE.Group();
+        const labelsGroup = new THREE.Group();
+        scene.add(nodesGroup, linksGroup, labelsGroup);
+
+        // --- INSTANCIATION DES FOURMIS ---
+        const MAX_ANTS = 100000; 
+        const antGeometry = new THREE.SphereGeometry(6, 16, 16);
+        const antMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
+        const antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
+        antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        scene.add(antInstancedMesh);
+        const dummyAnt = new THREE.Object3D();
+
+        // VARIABLES D'ÉTAT GLOBALES
+        let nodes = [], links = [], moves = [];
+        let nodeMap = new Map(), nodeMeshes = new Map(), linkMeshes = new Map();
+        let startNode = null, endNode = null;
+        let step = -1, playing = false, totalAnts = 0, arrived = 0;
+        let roomVisits = new Map(), antsMap = new Map();
+        
+        let specialAnimations = []; 
+        let hoveredNodeId = null;
+        let lockedNodeId = null; 
+        let trackedAntId = null; 
+        let currentTrackedAntPath = []; // Chemin dynamique de la fourmi suivie
+
+        let globalEdgeUsage = new Map(); 
+        let maxEdgeUsage = 1;
+        let globalAntJourneys = new Map();
+        let uniquePaths = []; 
+        let currentPathDisplayIndex = 0;
+        let nodeDistances = new Map(); 
+
+        const SCALES = { graphSize: 2000, nodeBase: 15, nodeStartEnd: 30, linkWidth: 2 };
+
+        const matRoom = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.8, flatShading: true }); 
+        const matStart = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x064e3b, roughness: 0.2, metalness: 0.5, flatShading: true }); 
+        const matEnd = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x7f1d1d, roughness: 0.2, metalness: 0.5, flatShading: true }); 
+        
+        const matRoomDimmed = new THREE.MeshStandardMaterial({ color: 0x050a11, roughness: 0.8, metalness: 0.2, flatShading: true }); 
+        const matStartDimmed = new THREE.MeshStandardMaterial({ color: 0x052e1b, emissive: 0x000000, roughness: 0.8, flatShading: true }); 
+        const matEndDimmed = new THREE.MeshStandardMaterial({ color: 0x3f0a0a, emissive: 0x000000, roughness: 0.8, flatShading: true }); 
+
+        const matLinkBase = new THREE.MeshPhysicalMaterial({ color: 0x1e293b, transmission: 0.3, opacity: 0.5, transparent: true, roughness: 0.1 });
+        const matLinkDimmed = new THREE.MeshBasicMaterial({ color: 0x0f172a, transparent: true, opacity: 0.1 }); 
+        const matLinkHover = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        const HEATMAP_LEVELS = 10;
+        const heatmapMaterials = [];
+        for(let i = 1; i <= HEATMAP_LEVELS; i++) {
+            const ratio = i / HEATMAP_LEVELS;
+            const color = new THREE.Color('#0284c7').lerp(new THREE.Color('#bae6fd'), ratio);
+            if (ratio > 0.7) color.multiplyScalar(1.0 + ratio);
+            heatmapMaterials.push(new THREE.MeshBasicMaterial({ color: color }));
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const clickStart = new THREE.Vector2();
+        const dragPlane = new THREE.Plane();
+        let draggedNode = null;
+        let dragOffset = new THREE.Vector3();
+        let isDragging = false;
+
+        function normalizeGraphData(rawNodes) {
+            if (!rawNodes || rawNodes.length === 0) return [];
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            rawNodes.forEach(n => {
+                minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+                minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+            });
+            const rangeX = (maxX - minX) || 1;
+            const rangeY = (maxY - minY) || 1;
+            const scaleFactor = SCALES.graphSize / Math.max(rangeX, rangeY);
+            const centerX = minX + rangeX / 2;
+            const centerY = minY + rangeY / 2;
+
+            return rawNodes.map(n => {
+                const normX = (n.x - centerX) * scaleFactor;
+                const normZ = (n.y - centerY) * scaleFactor; 
+                const dist = Math.sqrt(normX*normX + normZ*normZ);
+                const normY = Math.cos(dist * 0.002) * (SCALES.graphSize * 0.2);
+                return { ...n, x: normX, y: normY, z: normZ };
+            });
+        }
+
+        function buildScene() {
+            [nodesGroup, linksGroup, labelsGroup].forEach(g => { while(g.children.length) g.remove(g.children[0]); });
+            nodeMeshes.clear(); linkMeshes.clear(); specialAnimations = [];
+            globalEdgeUsage.clear(); maxEdgeUsage = 1;
+            
+            const geoNode = new THREE.IcosahedronGeometry(SCALES.nodeBase, 1);
+            const geoSpecial = new THREE.IcosahedronGeometry(SCALES.nodeStartEnd, 2);
+            
+            nodes.forEach(n => {
+                const isStart = n.type === 'start';
+                const isEnd = n.type === 'end';
+                
+                const geometry = (isStart || isEnd) ? geoSpecial : geoNode;
+                const mesh = new THREE.Mesh(geometry, isStart ? matStart : (isEnd ? matEnd : matRoom));
+                mesh.position.set(n.x, n.y, n.z);
+                mesh.userData = { id: n.id, type: n.type };
+                nodesGroup.add(mesh);
+                nodeMeshes.set(n.id, mesh);
+
+                if (isStart || isEnd) {
+                    const color = isStart ? 0x10b981 : 0xef4444;
+                    const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.3 });
+                    const wireSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(SCALES.nodeStartEnd * 1.4, 1), wireMat);
+                    mesh.add(wireSphere);
+                    
+                    const pl = new THREE.PointLight(color, 2.0, SCALES.graphSize * 0.5);
+                    mesh.add(pl);
+                    specialAnimations.push({ mesh: wireSphere, speedX: 0.005, speedY: 0.01 });
+                }
+                
+                const div = document.createElement('div');
+                div.textContent = n.id; div.className = 'label-3d';
+                div.style.color = isStart ? 'var(--color-start)' : (isEnd ? 'var(--color-end)' : 'rgba(255,255,255,0.4)');
+                const label = new CSS2DObject(div);
+                const yOffset = (isStart || isEnd) ? SCALES.nodeStartEnd * 2 : SCALES.nodeBase * 2;
+                label.position.set(n.x, n.y + yOffset, n.z);
+                label.userData = { nodeId: n.id, yOffset: yOffset };
+                labelsGroup.add(label);
+            });
+            
+            const cylinderGeo = new THREE.CylinderGeometry(SCALES.linkWidth, SCALES.linkWidth, 1, 6);
+            cylinderGeo.translate(0, 0.5, 0); 
+            cylinderGeo.rotateX(Math.PI / 2); 
+
+            links.forEach(l => {
+                const cylinder = new THREE.Mesh(cylinderGeo, matLinkBase);
+                cylinder.userData = { key: l.key, source: l.source.id, target: l.target.id };
+                linksGroup.add(cylinder);
+                linkMeshes.set(l.key, cylinder);
+            });
+            
+            // CALCUL BFS DES DISTANCES DEPUIS START
+            nodeDistances.clear();
+            nodes.forEach(n => nodeDistances.set(n.id, Infinity));
+            if (startNode) {
+                nodeDistances.set(startNode.id, 0);
+                let queue = [startNode.id];
+                while(queue.length > 0) {
+                    let curr = queue.shift();
+                    let d = nodeDistances.get(curr);
+                    links.forEach(l => {
+                        let neighbor = null;
+                        if (l.source.id === curr) neighbor = l.target.id;
+                        else if (l.target.id === curr) neighbor = l.source.id;
+                        
+                        if (neighbor && nodeDistances.get(neighbor) === Infinity) {
+                            nodeDistances.set(neighbor, d + 1);
+                            queue.push(neighbor);
+                        }
+                    });
+                }
+            }
+
+            updateLinkPositions();
+            resetCamera();
+            renderRightPanel(); 
+        }
+
+        function updateLinkPositions() {
+            linkMeshes.forEach((cylinder) => {
+                const src = nodeMeshes.get(cylinder.userData.source);
+                const tgt = nodeMeshes.get(cylinder.userData.target);
+                if (!src || !tgt) return; 
+
+                const distance = src.position.distanceTo(tgt.position);
+                cylinder.position.copy(src.position);
+                cylinder.lookAt(tgt.position);
+                cylinder.scale.set(1, 1, distance); 
+            });
+            
+            labelsGroup.children.forEach(lbl => {
+                const node = nodeMeshes.get(lbl.userData.nodeId);
+                if (node) lbl.position.set(node.position.x, node.position.y + lbl.userData.yOffset, node.position.z);
+            });
+        }
+
+        function resetCamera() {
+            trackedAntId = null;
+            document.getElementById('track-ant').value = '';
+            isCameraTrackingAnt = false;
+            nodeFocusTarget = null;
+
+            if (nodes.length === 0) return;
+
+            const box = new THREE.Box3();
+            nodes.forEach(n => box.expandByPoint(new THREE.Vector3(n.x, n.y, n.z)));
+
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            const maxDim = Math.max(size.x, size.y, size.z) || SCALES.graphSize;
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+            
+            if (camera.aspect < 1) cameraZ /= camera.aspect;
+            cameraZ *= 2.2; 
+
+            controls.target.copy(center);
+            camera.position.set(center.x, center.y + cameraZ * 0.4, center.z + cameraZ * 0.8);
+            
+            updateLinksVisuals();
+            renderRightPanel();
+            controls.update();
+        }
+        document.getElementById('reset-camera-btn').onclick = resetCamera;
+
+        function processUniquePaths() {
+            let uniqueMap = new Map();
+            globalAntJourneys.forEach(path => {
+                let key = path.join(',');
+                if (!uniqueMap.has(key)) uniqueMap.set(key, path);
+            });
+            uniquePaths = Array.from(uniqueMap.values());
+        }
+
+        function renderRightPanel() {
+            const panel = document.getElementById('hud-right');
+            const content = document.getElementById('rp-content');
+            const cycleBtn = document.getElementById('btn-cycle-path');
+            const title = document.getElementById('rp-title');
+
+            // 1. SI ON TRACK UNE FOURMI
+            if (trackedAntId) {
+                panel.style.display = 'flex';
+                cycleBtn.style.display = 'none';
+                title.innerHTML = `SUIVI FOURMI <span style="color: var(--color-ant); font-size: 14px;">#${trackedAntId}</span>`;
+
+                let html = '<div class="path-list">';
+                currentTrackedAntPath.forEach((nodeId, idx) => {
+                    const isStart = nodeId === startNode.id;
+                    const isEnd = nodeId === endNode.id;
+                    const isCurrent = idx === currentTrackedAntPath.length - 1;
+                    
+                    let classes = 'path-node';
+                    if (isCurrent) classes += ' is-target';
+                    if (isStart) classes += ' is-start';
+                    if (isEnd) classes += ' is-end';
+
+                    html += `<div class="${classes}" data-id="${nodeId}">${nodeId}</div>`;
+                    if (idx < currentTrackedAntPath.length - 1) html += `<div class="path-arrow">↓</div>`;
+                });
+                if (currentTrackedAntPath.length === 0) html += `<div style="font-size:11px; color:var(--text-muted); text-align:center;">En attente de départ...</div>`;
+                html += '</div>';
+                content.innerHTML = html;
+
+                content.querySelectorAll('.path-node').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const clickedNodeId = el.getAttribute('data-id');
+                        const mesh = nodeMeshes.get(clickedNodeId);
+                        if (mesh) {
+                            isCameraTrackingAnt = false; // On arrête de suivre la fourmi avec la caméra
+                            nodeFocusTarget = mesh.position.clone(); // On pan sur la salle
+                        }
+                    });
+                });
+                return;
+            }
+
+            // 2. SI ON ISOLE UNE SALLE
+            if (!lockedNodeId) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'flex';
+            const pathsWithNode = uniquePaths.filter(p => p.includes(lockedNodeId));
+
+            if (pathsWithNode.length > 0) {
+                cycleBtn.style.display = pathsWithNode.length > 1 ? 'block' : 'none';
+                cycleBtn.textContent = `Route alternative (${currentPathDisplayIndex + 1}/${pathsWithNode.length})`;
+                title.innerHTML = `CHEMIN VALIDE <span style="color: var(--text-muted); font-size: 10px;">(Salle ${lockedNodeId})</span>`;
+
+                const currentPath = pathsWithNode[currentPathDisplayIndex];
+                let html = '<div class="path-list">';
+                currentPath.forEach((nodeId, idx) => {
+                    const isTarget = nodeId === lockedNodeId;
+                    const isStart = nodeId === startNode.id;
+                    const isEnd = nodeId === endNode.id;
+                    
+                    let classes = 'path-node';
+                    if (isTarget) classes += ' is-target';
+                    if (isStart) classes += ' is-start';
+                    if (isEnd) classes += ' is-end';
+
+                    html += `<div class="${classes}" data-id="${nodeId}">${nodeId}</div>`;
+                    if (idx < currentPath.length - 1) html += `<div class="path-arrow">↓</div>`;
+                });
+                html += '</div>';
+                content.innerHTML = html;
+
+            } else {
+                cycleBtn.style.display = 'none';
+                title.innerHTML = `IMPASSE <span style="color: var(--text-muted); font-size: 10px;">(Voisins de ${lockedNodeId})</span>`;
+
+                let neighbors = [];
+                links.forEach(l => {
+                    if (l.source.id === lockedNodeId) neighbors.push(l.target.id);
+                    else if (l.target.id === lockedNodeId) neighbors.push(l.source.id);
+                });
+
+                neighbors.sort((a, b) => (nodeDistances.get(a) || Infinity) - (nodeDistances.get(b) || Infinity));
+
+                let html = '<div class="path-list">';
+                neighbors.forEach((nodeId) => {
+                    const isStart = nodeId === startNode.id;
+                    const isEnd = nodeId === endNode.id;
+                    let classes = 'path-node';
+                    if (isStart) classes += ' is-start';
+                    if (isEnd) classes += ' is-end';
+
+                    html += `<div class="${classes}" data-id="${nodeId}">${nodeId}</div>`;
+                });
+                if (neighbors.length === 0) html += `<div style="font-size:11px; color:var(--text-muted); text-align:center;">Graphe isolé</div>`;
+                html += '</div>';
+                content.innerHTML = html;
+            }
+
+            content.querySelectorAll('.path-node').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const clickedNodeId = el.getAttribute('data-id');
+                    const mesh = nodeMeshes.get(clickedNodeId);
+                    if (mesh) {
+                        cancelCameraFocus();
+                        nodeFocusTarget = mesh.position.clone();
+                    }
+                });
+            });
+        }
+
+        document.getElementById('btn-cycle-path').addEventListener('click', () => {
+            const pathsWithNode = uniquePaths.filter(p => p.includes(lockedNodeId));
+            currentPathDisplayIndex = (currentPathDisplayIndex + 1) % pathsWithNode.length;
+            renderRightPanel();
+            updateLinksVisuals(); 
+        });
+
+        // --- GESTION ABSOLUE DU CLIC ET DU GLISSER ---
+        const canvas = renderer.domElement;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (e.target.tagName !== 'CANVAS') return;
+            mouse.x = (e.clientX / innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+            clickStart.set(e.clientX, e.clientY);
+            
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(nodesGroup.children, false);
+            
+            if (hits.length > 0) {
+                controls.enabled = false; 
+                draggedNode = hits[0].object;
+                isDragging = false;
+                
+                const camDir = new THREE.Vector3();
+                camera.getWorldDirection(camDir);
+                camDir.negate(); 
+                dragPlane.setFromNormalAndCoplanarPoint(camDir, draggedNode.position);
+                
+                const intersect = new THREE.Vector3();
+                if (raycaster.ray.intersectPlane(dragPlane, intersect)) dragOffset.copy(intersect).sub(draggedNode.position);
+            } else {
+                if (lockedNodeId) {
+                    lockedNodeId = null;
+                    updateLinksVisuals();
+                    renderRightPanel();
+                }
+            }
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            mouse.x = (e.clientX / innerWidth) * 2 - 1; 
+            mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+            
+            if (draggedNode) {
+                if (clickStart.distanceTo(new THREE.Vector2(e.clientX, e.clientY)) > 4) isDragging = true;
+                if (isDragging) {
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersect = new THREE.Vector3();
+                    if (raycaster.ray.intersectPlane(dragPlane, intersect)) {
+                        draggedNode.position.copy(intersect.sub(dragOffset));
+                        const n = nodeMap.get(draggedNode.userData.id);
+                        if (n) { n.x = draggedNode.position.x; n.y = draggedNode.position.y; n.z = draggedNode.position.z; }
+                        updateLinkPositions();
+                    }
+                }
+                return; 
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(nodesGroup.children, false);
+            let newHoveredNodeId = null;
+            if (hits.length) {
+                newHoveredNodeId = hits[0].object.userData.id;
+                const tooltip = document.getElementById('tooltip');
+                tooltip.style.opacity = 1;
+                tooltip.style.left = (e.clientX + 15) + 'px';
+                tooltip.style.top = (e.clientY + 15) + 'px';
+                document.getElementById('tt-name').textContent = "SALLE_" + newHoveredNodeId;
+                document.getElementById('tt-visits').textContent = roomVisits.get(newHoveredNodeId) || 0;
+            } else {
+                document.getElementById('tooltip').style.opacity = 0;
+            }
+
+            if (hoveredNodeId !== newHoveredNodeId) {
+                hoveredNodeId = newHoveredNodeId;
+                updateLinksVisuals();
+            }
+        });
+
+        const onPointerUp = () => {
+            controls.enabled = true;
+            if (draggedNode) {
+                if (!isDragging) {
+                    // Clic Court sur un node : On lock
+                    trackedAntId = null; 
+                    document.getElementById('track-ant').value = '';
+                    isCameraTrackingAnt = false;
+
+                    if (lockedNodeId === draggedNode.userData.id) {
+                        lockedNodeId = null;
+                    } else {
+                        lockedNodeId = draggedNode.userData.id;
+                        currentPathDisplayIndex = 0; 
+                    }
+                    updateLinksVisuals();
+                    renderRightPanel();
+                }
+                draggedNode = null;
+                isDragging = false;
+            }
+        };
+
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+
+        // --- ISOLATION VISUELLE ---
+        function getPathToHighlight(nodeId) {
+            let nodesInPaths = new Set();
+            let linksInPaths = new Set();
+            
+            const pathsWithNode = uniquePaths.filter(p => p.includes(nodeId));
+
+            if (pathsWithNode.length > 0) {
+                const path = pathsWithNode[currentPathDisplayIndex];
+                for (let i = 0; i < path.length; i++) {
+                    nodesInPaths.add(path[i]);
+                    if (i > 0) {
+                        const linkKey = [path[i-1], path[i]].sort().join('~');
+                        linksInPaths.add(linkKey);
+                    }
+                }
+                return { found: true, nodes: nodesInPaths, links: linksInPaths };
+            }
+            return { found: false, nodes: new Set(), links: new Set() };
+        }
+
+        function rebuildEdgeUsageUpTo(targetStep) {
+            globalEdgeUsage.clear();
+            maxEdgeUsage = 1;
+            let tempHistory = new Map();
+
+            for (let i = 0; i <= targetStep; i++) {
+                if(!moves[i]) continue;
+                moves[i].split(' ').forEach(tok => {
+                    if (!tok.startsWith('L')) return;
+                    const dash = tok.indexOf('-', 1);
+                    if (dash < 0) return;
+                    const id = tok.substring(1, dash);
+                    const targetName = tok.substring(dash + 1);
+
+                    let hist = tempHistory.get(id);
+                    if (!hist) { hist = [startNode.id]; tempHistory.set(id, hist); }
+                    
+                    const prevName = hist[hist.length - 1];
+                    const linkKey = [prevName, targetName].sort().join('~');
+
+                    const count = (globalEdgeUsage.get(linkKey) || 0) + 1;
+                    globalEdgeUsage.set(linkKey, count);
+                    maxEdgeUsage = Math.max(maxEdgeUsage, count);
+                    hist.push(targetName);
+                });
+            }
+
+            // Récupère l'historique complet pour la fourmi suivie
+            if (trackedAntId) {
+                if (tempHistory.has(trackedAntId)) {
+                    currentTrackedAntPath = [...tempHistory.get(trackedAntId)];
+                } else {
+                    currentTrackedAntPath = startNode ? [startNode.id] : [];
+                }
+            } else {
+                currentTrackedAntPath = [];
+            }
+        }
+
+        function updateLinksVisuals() {
+            let isolatedNodes = new Set();
+            let isolatedLinks = new Set();
+            let isolationActive = false;
+
+            // Isolation par Suivi de Fourmi OU par Clic de Salle
+            if (trackedAntId && currentTrackedAntPath.length > 0) {
+                isolationActive = true;
+                for (let i = 0; i < currentTrackedAntPath.length; i++) {
+                    isolatedNodes.add(currentTrackedAntPath[i]);
+                    if (i > 0) {
+                        const linkKey = [currentTrackedAntPath[i-1], currentTrackedAntPath[i]].sort().join('~');
+                        isolatedLinks.add(linkKey);
+                    }
+                }
+            } else if (lockedNodeId) {
+                isolationActive = true;
+                const pathData = getPathToHighlight(lockedNodeId);
+                if (pathData.found) {
+                    isolatedNodes = pathData.nodes;
+                    isolatedLinks = pathData.links;
+                } else {
+                    isolatedNodes.add(lockedNodeId);
+                    linkMeshes.forEach((mesh, key) => {
+                        const parts = key.split('~');
+                        if (parts[0] === lockedNodeId || parts[1] === lockedNodeId) {
+                            isolatedLinks.add(key);
+                            isolatedNodes.add(parts[0]);
+                            isolatedNodes.add(parts[1]);
+                        }
+                    });
+                }
+            }
+
+            const isConnectedToHover = (key) => {
+                if (!hoveredNodeId) return false;
+                const parts = key.split('~');
+                return parts[0] === hoveredNodeId || parts[1] === hoveredNodeId;
+            };
+
+            linkMeshes.forEach((mesh, key) => {
+                const hovered = isConnectedToHover(key);
+
+                if (isolationActive) {
+                    if (isolatedLinks.has(key)) mesh.material = matLinkHover;
+                    else mesh.material = matLinkDimmed;
+                    if (hovered) mesh.material = matLinkHover;
+                } else {
+                    if (hovered) {
+                        mesh.material = matLinkHover;
+                    } else if (globalEdgeUsage.has(key) && globalEdgeUsage.get(key) > 0) {
+                        const usage = globalEdgeUsage.get(key);
+                        const ratio = Math.min(1, usage / maxEdgeUsage); 
+                        const levelIndex = Math.max(0, Math.ceil(ratio * HEATMAP_LEVELS) - 1);
+                        mesh.material = heatmapMaterials[levelIndex];
+                    } else {
+                        mesh.material = matLinkBase; 
+                    }
+                }
+            });
+
+            nodesGroup.children.forEach(node => {
+                const isStart = node.userData.type === 'start';
+                const isEnd = node.userData.type === 'end';
+                const id = node.userData.id;
+
+                if (isolationActive) {
+                    if (isolatedNodes.has(id)) node.material = isStart ? matStart : (isEnd ? matEnd : matRoom);
+                    else node.material = isStart ? matStartDimmed : (isEnd ? matEndDimmed : matRoomDimmed);
+                } else {
+                    node.material = isStart ? matStart : (isEnd ? matEnd : matRoom); 
+                }
+            });
+
+            labelsGroup.children.forEach(lbl => {
+                if (isolationActive) {
+                    if (!isolatedNodes.has(lbl.userData.nodeId)) {
+                        lbl.element.style.opacity = '0.05';
+                        lbl.element.classList.remove('highlighted');
+                    } else {
+                        lbl.element.style.opacity = '1.0';
+                        lbl.element.classList.add('highlighted');
+                    }
+                } else {
+                    lbl.element.style.opacity = '1.0';
+                    lbl.element.classList.remove('highlighted');
+                }
+            });
+        }
+
+        // --- GESTION DES FOURMIS ---
+        function parseStepMoves(line, forward) {
+            line.split(' ').forEach(tok => {
+                if (!tok.startsWith('L')) return;
+                const dash = tok.indexOf('-',1); if(dash<0) return;
+                const id = tok.substring(1,dash), targetName = tok.substring(dash+1);
+                const targetNode = nodeMap.get(targetName);
+                if (!targetNode) return;
+                
+                if (forward) {
+                    let ant = antsMap.get(id);
+                    if (!ant) {
+                        if (!startNode) return;
+                        const startPos = new THREE.Vector3(startNode.x, startNode.y, startNode.z);
+                        ant = { currentPos: startPos.clone(), targetPos: startPos.clone(), nodeId: startNode.id };
+                        antsMap.set(id, ant);
+                    }
+                    ant.targetPos.set(targetNode.x, targetNode.y, targetNode.z);
+                    ant.nodeId = targetName;
+                    
+                    if (targetNode.type==='end') arrived++;
+                    roomVisits.set(targetNode.id, (roomVisits.get(targetNode.id)||0)+1);
+                } else {
+                    if (targetNode?.type==='end') arrived = Math.max(0, arrived-1);
+                    if (targetNode) roomVisits.set(targetNode.id, Math.max(0, (roomVisits.get(targetNode.id)||1)-1));
+                    
+                    let prevNode = startNode;
+                    for (let i=step-1; i>=0; i--) {
+                        const found = moves[i].split(' ').find(p => p.startsWith(`L${id}-`));
+                        if (found) { prevNode = nodeMap.get(found.substring(found.indexOf('-')+1)); break; }
+                    }
+                    if (prevNode && antsMap.has(id)) antsMap.get(id).targetPos.set(prevNode.x, prevNode.y, prevNode.z);
+                }
+            });
+        }
+        
+        function executeStepForward() {
+            if (step >= moves.length-1) return false;
+            step++; 
+            parseStepMoves(moves[step], true); 
+            rebuildEdgeUsageUpTo(step); 
+            updateLinksVisuals(); 
+            if (trackedAntId) renderRightPanel();
+            updateUI(); 
+            return true;
+        }
+
+        function executeStepBackward() {
+            if (step < 0) return false;
+            parseStepMoves(moves[step], false); 
+            step--; 
+            rebuildEdgeUsageUpTo(step); 
+            updateLinksVisuals(); 
+            if (trackedAntId) renderRightPanel();
+            updateUI(); 
+            return true;
+        }
+        
+        function updateUI() {
+            document.getElementById('s-total').textContent = totalAnts||'—';
+            document.getElementById('s-active').textContent = Math.max(0, antsMap.size - arrived);
+            document.getElementById('s-turn').textContent = `${step+1}/${moves.length}`;
+            document.getElementById('s-arrived').textContent = arrived;
+            document.getElementById('tl-label').textContent = `${step+1}/${moves.length}`;
+            const tl = document.getElementById('timeline'); 
+            tl.max = moves.length; tl.value = step+1;
+        }
+        
+        let playInterval;
+        function togglePlay() {
+            if (!moves.length) return;
+            playing = !playing;
+            document.getElementById('play-btn').innerHTML = playing ? '⏸ PAUSE' : '▶ LECTURE';
+            if (playing) {
+                playInterval = setInterval(() => { if (!executeStepForward()) togglePlay(); }, Math.max(20, 1000 - parseInt(document.getElementById('speed').value)*5));
+            } else clearInterval(playInterval);
+        }
+
+        document.getElementById('track-ant').addEventListener('input', (e) => {
+            trackedAntId = e.target.value.trim() || null;
+            if (trackedAntId) {
+                isCameraTrackingAnt = true;
+                lockedNodeId = null; 
+                nodeFocusTarget = null;
+            }
+            rebuildEdgeUsageUpTo(step);
+            updateLinksVisuals();
+            renderRightPanel();
+        });
+
+        // --- WASM + MAP FETCHING (remplace le WebSocket) ---
+        let wasmReady = false;
+        let wasmModule = null;
+
+        async function loadWasm() {
+            try {
+                const init = (await import('./lem_in_rust.js')).default;
+                const { parse_and_solve } = await import('./lem_in_rust.js');
+                await init();
+                wasmModule = { parse_and_solve };
+                wasmReady = true;
+                document.getElementById('conn-dot').classList.remove('loading');
+                document.getElementById('conn-dot').style.background = 'var(--color-start)';
+            } catch(e) {
+                console.error('WASM error:', e);
+                document.getElementById('conn-dot').style.background = 'var(--color-end)';
+            }
+        }
+        loadWasm();
+
+        function mapFiles(opt) { return Array.from({length:10}, (_,i) => `maps/${opt}_${i+1}.txt`); }
+
+        async function requestNewMap() {
+            if (!wasmReady) { alert('WASM en chargement…'); return; }
+            const mode = document.getElementById('gen-mode').value.replace('--', '');
+            const files = mapFiles(mode);
+            const file = files[Math.floor(Math.random() * files.length)];
+            document.getElementById('conn-dot').classList.add('loading');
+            try {
+                const r = await fetch(file); if (!r.ok) throw new Error('HTTP ' + r.status);
+                const mapText = await r.text();
+                const result = wasmModule.parse_and_solve(mapText);
+                loadData(mapText, result);
+            } catch(e) { console.error('Map error:', e); document.getElementById('conn-dot').style.background = 'var(--color-end)'; }
+        }
+
+        function loadData(mapText, result) {
+            // Reset
+            nodes = []; links = []; moves = []; antsMap.clear();
+            globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
+            roomVisits.clear(); step = -1; playing = false; totalAnts = 0; arrived = 0;
+            trackedAntId = null; hoveredNodeId = null;
+            if (playInterval) clearInterval(playInterval);
+            document.getElementById('play-btn').innerHTML = '▶ LECTURE';
+            document.getElementById('hud-right').style.display = 'none';
+            document.getElementById('track-ant').value = '';
+
+            const lines = mapText.split('\n');
+            totalAnts = parseInt(lines[0]) || 0;
+            let ns = false, ne = false;
+            const rawNodes = [], rawLinks = [];
+
+            for (const line of lines) {
+                if (line.trim() === '' || line.startsWith('#Here')) continue;
+                if (line === '##start') { ns = true; continue; }
+                if (line === '##end') { ne = true; continue; }
+                if (line.startsWith('#')) continue;
+                const rm = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+                if (rm) {
+                    const n = { id: rm[1], x: parseInt(rm[2]), y: parseInt(rm[3]), type: 'room' };
+                    if (ns) { n.type = 'start'; ns = false; }
+                    if (ne) { n.type = 'end'; ne = false; }
+                    rawNodes.push(n);
+                } else if (line.includes('-')) {
+                    const p = line.split('-'); if (p.length === 2) rawLinks.push([p[0], p[1]]);
+                }
+            }
+
+            nodes = normalizeGraphData(rawNodes);
+            nodeMap = new Map(nodes.map(n => [n.id, n]));
+            startNode = nodes.find(n => n.type === 'start') || null;
+            endNode = nodes.find(n => n.type === 'end') || null;
+            links = rawLinks.map(l => {
+                const s = nodeMap.get(l[0]), t = nodeMap.get(l[1]);
+                return s && t ? { source: s, target: t, key: [l[0], l[1]].sort().join('~') } : null;
+            }).filter(l => l);
+
+            // Parse moves
+            const rl = result.split('\n');
+            for (const line of rl) {
+                if (line.trim() === '') continue;
+                if (line.startsWith('L')) {
+                    moves.push(line);
+                    line.split(' ').forEach(tok => {
+                        if (!tok.startsWith('L')) return;
+                        const d = tok.indexOf('-');
+                        const id = tok.substring(1, d), tn = tok.substring(d + 1);
+                        if (!globalAntJourneys.has(id)) globalAntJourneys.set(id, [startNode.id]);
+                        globalAntJourneys.get(id).push(tn);
+                    });
+                }
+            }
+
+            processUniquePaths();
+            buildScene();
+            resetCamera();
+            updateUI();
+
+            document.getElementById('conn-dot').classList.remove('loading');
+            document.getElementById('conn-dot').style.background = 'var(--color-start)';
+            document.getElementById('s-score').textContent = moves.length;
+            document.getElementById('s-time').textContent = '—';
+
+            // Auto-play
+            setTimeout(() => { if (!playing) togglePlay(); }, 800);
+        }
+        
+        document.getElementById('gen-btn').onclick = () => { requestNewMap(); };
+        document.getElementById('play-btn').onclick = togglePlay;
+        document.getElementById('btn-prev').onclick = () => { if(playing)togglePlay(); executeStepBackward(); };
+        document.getElementById('btn-next').onclick = () => { if(playing)togglePlay(); executeStepForward(); };
+        document.getElementById('speed').oninput = e => { document.getElementById('spd-val').textContent=e.target.value+'%'; if(playing){ togglePlay(); togglePlay(); } };
+        document.getElementById('timeline').oninput = e => { 
+            const t=parseInt(e.target.value)-1; if(playing)togglePlay(); 
+            while(step<t) executeStepForward(); 
+            while(step>t) executeStepBackward(); 
+        };
+        document.getElementById('fullscreen-btn').onclick = () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else if (document.exitFullscreen) document.exitFullscreen();
+        };
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+        });
+        
+        function smoothPanCamera(targetVec) {
+            const currentTarget = controls.target.clone();
+            controls.target.lerp(targetVec, 0.08); 
+            const delta = new THREE.Vector3().subVectors(controls.target, currentTarget);
+            camera.position.add(delta); 
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            let instanceCount = 0;
+            let trackedPos = null;
+
+            antsMap.forEach((ant, id) => {
+                if (ant.targetPos) {
+                    ant.currentPos.lerp(ant.targetPos, 0.25);
+                    dummyAnt.position.copy(ant.currentPos);
+                    
+                    dummyAnt.updateMatrix();
+                    antInstancedMesh.setMatrixAt(instanceCount++, dummyAnt.matrix);
+
+                    if (id === trackedAntId) {
+                        trackedPos = dummyAnt.position.clone();
+                    }
+                }
+            });
+
+            antInstancedMesh.count = instanceCount;
+            antInstancedMesh.instanceMatrix.needsUpdate = true;
+
+            // Tracking intelligent de la caméra
+            if (trackedPos && isCameraTrackingAnt && !isDragging) {
+                smoothPanCamera(trackedPos);
+            } 
+            else if (nodeFocusTarget && !isDragging) {
+                smoothPanCamera(nodeFocusTarget);
+                
+                if (controls.target.distanceTo(nodeFocusTarget) < 1) {
+                    controls.target.copy(nodeFocusTarget);
+                    nodeFocusTarget = null;
+                }
+            }
+            
+            specialAnimations.forEach(anim => {
+                anim.mesh.rotation.x += anim.speedX;
+                anim.mesh.rotation.y += anim.speedY;
+            });
+            
+            controls.update();
+            composer.render();
+            labelRenderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

@@ -2165,6 +2165,8 @@ const mode3D = (() => {
   let animationRunning = false;
   let bgParticles;
   let flowParticles3D = []; // { fromPos, toPos, progress, mesh }
+  let isolationActive3D = false;
+  const isolatedNodes3D = new Set();
 
   // Scientific analytical palette — muted, high-contrast, non-saturated
   // Designed for data clarity, not decorative glow
@@ -2238,10 +2240,10 @@ const mode3D = (() => {
     // Post-processing — minimal bloom for scientific clarity
     // Bloom creates halos that obscure data; keep it very subtle
     const renderScene = new RenderPass(scene, camera);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.15, 0.4, 0.1);
-    bloomPass.threshold = 0.7;   // high threshold = only brightest pixels bloom
-    bloomPass.strength = 0.15;   // very subtle
-    bloomPass.radius = 0.4;
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.5, 0.6, 0.1);
+    bloomPass.threshold = 0.15;  // lower threshold to allow strong neon red glow
+    bloomPass.strength = 1.4;    // strong neon bloom
+    bloomPass.radius = 0.6;
     composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
@@ -2262,7 +2264,13 @@ const mode3D = (() => {
     // Core ants — vivid red, highly visible, strong emissive for neon glow
     const MAX_ANTS = 100000;
     const antGeometry = new THREE.SphereGeometry(7, 24, 24);  // high detail
-    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.2, metalness: 0.4, emissive: COL.ant, emissiveIntensity: 0.6 });
+    const antMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff0033,
+      roughness: 0.1,
+      metalness: 0.1,
+      emissive: 0xff0033,
+      emissiveIntensity: 6.0
+    });
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
@@ -2272,12 +2280,12 @@ const mode3D = (() => {
 
     // Premium node materials — MeshPhysicalMaterial with clearcoat for ceramic/lacquer quality
     // clearcoat = glossy top layer, clearcoatRoughness = smoothness of that layer
-    matRoom = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.4, metalness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.3 });
-    matStart = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.start, emissiveIntensity: 0.1 });
-    matEnd = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.end, emissiveIntensity: 0.1 });
-    matRoomDim = new THREE.MeshStandardMaterial({ color: COL.roomDim, roughness: 0.8, metalness: 0.1 });
-    matStartDim = new THREE.MeshStandardMaterial({ color: COL.startDim, roughness: 0.7, metalness: 0.1 });
-    matEndDim = new THREE.MeshStandardMaterial({ color: COL.endDim, roughness: 0.7, metalness: 0.1 });
+    matRoom = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.02, ior: 1.8, reflectivity: 0.8 });
+    matStart = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.02, ior: 1.8, reflectivity: 0.8, emissive: COL.start, emissiveIntensity: 0.2 });
+    matEnd = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.02, ior: 1.8, reflectivity: 0.8, emissive: COL.end, emissiveIntensity: 0.2 });
+    matRoomDim = new THREE.MeshPhysicalMaterial({ color: COL.roomDim, roughness: 0.2, metalness: 0.1, clearcoat: 0.3, clearcoatRoughness: 0.1, ior: 1.5, reflectivity: 0.5 });
+    matStartDim = new THREE.MeshPhysicalMaterial({ color: COL.startDim, roughness: 0.2, metalness: 0.1, clearcoat: 0.3, clearcoatRoughness: 0.1, ior: 1.5, reflectivity: 0.5 });
+    matEndDim = new THREE.MeshPhysicalMaterial({ color: COL.endDim, roughness: 0.2, metalness: 0.1, clearcoat: 0.3, clearcoatRoughness: 0.1, ior: 1.5, reflectivity: 0.5 });
 
     // Links — PBR with subtle metalness for depth
     matLinkBase = new THREE.MeshPhysicalMaterial({ color: COL.linkBase, roughness: 0.5, metalness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.4, transparent: true, opacity: 0.8 });
@@ -2285,9 +2293,9 @@ const mode3D = (() => {
     matLinkHover = new THREE.MeshPhysicalMaterial({ color: COL.linkHover, roughness: 0.2, metalness: 0.6, clearcoat: 0.8, clearcoatRoughness: 0.1, emissive: COL.linkHover, emissiveIntensity: 0.15 });
 
     // Semi-transparent node materials — used when an ant is parked inside the node
-    matRoomTrans = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.4, metalness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.3, transparent: true, opacity: 0.2, depthWrite: false });
-    matStartTrans = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.start, emissiveIntensity: 0.1, transparent: true, opacity: 0.2, depthWrite: false });
-    matEndTrans = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.end, emissiveIntensity: 0.1, transparent: true, opacity: 0.2, depthWrite: false });
+    matRoomTrans = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.02, ior: 1.8, reflectivity: 0.8, transparent: true, opacity: 0.15, depthWrite: false });
+    matStartTrans = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.02, ior: 1.8, reflectivity: 0.8, emissive: COL.start, emissiveIntensity: 0.2, transparent: true, opacity: 0.15, depthWrite: false });
+    matEndTrans = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.1, metalness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.02, ior: 1.8, reflectivity: 0.8, emissive: COL.end, emissiveIntensity: 0.2, transparent: true, opacity: 0.15, depthWrite: false });
 
     // Heatmap — viridis-inspired scientific colormap (blue→green→yellow→red)
     heatmapMaterials = [];
@@ -2485,6 +2493,31 @@ const mode3D = (() => {
     });
   }
 
+  function getNodeMaterial(node, hasAnt, isolationActive, isolatedNodes) {
+    const isStart = node.userData.type === 'start';
+    const isEnd = node.userData.type === 'end';
+    const id = node.userData.id;
+    
+    if (isolationActive) {
+      const isIso = isolatedNodes.has(id);
+      if (isIso) {
+        if (hasAnt) {
+          return isStart ? matStartTrans : (isEnd ? matEndTrans : matRoomTrans);
+        } else {
+          return isStart ? matStart : (isEnd ? matEnd : matRoom);
+        }
+      } else {
+        return isStart ? matStartDim : (isEnd ? matEndDim : matRoomDim);
+      }
+    } else {
+      if (hasAnt) {
+        return isStart ? matStartTrans : (isEnd ? matEndTrans : matRoomTrans);
+      } else {
+        return isStart ? matStart : (isEnd ? matEnd : matRoom);
+      }
+    }
+  }
+
   function resetCamera() {
     if (!initialized) return;
     nodeFocusTarget = null;
@@ -2563,6 +2596,10 @@ const mode3D = (() => {
       }
     }
 
+    isolationActive3D = isolationActive;
+    isolatedNodes3D.clear();
+    isolatedNodes.forEach(id => isolatedNodes3D.add(id));
+
     const isConnectedToHover = (key) => {
       if (!hoveredNodeId) return false;
       const parts = key.split('~');
@@ -2590,15 +2627,11 @@ const mode3D = (() => {
     });
 
     nodesGroup.children.forEach(node => {
-      const isStart = node.userData.type === 'start';
-      const isEnd = node.userData.type === 'end';
-      const id = node.userData.id;
-      if (isolationActive) {
-        if (isolatedNodes.has(id)) node.material = isStart ? matStart : (isEnd ? matEnd : matRoom);
-        else node.material = isStart ? matStartDim : (isEnd ? matEndDim : matRoomDim);
-      } else {
-        node.material = isStart ? matStart : (isEnd ? matEnd : matRoom);
-      }
+      let hasAnt = false;
+      antsMap3D.forEach(ant => {
+        if (ant.nodeId === node.userData.id) hasAnt = true;
+      });
+      node.material = getNodeMaterial(node, hasAnt, isolationActive3D, isolatedNodes3D);
     });
 
     labelsGroup.children.forEach(lbl => {
@@ -2779,8 +2812,8 @@ const mode3D = (() => {
         antInstancedMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
         if (antGlowMesh) antGlowMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
         instanceCount++;
-        // If parked (close to target), mark the node as "has ant"
-        if (dist < 5 && ant.nodeId) {
+        // If ant is inside the node (dist < 15)
+        if (dist < 15 && ant.nodeId) {
           nodesWithAnts.add(ant.nodeId);
         }
         if (id === focusedAntId) trackedPos = dummyAnt.position.clone();
@@ -2790,32 +2823,12 @@ const mode3D = (() => {
     antInstancedMesh.instanceMatrix.needsUpdate = true;
     if (antGlowMesh) { antGlowMesh.count = instanceCount; antGlowMesh.instanceMatrix.needsUpdate = true; }
 
-    // Make nodes semi-transparent when they contain a parked ant
-    // so the ant (full opacity red) is visible THROUGH the node
-    if (nodesWithAnts.size > 0) {
-      nodesGroup.children.forEach(node => {
-        const id = node.userData.id;
-        const isStart = node.userData.type === 'start';
-        const isEnd = node.userData.type === 'end';
-        if (nodesWithAnts.has(id)) {
-          // Node contains an ant → make transparent
-          node.material = isStart ? matStartTrans : (isEnd ? matEndTrans : matRoomTrans);
-        } else {
-          // No ant → restore opaque (respect isolation state)
-          // Only update if currently transparent (avoid overwriting isolation logic every frame)
-          if (node.material === matRoomTrans || node.material === matStartTrans || node.material === matEndTrans) {
-            node.material = isStart ? matStart : (isEnd ? matEnd : matRoom);
-          }
-        }
-      });
-    } else {
-      // No ants anywhere — restore all transparent nodes to opaque
-      nodesGroup.children.forEach(node => {
-        if (node.material === matRoomTrans) node.material = matRoom;
-        else if (node.material === matStartTrans) node.material = matStart;
-        else if (node.material === matEndTrans) node.material = matEnd;
-      });
-    }
+    // Update node materials based on ants presence and isolation state
+    nodesGroup.children.forEach(node => {
+      const id = node.userData.id;
+      const hasAnt = nodesWithAnts.has(id);
+      node.material = getNodeMaterial(node, hasAnt, isolationActive3D, isolatedNodes3D);
+    });
 
     if (trackedPos && isCameraTrackingAnt && !isDragging3D) {
       smoothPanCamera(trackedPos);

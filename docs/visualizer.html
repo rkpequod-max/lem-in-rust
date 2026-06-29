@@ -2825,21 +2825,38 @@ const mode3D = (() => {
     }
 
     // Dynamic label visibility — only show labels when camera is close enough
-    // This prevents labels from cluttering the view when zoomed out
+    // CSS2DRenderer doesn't respect group.visible, so we toggle each label element directly
     const camDist = camera.position.distanceTo(controls.target);
-    const labelThreshold = SCALES.graphSize * 1.5; // show labels only when within 1.5× graph size
-    if (labelsGroup.visible !== (camDist < labelThreshold)) {
-      labelsGroup.visible = camDist < labelThreshold;
-    }
-    // Fade labels based on distance (farther = more transparent)
-    if (labelsGroup.visible) {
-      const fadeRatio = Math.max(0, Math.min(1, (labelThreshold - camDist) / (labelThreshold * 0.5)));
-      labelsGroup.children.forEach(lbl => {
-        if (lbl.element && !lbl.element.classList.contains('highlighted')) {
-          lbl.element.style.opacity = fadeRatio;
-        }
+    // Use the graph bounding box to set threshold (not fixed SCALES.graphSize)
+    let labelThreshold = SCALES.graphSize * 0.8; // default
+    if (nodes.length > 0 && nodes[0].x3d) {
+      let maxExtent = 0;
+      nodes.forEach(n => {
+        const d = Math.hypot(n.x3d, n.y3d, n.z3d);
+        if (d > maxExtent) maxExtent = d;
       });
+      labelThreshold = maxExtent * 2.5; // labels visible within 2.5× graph radius
     }
+    // Toggle visibility AND skip labelRenderer.render when hidden
+    const labelsShouldShow = camDist < labelThreshold;
+    // Apply display:none directly to DOM elements (CSS2DRenderer ignores Three.js .visible)
+    labelsGroup.children.forEach(lbl => {
+      if (lbl.element) {
+        if (!labelsShouldShow && !lbl.element.classList.contains('highlighted')) {
+          lbl.element.style.display = 'none';
+        } else {
+          lbl.element.style.display = '';
+          // Fade based on distance
+          const fadeStart = labelThreshold * 0.7;
+          const fadeRatio = camDist < fadeStart ? 1 : Math.max(0, 1 - (camDist - fadeStart) / (labelThreshold - fadeStart));
+          if (!lbl.element.classList.contains('highlighted')) {
+            lbl.element.style.opacity = fadeRatio;
+          } else {
+            lbl.element.style.opacity = 1;
+          }
+        }
+      }
+    });
 
     controls.update();
     // Skip rendering when truly idle (no animation, no drag, no focus) — huge battery/perf saver
@@ -2847,7 +2864,10 @@ const mode3D = (() => {
     if (hasActivity || !animate3D._lastRender || performance.now() - animate3D._lastRender > 33) {
       if (composer) composer.render();
       else renderer.render(scene, camera);
-      labelRenderer.render(scene, camera);
+      // Only render labels if any are visible (perf saver when zoomed out)
+      if (labelsShouldShow || labelsGroup.children.some(l => l.element?.classList.contains('highlighted'))) {
+        labelRenderer.render(scene, camera);
+      }
       animate3D._lastRender = performance.now();
     }
     requestAnimationFrame(animate3D);

@@ -267,9 +267,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
    SHARED STATE — used by both 2D and 3D modes
    ═══════════════════════════════════════════════════════════════ */
 const CC = {
-  bg:'#0a0c0f', grid:'rgba(180,190,200,0.04)', text:'rgba(212,216,220,',
-  link:'rgba(140,150,165,0.18)', roomFill:'#181c22', roomStroke:'rgba(140,150,165,0.45)',
-  dimmed:'rgba(255,255,255,0.025)', hlBg:'rgba(12,15,20,0.92)', hlBorder:'#c4a050'
+  bg:'#0a0c0f', grid:'rgba(180,190,200,0.06)', text:'rgba(220,225,235,',
+  link:'rgba(180,190,205,0.4)', roomFill:'#3a424d', roomStroke:'rgba(180,190,205,0.75)',
+  dimmed:'rgba(255,255,255,0.04)', hlBg:'rgba(12,15,20,0.92)', hlBorder:'#e0c070'
 };
 
 let wasmReady = false;
@@ -399,27 +399,27 @@ function render2D() {
     ctx.quadraticCurveTo(cx, cy, l.target.x, l.target.y);
     if (iso) {
       if (isoL.has(k) || hov) {
-        ctx.strokeStyle = 'rgba(196,160,80,0.85)'; ctx.lineWidth = 2.5/transform.k;
-        ctx.shadowColor = 'rgba(196,160,80,0.4)'; ctx.shadowBlur = 6/transform.k;
+        ctx.strokeStyle = 'rgba(224,192,112,0.9)'; ctx.lineWidth = 2.5/transform.k;
+        ctx.shadowColor = 'rgba(224,192,112,0.5)'; ctx.shadowBlur = 6/transform.k;
         ctx.stroke(); ctx.shadowBlur = 0;
       } else { ctx.strokeStyle = CC.dimmed; ctx.lineWidth = lw; ctx.stroke(); }
     }
     else if (hov) {
-      ctx.strokeStyle = 'rgba(196,160,80,0.75)'; ctx.lineWidth = 2.5/transform.k;
-      ctx.shadowColor = 'rgba(196,160,80,0.3)'; ctx.shadowBlur = 4/transform.k;
+      ctx.strokeStyle = 'rgba(224,192,112,0.85)'; ctx.lineWidth = 2.5/transform.k;
+      ctx.shadowColor = 'rgba(224,192,112,0.4)'; ctx.shadowBlur = 4/transform.k;
       ctx.stroke(); ctx.shadowBlur = 0;
     }
     else if (isHeatmap && globalEdgeUsage.has(k)) {
       const i = Math.min(1, globalEdgeUsage.get(k)/maxEdgeUsage);
       const hue = 25 + i * 15;
-      ctx.strokeStyle = `hsla(${hue},65%,${35+i*40}%,${0.35+i*0.65})`;
+      ctx.strokeStyle = `hsla(${hue},75%,${45+i*40}%,${0.45+i*0.55})`;
       ctx.lineWidth = lw*1.5 + i*4/transform.k;
       if (i > 0.6) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5/transform.k; }
       ctx.stroke(); ctx.shadowBlur = 0;
     }
     else {
-      const linkAlpha = nodes.length > 1500 ? 0.08 : nodes.length > 500 ? 0.12 : 0.2;
-      ctx.strokeStyle = `rgba(140,150,165,${linkAlpha})`;
+      const linkAlpha = nodes.length > 1500 ? 0.2 : nodes.length > 500 ? 0.3 : 0.42;
+      ctx.strokeStyle = `rgba(180,190,205,${linkAlpha})`;
       ctx.lineWidth = lw; ctx.stroke();
     }
   });
@@ -434,33 +434,33 @@ function render2D() {
     ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
     if (isS) {
       const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
-      grad.addColorStop(0, '#6a9a5a'); grad.addColorStop(1, '#3a6a2a');
+      grad.addColorStop(0, '#8acb7a'); grad.addColorStop(1, '#4a8a3a');
       ctx.fillStyle = grad; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.strokeStyle = 'rgba(106,154,90,0.8)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
+      ctx.strokeStyle = 'rgba(138,203,122,0.9)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
       ctx.beginPath(); ctx.arc(n.x, n.y, r*1.5, 0, Math.PI*2);
-      ctx.strokeStyle = 'rgba(74,122,58,0.25)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
+      ctx.strokeStyle = 'rgba(106,154,90,0.35)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
     }
     else if (isE) {
       const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
-      grad.addColorStop(0, '#ab3030'); grad.addColorStop(1, '#6b1818');
+      grad.addColorStop(0, '#d05050'); grad.addColorStop(1, '#8b2020');
       ctx.fillStyle = grad; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.strokeStyle = 'rgba(171,48,48,0.8)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
+      ctx.strokeStyle = 'rgba(208,80,80,0.9)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
       ctx.beginPath(); ctx.arc(n.x, n.y, r*1.5, 0, Math.PI*2);
-      ctx.strokeStyle = 'rgba(139,32,32,0.25)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
+      ctx.strokeStyle = 'rgba(171,48,48,0.35)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
     }
     else {
       const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
-      grad.addColorStop(0, '#222831'); grad.addColorStop(1, '#131720');
+      grad.addColorStop(0, '#5a626e'); grad.addColorStop(1, '#2a3038');
       ctx.fillStyle = grad; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.strokeStyle = 'rgba(140,150,165,0.5)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
+      ctx.strokeStyle = 'rgba(180,190,205,0.75)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
     }
     ctx.globalAlpha = 1;
     if (n.id === hoveredNodeId && (!iso || isoN.has(n.id))) {
       ctx.beginPath(); ctx.arc(n.x, n.y, r*2, 0, Math.PI*2);
-      ctx.fillStyle = isS ? 'rgba(74,122,58,0.12)' : isE ? 'rgba(139,32,32,0.12)' : 'rgba(196,160,80,0.12)';
+      ctx.fillStyle = isS ? 'rgba(106,154,90,0.18)' : isE ? 'rgba(171,48,48,0.18)' : 'rgba(224,192,112,0.18)';
       ctx.fill();
     }
   });
@@ -508,21 +508,21 @@ function render2D() {
     if (!vis(ant.x, ant.y)) return;
     const f = id === focusedAntId, r = f ? ar*1.4 : ar;
     const hue = antHue(id);
-    ctx.shadowColor = f ? 'rgba(196,160,80,0.6)' : `hsla(${hue},80%,60%,0.4)`;
-    ctx.shadowBlur = (f ? 8 : 4) / transform.k;
+    ctx.shadowColor = f ? 'rgba(224,192,112,0.7)' : `hsla(${hue},85%,65%,0.5)`;
+    ctx.shadowBlur = (f ? 10 : 5) / transform.k;
     ctx.beginPath(); ctx.arc(ant.x, ant.y, r, 0, Math.PI*2);
     const grad = ctx.createRadialGradient(ant.x - r*0.3, ant.y - r*0.3, 0, ant.x, ant.y, r);
-    if (f) { grad.addColorStop(0, '#e0c070'); grad.addColorStop(1, '#a08030'); }
-    else { grad.addColorStop(0, `hsl(${hue},85%,70%)`); grad.addColorStop(1, `hsl(${hue},65%,45%)`); }
+    if (f) { grad.addColorStop(0, '#f0d080'); grad.addColorStop(1, '#b09040'); }
+    else { grad.addColorStop(0, `hsl(${hue},90%,75%)`); grad.addColorStop(1, `hsl(${hue},70%,50%)`); }
     ctx.fillStyle = grad; ctx.fill();
     ctx.shadowBlur = 0;
     if (!isMassive || f) {
       ctx.beginPath(); ctx.arc(ant.x - r*0.2, ant.y - r*0.2, r*0.25, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill();
     }
     if (f) {
       ctx.beginPath(); ctx.arc(ant.x, ant.y, r*2, 0, Math.PI*2);
-      ctx.strokeStyle = 'rgba(196,160,80,0.4)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
+      ctx.strokeStyle = 'rgba(224,192,112,0.5)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
     }
   });
   ctx.restore();

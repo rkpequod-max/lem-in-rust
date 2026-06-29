@@ -2824,18 +2824,18 @@ const mode3D = (() => {
       }
     }
 
-    // Dynamic label visibility — only show labels when camera is close enough
+    // Dynamic label visibility — only show labels when camera is VERY close
     // CSS2DRenderer doesn't respect group.visible, so we toggle each label element directly
     const camDist = camera.position.distanceTo(controls.target);
-    // Use the graph bounding box to set threshold (not fixed SCALES.graphSize)
-    let labelThreshold = SCALES.graphSize * 0.8; // default
+    // Threshold: labels only within 1.0× graph radius (was 2.5 — too permissive)
+    let labelThreshold = SCALES.graphSize * 0.5; // very tight default
     if (nodes.length > 0 && nodes[0].x3d) {
       let maxExtent = 0;
       nodes.forEach(n => {
         const d = Math.hypot(n.x3d, n.y3d, n.z3d);
         if (d > maxExtent) maxExtent = d;
       });
-      labelThreshold = maxExtent * 2.5; // labels visible within 2.5× graph radius
+      labelThreshold = maxExtent * 1.0; // labels visible only within graph radius
     }
     // Toggle visibility AND skip labelRenderer.render when hidden
     const labelsShouldShow = camDist < labelThreshold;

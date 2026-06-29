@@ -424,6 +424,105 @@ function teamHue(antId) {
   return palette[teamIdx % palette.length];
 }
 
+const spriteCache = new Map();
+function getOrCreateNodeSprite(type, isBFS, bfsHue, isHovered, isLargeMap) {
+  const key = `${type}_${isBFS ? bfsHue : ''}_${isHovered ? 'h' : ''}_${isLargeMap ? 'l' : ''}`;
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 96;
+  canvas.height = 96;
+  const sCtx = canvas.getContext('2d');
+  const cx = 48, cy = 48, r = 24;
+
+  const isS = type === 'start', isE = type === 'end';
+
+  // 1. External glow
+  if (!isLargeMap || isS || isE) {
+    let glowColor;
+    if (isS) glowColor = 'rgba(106,154,90,0.4)';
+    else if (isE) glowColor = 'rgba(171,48,48,0.4)';
+    else glowColor = 'rgba(180,190,205,0.15)';
+
+    const glowGrad = sCtx.createRadialGradient(cx, cy, r*0.8, cx, cy, r*2.2);
+    glowGrad.addColorStop(0, glowColor);
+    glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    sCtx.fillStyle = glowGrad;
+    sCtx.beginPath(); sCtx.arc(cx, cy, r*2.2, 0, Math.PI*2); sCtx.fill();
+  }
+
+  // 2. Node Core Colors
+  let grad0, grad1, grad2, strokeColor, ringColor, hasRing = false;
+  if (isS) {
+    grad0 = '#a0db8a'; grad1 = '#5a9a4a'; grad2 = '#2a5a1a';
+    strokeColor = 'rgba(160,219,138,0.95)';
+    ringColor = 'rgba(106,154,90,0.4)';
+    hasRing = true;
+  } else if (isE) {
+    grad0 = '#e87070'; grad1 = '#a83030'; grad2 = '#5a1010';
+    strokeColor = 'rgba(232,112,112,0.95)';
+    ringColor = 'rgba(171,48,48,0.4)';
+    hasRing = true;
+  } else {
+    if (isBFS) {
+      grad0 = `hsl(${bfsHue},70%,60%)`;
+      grad1 = `hsl(${bfsHue},60%,40%)`;
+      grad2 = `hsl(${bfsHue},50%,20%)`;
+    } else {
+      grad0 = '#7a828e'; grad1 = '#4a525c'; grad2 = '#1e242a';
+    }
+    strokeColor = 'rgba(180,190,205,0.8)';
+  }
+
+  // Node Fill
+  if (!isLargeMap) {
+    sCtx.shadowColor = 'rgba(0,0,0,0.5)'; sCtx.shadowBlur = 6; sCtx.shadowOffsetY = 3;
+  }
+  sCtx.beginPath(); sCtx.arc(cx, cy, r, 0, Math.PI*2);
+  if (!isLargeMap || isS || isE) {
+    const grad = sCtx.createRadialGradient(cx - r*0.35, cy - r*0.35, 0, cx, cy, r);
+    grad.addColorStop(0, grad0);
+    grad.addColorStop(0.6, grad1);
+    grad.addColorStop(1, grad2);
+    sCtx.fillStyle = grad;
+  } else {
+    sCtx.fillStyle = grad1;
+  }
+  sCtx.fill();
+  if (!isLargeMap) {
+    sCtx.shadowBlur = 0; sCtx.shadowOffsetY = 0;
+  }
+
+  // 3. Stroke
+  sCtx.strokeStyle = strokeColor;
+  sCtx.lineWidth = 2;
+  sCtx.stroke();
+
+  // 4. Inner highlight
+  const innerHighlightOpacity = isLargeMap && !isS && !isE ? 0.08 : 0.25;
+  sCtx.beginPath(); sCtx.arc(cx - r*0.3, cy - r*0.3, r*0.3, 0, Math.PI*2);
+  sCtx.fillStyle = `rgba(255,255,255,${innerHighlightOpacity})`;
+  sCtx.fill();
+
+  // 5. Outer ring for start/end
+  if (hasRing) {
+    sCtx.beginPath(); sCtx.arc(cx, cy, r*1.6, 0, Math.PI*2);
+    sCtx.strokeStyle = ringColor;
+    sCtx.lineWidth = 1;
+    sCtx.stroke();
+  }
+
+  // 6. Hover overlay
+  if (isHovered) {
+    sCtx.beginPath(); sCtx.arc(cx, cy, r*2, 0, Math.PI*2);
+    sCtx.fillStyle = isS ? 'rgba(106,154,90,0.18)' : isE ? 'rgba(171,48,48,0.18)' : 'rgba(224,192,112,0.18)';
+    sCtx.fill();
+  }
+
+  spriteCache.set(key, canvas);
+  return canvas;
+}
+
 const zoom = d3.zoom().scaleExtent([0.01,15]).on('zoom', e => {
   transform = e.transform;
   if (!suppressZoom) {
@@ -637,81 +736,19 @@ function render2D() {
     let a = 1; if (iso && !isoN.has(n.id)) a = 0.03;
     ctx.globalAlpha = a;
 
-    let glowColor, grad0, grad1, grad2, strokeColor, ringColor, hasRing = false;
-    if (isS) {
-      glowColor = 'rgba(106,154,90,0.4)';
-      grad0 = '#a0db8a'; grad1 = '#5a9a4a'; grad2 = '#2a5a1a';
-      strokeColor = 'rgba(160,219,138,0.95)';
-      ringColor = 'rgba(106,154,90,0.4)';
-      hasRing = true;
-    } else if (isE) {
-      glowColor = 'rgba(171,48,48,0.4)';
-      grad0 = '#e87070'; grad1 = '#a83030'; grad2 = '#5a1010';
-      strokeColor = 'rgba(232,112,112,0.95)';
-      ringColor = 'rgba(171,48,48,0.4)';
-      hasRing = true;
-    } else {
-      glowColor = 'rgba(180,190,205,0.15)';
-      if (isBFS && nodeDistances.has(n.id)) {
-        const dist = nodeDistances.get(n.id);
-        const maxDist = Math.max(...nodeDistances.values()) || 1;
-        const ratio = dist / maxDist;
-        const hue = 120 - ratio * 120; // 120=green, 0=red
-        grad0 = `hsl(${hue},70%,60%)`;
-        grad1 = `hsl(${hue},60%,40%)`;
-        grad2 = `hsl(${hue},50%,20%)`;
-      } else {
-        grad0 = '#7a828e'; grad1 = '#4a525c'; grad2 = '#1e242a';
-      }
-      strokeColor = 'rgba(180,190,205,0.8)';
+    let bfsHue = 0;
+    if (isBFS && nodeDistances.has(n.id)) {
+      const dist = nodeDistances.get(n.id);
+      const maxDist = Math.max(...nodeDistances.values()) || 1;
+      const ratio = dist / maxDist;
+      bfsHue = 120 - ratio * 120;
     }
 
-    // 1. HALO GLOW EXTERNE (seulement si petite map ou start/end)
-    if (!isLargeMap || isS || isE) {
-      const glowGrad = ctx.createRadialGradient(n.x, n.y, r*0.8, n.x, n.y, r*2.2);
-      glowGrad.addColorStop(0, glowColor);
-      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glowGrad;
-      ctx.beginPath(); ctx.arc(n.x, n.y, r*2.2, 0, Math.PI*2); ctx.fill();
-    }
+    const isHovered = n.id === hoveredNodeId && (!iso || isoN.has(n.id));
 
-    // 2. NOEUD PRINCIPAL
-    if (!isLargeMap) {
-      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6/transform.k; ctx.shadowOffsetY = 3/transform.k;
-    }
-    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-    if (!isLargeMap || isS || isE) {
-      const grad = ctx.createRadialGradient(n.x - r*0.35, n.y - r*0.35, 0, n.x, n.y, r);
-      grad.addColorStop(0, grad0);
-      grad.addColorStop(0.6, grad1);
-      grad.addColorStop(1, grad2);
-      ctx.fillStyle = grad;
-    } else {
-      ctx.fillStyle = grad1;
-    }
-    ctx.fill();
-    if (!isLargeMap) {
-      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-    }
-
-    // 3. STROKE BRIGHT
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 2/transform.k;
-    ctx.stroke();
-
-    // 4. INNER HIGHLIGHT (point blanc en haut-gauche pour effet sphère, atténué si très grande map)
-    const innerHighlightOpacity = nodes.length > 1500 ? 0.08 : 0.25;
-    ctx.beginPath(); ctx.arc(n.x - r*0.3, n.y - r*0.3, r*0.3, 0, Math.PI*2);
-    ctx.fillStyle = `rgba(255,255,255,${innerHighlightOpacity})`;
-    ctx.fill();
-
-    // 5. OUTER RING (anneau décoratif pour start/end)
-    if (hasRing) {
-      ctx.beginPath(); ctx.arc(n.x, n.y, r*1.6, 0, Math.PI*2);
-      ctx.strokeStyle = ringColor;
-      ctx.lineWidth = 1/transform.k;
-      ctx.stroke();
-    }
+    // Render using sprite cache
+    const sprite = getOrCreateNodeSprite(n.type, isBFS, bfsHue, isHovered, isLargeMap);
+    ctx.drawImage(sprite, n.x - r*2.2, n.y - r*2.2, r*4.4, r*4.4);
 
     // Bottleneck ring
     if (isBottleneck && roomVisits.has(n.id)) {
@@ -736,14 +773,8 @@ function render2D() {
       ctx.lineWidth = 3/transform.k;
       ctx.stroke();
     }
-
-    ctx.globalAlpha = 1;
-    if (n.id === hoveredNodeId && (!iso || isoN.has(n.id))) {
-      ctx.beginPath(); ctx.arc(n.x, n.y, r*2, 0, Math.PI*2);
-      ctx.fillStyle = isS ? 'rgba(106,154,90,0.18)' : isE ? 'rgba(171,48,48,0.18)' : 'rgba(224,192,112,0.18)';
-      ctx.fill();
-    }
   });
+  ctx.globalAlpha = 1;
   const showAllLabels = nodes.length <= 200;
   const labelZoomThreshold = nodes.length > 1500 ? 0.8 : nodes.length > 500 ? 0.5 : 0.25;
   if (showAllLabels || transform.k > labelZoomThreshold) {
@@ -1201,7 +1232,7 @@ window.toggleHeatmap = function() {
   renderActive();
 };
 window.resetAll = function() {
-  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0;
+  nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear();
   globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
   roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
   step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1250,7 +1281,7 @@ window.runSimulation = async function() {
   const out = document.getElementById('output'); out.innerHTML = '';
   try {
     const result = parse_and_solve(input);
-    nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0;
+    nodes = []; links = []; moves = []; nodeMap.clear(); ants.clear(); antTrails.clear(); flowParticles.length = 0; spriteCache.clear();
     globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
     roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
     step = -1; playing = false; totalAnts = 0; arrived = 0;

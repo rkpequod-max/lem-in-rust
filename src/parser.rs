@@ -1,4 +1,4 @@
-use crate::models::{Coord, Farm, Room, RoomRef};
+use crate::models::{Coord, Farm, Room};
 use std::collections::HashSet;
 use std::rc::Rc;
 

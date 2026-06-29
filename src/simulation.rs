@@ -1,5 +1,4 @@
-use crate::models::{Farm, Path, RoomRef};
-use std::rc::Rc;
+use crate::models::{Farm, Path};
 
 /// Simule le déplacement des fourmis tour par tour et produit la sortie.
 ///

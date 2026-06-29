@@ -21,9 +21,9 @@ pub fn update_flow(path: &[RoomRef]) {
         let prv = &path[i - 1];
 
         // Cloner les valeurs nécessaires pour éviter les borrow conflicts
-        let (r_f_to, r_is_start, r_is_end, r_name) = {
+        let (r_f_to, r_is_start, r_is_end) = {
             let rb = r.borrow();
-            (rb.f_to.clone(), rb.start, rb.end, rb.name.clone())
+            (rb.f_to.clone(), rb.start, rb.end)
         };
         let (prv_f_fm, prv_is_start) = {
             let pb = prv.borrow();

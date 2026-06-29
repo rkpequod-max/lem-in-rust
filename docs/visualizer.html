@@ -2179,7 +2179,7 @@ const mode3D = (() => {
     linkBase: 0x484f58,     // muted gray-blue for links
     linkDim: 0x21262d,      // very dark for dimmed links
     linkHover: 0xd29922,    // GitHub yellow — analytical highlight
-    ant: 0xf85149,          // red — same as end node for visual consistency
+    ant: 0xff1744,          // vivid neon red — highly visible
     fog: 0x0d1117
   };
 
@@ -2259,10 +2259,10 @@ const mode3D = (() => {
     labelsGroup = new THREE.Group();
     scene.add(nodesGroup, linksGroup, labelsGroup);
 
-    // Core ants — red, smooth spheres, full opacity always
+    // Core ants — vivid red, highly visible, strong emissive for neon glow
     const MAX_ANTS = 100000;
-    const antGeometry = new THREE.SphereGeometry(7, 20, 20);
-    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.35, metalness: 0.3, emissive: COL.ant, emissiveIntensity: 0.2 });
+    const antGeometry = new THREE.SphereGeometry(7, 24, 24);  // high detail
+    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.2, metalness: 0.4, emissive: COL.ant, emissiveIntensity: 0.6 });
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
@@ -2270,24 +2270,24 @@ const mode3D = (() => {
     antIdleMesh = null;  // not needed — we make NODES transparent instead
     dummyAnt = new THREE.Object3D();
 
-    // Premium materials — MeshStandard for PBR shading (roughness/metalness)
-    // Calibrated for architectural visualization quality: smooth, subtle, non-glowy
-    matRoom = new THREE.MeshStandardMaterial({ color: COL.room, roughness: 0.55, metalness: 0.25 });
-    matStart = new THREE.MeshStandardMaterial({ color: COL.start, roughness: 0.4, metalness: 0.2, emissive: COL.start, emissiveIntensity: 0.08 });
-    matEnd = new THREE.MeshStandardMaterial({ color: COL.end, roughness: 0.4, metalness: 0.2, emissive: COL.end, emissiveIntensity: 0.08 });
+    // Premium node materials — MeshPhysicalMaterial with clearcoat for ceramic/lacquer quality
+    // clearcoat = glossy top layer, clearcoatRoughness = smoothness of that layer
+    matRoom = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.4, metalness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+    matStart = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.start, emissiveIntensity: 0.1 });
+    matEnd = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.end, emissiveIntensity: 0.1 });
     matRoomDim = new THREE.MeshStandardMaterial({ color: COL.roomDim, roughness: 0.8, metalness: 0.1 });
     matStartDim = new THREE.MeshStandardMaterial({ color: COL.startDim, roughness: 0.7, metalness: 0.1 });
     matEndDim = new THREE.MeshStandardMaterial({ color: COL.endDim, roughness: 0.7, metalness: 0.1 });
 
     // Links — PBR with subtle metalness for depth
-    matLinkBase = new THREE.MeshStandardMaterial({ color: COL.linkBase, roughness: 0.6, metalness: 0.35, transparent: true, opacity: 0.75 });
+    matLinkBase = new THREE.MeshPhysicalMaterial({ color: COL.linkBase, roughness: 0.5, metalness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.4, transparent: true, opacity: 0.8 });
     matLinkDim = new THREE.MeshStandardMaterial({ color: COL.linkDim, roughness: 0.8, metalness: 0.1, transparent: true, opacity: 0.2 });
-    matLinkHover = new THREE.MeshStandardMaterial({ color: COL.linkHover, roughness: 0.3, metalness: 0.5, emissive: COL.linkHover, emissiveIntensity: 0.1 });
+    matLinkHover = new THREE.MeshPhysicalMaterial({ color: COL.linkHover, roughness: 0.2, metalness: 0.6, clearcoat: 0.8, clearcoatRoughness: 0.1, emissive: COL.linkHover, emissiveIntensity: 0.15 });
 
     // Semi-transparent node materials — used when an ant is parked inside the node
-    matRoomTrans = new THREE.MeshStandardMaterial({ color: COL.room, roughness: 0.55, metalness: 0.25, transparent: true, opacity: 0.25, depthWrite: false });
-    matStartTrans = new THREE.MeshStandardMaterial({ color: COL.start, roughness: 0.4, metalness: 0.2, emissive: COL.start, emissiveIntensity: 0.08, transparent: true, opacity: 0.25, depthWrite: false });
-    matEndTrans = new THREE.MeshStandardMaterial({ color: COL.end, roughness: 0.4, metalness: 0.2, emissive: COL.end, emissiveIntensity: 0.08, transparent: true, opacity: 0.25, depthWrite: false });
+    matRoomTrans = new THREE.MeshPhysicalMaterial({ color: COL.room, roughness: 0.4, metalness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.3, transparent: true, opacity: 0.2, depthWrite: false });
+    matStartTrans = new THREE.MeshPhysicalMaterial({ color: COL.start, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.start, emissiveIntensity: 0.1, transparent: true, opacity: 0.2, depthWrite: false });
+    matEndTrans = new THREE.MeshPhysicalMaterial({ color: COL.end, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.2, emissive: COL.end, emissiveIntensity: 0.1, transparent: true, opacity: 0.2, depthWrite: false });
 
     // Heatmap — viridis-inspired scientific colormap (blue→green→yellow→red)
     heatmapMaterials = [];
@@ -2379,14 +2379,14 @@ const mode3D = (() => {
     const norm = normalizeGraphData(nodes);
     nodes.forEach((n, i) => { n.x3d = norm[i].x3d; n.y3d = norm[i].y3d; n.z3d = norm[i].z3d; });
 
-    // LOD: choose geometry detail based on map size — smooth spheres for premium quality
+    // LOD: high-detail smooth spheres for premium ceramic quality
     const isLarge3D = nodes.length > 500;
     const isHuge3D = nodes.length > 1500;
-    // Use SphereGeometry for premium smoothness (vs faceted Icosahedron/Octahedron)
+    // SphereGeometry with high segment count for ultra-smooth surface
     const geoNode = isHuge3D
       ? new THREE.IcosahedronGeometry(SCALES.nodeBase, 0)
-      : new THREE.SphereGeometry(SCALES.nodeBase, isLarge3D ? 16 : 24, isLarge3D ? 12 : 18);
-    const geoSpecial = new THREE.SphereGeometry(SCALES.nodeStartEnd, isLarge3D ? 20 : 32, isLarge3D ? 16 : 24);
+      : new THREE.SphereGeometry(SCALES.nodeBase, isLarge3D ? 20 : 32, isLarge3D ? 16 : 24);
+    const geoSpecial = new THREE.SphereGeometry(SCALES.nodeStartEnd, isLarge3D ? 24 : 48, isLarge3D ? 18 : 32);
 
     nodes.forEach(n => {
       const isStart = n.type === 'start';
@@ -2398,12 +2398,11 @@ const mode3D = (() => {
       nodesGroup.add(mesh);
       nodeMeshes.set(n.id, mesh);
 
-      // Clean premium markers for start/end — smooth torus ring, no glow
+      // Premium markers for start/end — smooth glossy torus ring
       if (isStart || isEnd) {
         if (!isHuge3D) {
-          // Smooth torus ring (higher segments for premium quality)
-          const ringGeo = new THREE.TorusGeometry(SCALES.nodeStartEnd * 1.3, 2, 8, 48);
-          const ringMat = new THREE.MeshStandardMaterial({ color: isStart ? COL.start : COL.end, roughness: 0.3, metalness: 0.6, emissive: isStart ? COL.start : COL.end, emissiveIntensity: 0.15 });
+          const ringGeo = new THREE.TorusGeometry(SCALES.nodeStartEnd * 1.3, 2.5, 12, 64);  // high detail
+          const ringMat = new THREE.MeshPhysicalMaterial({ color: isStart ? COL.start : COL.end, roughness: 0.15, metalness: 0.7, clearcoat: 0.8, clearcoatRoughness: 0.1, emissive: isStart ? COL.start : COL.end, emissiveIntensity: 0.2 });
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = Math.PI / 2;
           mesh.add(ring);

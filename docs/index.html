@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="ame">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -489,6 +489,123 @@
             text-align: center; margin: 3rem 0; color: var(--text-secondary);
             font-size: 1.2rem; letter-spacing: 0.3rem;
         }
+
+        /* ══ CUSTOM CURSORS ══ */
+        body, a, button, select, input, textarea, code, pre, .card, .toc, .feature-item {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='3' fill='%231E5BD8' opacity='0.8'/%3E%3Ccircle cx='12' cy='12' r='6' stroke='%231E5BD8' stroke-width='1' fill='none' opacity='0.4'/%3E%3Ccircle cx='12' cy='12' r='9' stroke='%2300CED1' stroke-width='0.5' fill='none' opacity='0.2'/%3E%3Ccircle cx='12' cy='12' r='1' fill='%23C8DAF0'/%3E%3C/svg%3E") 12 12, crosshair !important;
+        }
+
+        /* ══ INTERACTIVE WATER RIPPLE ══ */
+        .water-ripple {
+            position: fixed;
+            border: 1.5px solid rgba(0,206,209,0.45);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9990;
+            width: 300px;
+            height: 300px;
+            transform: translate(-50%, -50%) scale(0);
+            transform-origin: center;
+            animation: waterRippleExpand 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            box-shadow: 0 0 15px rgba(0,206,209,0.25), inset 0 0 15px rgba(0,206,209,0.15);
+        }
+        .water-ripple-mid {
+            position: fixed;
+            border: 1px solid rgba(30,91,216,0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9990;
+            width: 300px;
+            height: 300px;
+            transform: translate(-50%, -50%) scale(0);
+            transform-origin: center;
+            animation: waterRippleExpand 1.6s cubic-bezier(0.1, 0.8, 0.3, 1) 0.12s forwards;
+            box-shadow: 0 0 15px rgba(30,91,216,0.2), inset 0 0 15px rgba(30,91,216,0.1);
+        }
+        .water-ripple-inner {
+            position: fixed;
+            border: 1px solid rgba(0,206,209,0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9990;
+            width: 300px;
+            height: 300px;
+            transform: translate(-50%, -50%) scale(0);
+            transform-origin: center;
+            animation: waterRippleExpand 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) 0.24s forwards;
+            box-shadow: 0 0 12px rgba(0,206,209,0.12), inset 0 0 12px rgba(0,206,209,0.06);
+        }
+        @keyframes waterRippleExpand {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        /* ══ DYNAMIC FLOATING BUBBLES ══ */
+        #bubble-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+            opacity: 1;
+        }
+        .ame-bubble {
+            position: absolute; bottom: -30px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%,
+                rgba(0,206,209,0.15) 0%,
+                rgba(30,91,216,0.08) 50%,
+                rgba(0,206,209,0.03) 100%
+            );
+            border: 1px solid rgba(0,206,209,0.12);
+            box-shadow: 0 0 6px rgba(0,206,209,0.08), inset 0 0 4px rgba(0,206,209,0.05);
+            animation: ameBubbleRise linear forwards;
+        }
+        .ame-bubble::after {
+            content: '';
+            position: absolute; top: 20%; left: 25%;
+            width: 30%; height: 20%;
+            border-radius: 50%;
+            background: rgba(200,218,240,0.15);
+        }
+        @keyframes ameBubbleRise {
+            0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+            10% { opacity: 0.6; }
+            50% { opacity: 0.4; }
+            90% { opacity: 0.15; }
+            100% { transform: translateY(-110vh) translateX(var(--drift)) scale(var(--scale-end)); opacity: 0; }
+        }
+
+        /* ══ BIOLUMINESCENT PARTICLES ══ */
+        #biolum-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+            opacity: 1;
+        }
+        .biolum-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: biolumDrift linear infinite, biolumGlow 3s ease-in-out infinite;
+        }
+        @keyframes biolumDrift {
+            0% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(var(--dx1), var(--dy1)) scale(1.2); }
+            50% { transform: translate(var(--dx2), var(--dy2)) scale(0.8); }
+            75% { transform: translate(var(--dx3), var(--dy3)) scale(1.1); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+        @keyframes biolumGlow {
+            0%, 100% { opacity: 0.15; box-shadow: 0 0 4px var(--glow-color); }
+            50% { opacity: 0.6; box-shadow: 0 0 12px var(--glow-color), 0 0 24px var(--glow-color); }
+        }
+
+        /* ══ 3D WebGL Canvas ══ */
+        #ame-3d-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2; pointer-events: none;
+        }
+        
+        /* Suppress CSS duplicates when WebGL is active */
+        body::before { background: none !important; animation: none !important; }
+        #god-rays { display: none !important; }
     </style>
 </head>
 <body>
@@ -501,6 +618,8 @@
         <div class="god-ray gr-2"></div>
         <div class="god-ray gr-3"></div>
     </div>
+    <div id="bubble-container"></div>
+    <div id="biolum-container"></div>
 <div class="container">
     <header>
         <h1>🐜 Lem-in Rust <span class="badge">WASM Ready</span></h1>
@@ -1044,6 +1163,172 @@ python3 -m http.server 8000</code></pre>
             <a href="https://rkpequod-max.github.io/lem-in/" style="color: var(--accent-c);">Guide C</a>
         </p>
     </footer>
+    <!-- ══ Immersive Three.js Background & Custom Effects (L'Âme dans l'eau theme) ══ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="ame-immersive.js"></script>
+
+    <script>
+    // ── Âme: Interactive Water Ripple ──
+    (function() {
+        document.addEventListener('click', function(e) {
+            if (document.documentElement.getAttribute('data-theme') !== 'ame') return;
+            
+            var ripple = document.createElement('div');
+            ripple.className = 'water-ripple';
+            ripple.style.left = e.clientX + 'px';
+            ripple.style.top = e.clientY + 'px';
+            document.body.appendChild(ripple);
+            
+            var ripple2 = document.createElement('div');
+            ripple2.className = 'water-ripple-mid';
+            ripple2.style.left = e.clientX + 'px';
+            ripple2.style.top = e.clientY + 'px';
+            document.body.appendChild(ripple2);
+
+            var ripple3 = document.createElement('div');
+            ripple3.className = 'water-ripple-inner';
+            ripple3.style.left = e.clientX + 'px';
+            ripple3.style.top = e.clientY + 'px';
+            document.body.appendChild(ripple3);
+            
+            setTimeout(function() { ripple.remove(); }, 1400);
+            setTimeout(function() { ripple2.remove(); }, 1800);
+            setTimeout(function() { ripple3.remove(); }, 2100);
+        });
+    })();
+
+    // ── Âme: Caustic Cursor Trail ──
+    (function() {
+        var lastTime = 0;
+        document.addEventListener('mousemove', function(e) {
+            if (document.documentElement.getAttribute('data-theme') !== 'ame') return;
+            var now = Date.now();
+            if (now - lastTime < 80) return;
+            lastTime = now;
+            var dot = document.createElement('div');
+            var size = 4 + Math.random() * 6;
+            var drift = (Math.random() - 0.5) * 40;
+            var rise = -60 - Math.random() * 50;
+            dot.style.cssText = 'position:fixed;pointer-events:none;z-index:9989;border-radius:50%;' +
+                'width:' + size + 'px;height:' + size + 'px;' +
+                'left:' + e.clientX + 'px;top:' + e.clientY + 'px;transform:translate(-50%,-50%) scale(1);' +
+                'background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7) 0%, rgba(0,206,209,0.15) 40%, rgba(30,91,216,0.05) 80%, transparent 100%);' +
+                'border:1px solid rgba(0,206,209,0.3);' +
+                'box-shadow:0 0 5px rgba(0,206,209,0.15), inset 0 0 3px rgba(255,255,255,0.2);' +
+                'transition:opacity 1.5s cubic-bezier(0.1, 0.8, 0.3, 1), transform 1.5s cubic-bezier(0.1, 0.8, 0.3, 1);opacity:0.8;';
+            document.body.appendChild(dot);
+            requestAnimationFrame(function() {
+                dot.style.opacity = '0';
+                dot.style.transform = 'translate(calc(-50% + ' + drift + 'px), calc(-50% + ' + rise + 'px)) scale(1.4)';
+            });
+            setTimeout(function() { dot.remove(); }, 1500);
+        });
+    })();
+
+    // ── Âme: Dynamic Floating Bubbles ──
+    (function() {
+        var container = null;
+        var intervalId = null;
+        
+        function createBubble() {
+            if (!container || document.documentElement.getAttribute('data-theme') !== 'ame') return;
+            var bubble = document.createElement('div');
+            bubble.className = 'ame-bubble';
+            var size = 6 + Math.random() * 24;
+            var left = Math.random() * 100;
+            var duration = 12 + Math.random() * 20;
+            var drift = (Math.random() - 0.5) * 80;
+            var scaleEnd = 0.6 + Math.random() * 0.6;
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.left = left + '%';
+            bubble.style.setProperty('--drift', drift + 'px');
+            bubble.style.setProperty('--scale-end', scaleEnd);
+            bubble.style.animationDuration = duration + 's';
+            container.appendChild(bubble);
+            setTimeout(function() { if (bubble.parentNode) bubble.remove(); }, duration * 1000);
+        }
+        
+        function startBubbles() {
+            container = document.getElementById('bubble-container');
+            if (!container) return;
+            if (intervalId) clearInterval(intervalId);
+            intervalId = setInterval(createBubble, 2000 + Math.random() * 3000);
+            for (var i = 0; i < 5; i++) {
+                setTimeout(createBubble, i * 600);
+            }
+        }
+        
+        var observer = new MutationObserver(function() {
+            var isAme = document.documentElement.getAttribute('data-theme') === 'ame';
+            if (isAme && !intervalId) {
+                startBubbles();
+            } else if (!isAme && intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+                if (container) container.innerHTML = '';
+            }
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        
+        if (document.documentElement.getAttribute('data-theme') === 'ame') {
+            startBubbles();
+        }
+    })();
+
+    // ── Âme: Bioluminescent Particles ──
+    (function() {
+        var container = null;
+        var running = false;
+        
+        function createParticle() {
+            if (!container) return;
+            var p = document.createElement('div');
+            p.className = 'biolum-particle';
+            var size = 2 + Math.random() * 6;
+            var x = Math.random() * 100;
+            var y = Math.random() * 100;
+            var duration = 15 + Math.random() * 25;
+            var glowDuration = 2 + Math.random() * 4;
+            var isCyan = Math.random() > 0.3;
+            var color = isCyan ? 'rgba(0,206,209,0.4)' : 'rgba(30,91,216,0.4)';
+            var glowColor = isCyan ? 'rgba(0,206,209,0.3)' : 'rgba(30,91,216,0.3)';
+            var range = 30 + Math.random() * 60;
+            p.style.cssText = 'width:' + size + 'px;height:' + size + 'px;' +
+                'left:' + x + '%;top:' + y + '%;' +
+                'background:radial-gradient(circle,' + color + ' 0%,transparent 70%);' +
+                '--glow-color:' + glowColor + ';' +
+                '--dx1:' + ((Math.random()-0.5)*range) + 'px;--dy1:' + ((Math.random()-0.5)*range) + 'px;' +
+                '--dx2:' + ((Math.random()-0.5)*range) + 'px;--dy2:' + ((Math.random()-0.5)*range) + 'px;' +
+                '--dx3:' + ((Math.random()-0.5)*range) + 'px;--dy3:' + ((Math.random()-0.5)*range) + 'px;' +
+                'animation-duration:' + duration + 's,' + glowDuration + 's;';
+            container.appendChild(p);
+        }
+        
+        function startParticles() {
+            container = document.getElementById('biolum-container');
+            if (!container) return;
+            for (var i = 0; i < 20; i++) {
+                createParticle();
+            }
+            running = true;
+        }
+        
+        function stopParticles() {
+            if (container) container.innerHTML = '';
+            running = false;
+        }
+        
+        var obs = new MutationObserver(function() {
+            var isAme = document.documentElement.getAttribute('data-theme') === 'ame';
+            if (isAme && !running) startParticles();
+            else if (!isAme && running) stopParticles();
+        });
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        
+        if (document.documentElement.getAttribute('data-theme') === 'ame') startParticles();
+    })();
+    </script>
 </div>
 </body>
 </html>

@@ -2824,6 +2824,23 @@ const mode3D = (() => {
       }
     }
 
+    // Dynamic label visibility — only show labels when camera is close enough
+    // This prevents labels from cluttering the view when zoomed out
+    const camDist = camera.position.distanceTo(controls.target);
+    const labelThreshold = SCALES.graphSize * 1.5; // show labels only when within 1.5× graph size
+    if (labelsGroup.visible !== (camDist < labelThreshold)) {
+      labelsGroup.visible = camDist < labelThreshold;
+    }
+    // Fade labels based on distance (farther = more transparent)
+    if (labelsGroup.visible) {
+      const fadeRatio = Math.max(0, Math.min(1, (labelThreshold - camDist) / (labelThreshold * 0.5)));
+      labelsGroup.children.forEach(lbl => {
+        if (lbl.element && !lbl.element.classList.contains('highlighted')) {
+          lbl.element.style.opacity = fadeRatio;
+        }
+      });
+    }
+
     controls.update();
     // Skip rendering when truly idle (no animation, no drag, no focus) — huge battery/perf saver
     const hasActivity = playing || antsMap3D.size > 0 || nodeFocusTarget || isCameraTrackingAnt || isDragging3D || flowParticles3D.length > 0 || specialAnimations.length > 0;

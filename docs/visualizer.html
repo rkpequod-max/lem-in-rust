@@ -364,6 +364,51 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 .record-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4040; animation: record-pulse 1s infinite; }
 @keyframes record-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+/* ── Annotations contextuelles ── */
+.graph-annotation {
+  position: absolute; pointer-events: none; z-index: 9;
+  background: rgba(8,10,14,.92); backdrop-filter: blur(12px);
+  border: 1px solid var(--warm); padding: 4px 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: .55rem;
+  color: var(--warm); letter-spacing: .03em; line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5), 0 0 8px rgba(196,160,80,.15);
+  white-space: nowrap; opacity: 0; transition: opacity .4s ease;
+  max-width: 200px;
+}
+.graph-annotation.visible { opacity: 1; }
+.graph-annotation.warn { border-color: var(--ember); color: var(--ember); }
+.graph-annotation.success { border-color: #7aba5a; color: #7aba5a; }
+.graph-annotation::before { content: '> '; opacity: .6; }
+
+/* ── Cinematic mode indicator ── */
+#cinematic-indicator {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  z-index: 700; display: none;
+  background: rgba(196,160,80,.15); backdrop-filter: blur(12px);
+  border: 1px solid var(--warm); padding: .3rem .8rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .55rem;
+  color: var(--warm); letter-spacing: .15em; text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(196,160,80,.4);
+}
+#cinematic-indicator.active { display: block; }
+
+/* ── Waveform ── */
+#waveform { border: 1px solid var(--border); background: rgba(0,0,0,.3); }
+
+/* ── Ant explanation tooltip ── */
+#ant-explanation {
+  position: fixed; z-index: 550; display: none;
+  background: var(--panel); backdrop-filter: blur(16px);
+  border: 1px solid var(--warm); padding: .6rem .8rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .55rem;
+  color: var(--text); line-height: 1.6; max-width: 280px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+#ant-explanation::before { content:''; position:absolute; top:-1px; left:-1px; width:8px; height:8px; border-top:1px solid var(--warm); border-left:1px solid var(--warm); }
+.exp-title { color: var(--warm); font-weight: 700; margin-bottom: .3rem; letter-spacing: .05em; }
+.exp-row { display: flex; justify-content: space-between; gap: .5rem; color: var(--dim); }
+.exp-row span { color: var(--text); }
+
 </style>
 </head>
 <body>
@@ -459,7 +504,11 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
       <button class="tool-btn" id="btn-bfs" onclick="toggleBFS()" style="flex:1">BFS</button>
       <button class="tool-btn" id="btn-bottleneck" onclick="toggleBottleneck()" style="flex:1">BOTTLENECK</button>
     </div>
-    <div class="slider-row"><label>// TIMELINE <span id="tl-label">0/0</span></label><input type="range" id="timeline" min="0" max="0" value="0" step="1"></div>
+    <div class="tool-row">
+      <button class="tool-btn" id="btn-cinematic" onclick="toggleCinematic()" style="flex:1">CINEMATIC</button>
+      <button class="tool-btn" id="btn-recommend" onclick="showRecommendations()" style="flex:1">SUGGEST</button>
+    </div>
+    <div class="slider-row"><label>// TIMELINE <span id="tl-label">0/0</span></label><canvas id="waveform" width="260" height="24" style="width:100%;height:24px;display:block;margin-bottom:4px"></canvas><input type="range" id="timeline" min="0" max="0" value="0" step="1"></div>
     <div class="slider-row"><label>// VELOCITY <span id="spd-val">70</span></label><input type="range" id="speed" min="1" max="100" value="70" oninput="document.getElementById('spd-val').textContent=this.value"></div>
   </div>
   <div class="lp-section">
@@ -502,6 +551,17 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
   <div>ANTS <span id="perf-ants" style="color:var(--text)">0</span> · STEP <span id="perf-step" style="color:var(--text)">0</span></div>
 </div>
 
+<!-- Annotations contextuelles (floating insights on graph) -->
+<div id="annotations-layer" style="position:fixed;inset:0;pointer-events:none;z-index:8"></div>
+
+<!-- Recommendations panel -->
+<div id="recommend-panel" class="panel" style="position:fixed;top:60px;right:14px;width:240px;display:none;z-index:12;padding:.8rem .9rem">
+  <span class="panel-tr"></span><span class="panel-bl"></span>
+  <h3 style="font-size:.55rem;text-transform:uppercase;letter-spacing:.15em;color:var(--dim);margin-bottom:.5rem;font-weight:500;font-family:'JetBrains Mono',monospace">> SUGGESTIONS</h3>
+  <div id="recommend-content" style="font-size:.6rem;font-family:'JetBrains Mono',monospace;color:var(--text);line-height:1.8"></div>
+  <button class="tool-btn" onclick="document.getElementById('recommend-panel').style.display='none'" style="margin-top:.5rem;width:100%">CLOSE</button>
+</div>
+
 <!-- POD 042 — Tactical Support Unit -->
 <div id="pod042">
   <div class="pod042-header" onclick="POD042.toggle()">
@@ -522,6 +582,12 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 
 <!-- Recording indicator -->
 <div id="record-indicator"><span class="record-dot"></span>REC</div>
+
+<!-- Cinematic indicator -->
+<div id="cinematic-indicator">◆ CINEMATIC MODE — ESC TO EXIT</div>
+
+<!-- Ant explanation tooltip -->
+<div id="ant-explanation"></div>
 
 <!-- Mini-graph for focused ant -->
 <canvas id="mini-graph" width="200" height="80">
@@ -1297,7 +1363,7 @@ canvas.addEventListener('mousemove', e => {
     if (prev !== hoveredNodeId) render2D();
   });
 });
-window.addEventListener('mouseup', () => {
+window.addEventListener('mouseup', (e) => {
   if (dragNode) {
     canvas.style.cursor = 'grab';
     if (!isDragging) {
@@ -1307,6 +1373,21 @@ window.addEventListener('mouseup', () => {
       renderRightPanel();
     }
     dragNode = null; isDragging = false; render2D();
+  }
+  // Ant explanation: if clicking near an ant, show explanation
+  if (e && e.target === canvas && !dragNode) {
+    const mx = (e.clientX - transform.x)/transform.k, my = (e.clientY - transform.y)/transform.k;
+    const ar = Math.max(2.5, 5.5/transform.k);
+    let nearestAnt = null, nearestDist = Infinity;
+    ants.forEach((ant, id) => {
+      const d = Math.sqrt((ant.x-mx)**2 + (ant.y-my)**2);
+      if (d < ar * 3 && d < nearestDist) { nearestAnt = id; nearestDist = d; }
+    });
+    if (nearestAnt) {
+      showAntExplanation(nearestAnt, e.clientX, e.clientY);
+    } else {
+      hideAntExplanation();
+    }
   }
 });
 canvas.addEventListener('mouseleave', () => {
@@ -1337,7 +1418,10 @@ window.addEventListener('keydown', e => {
   }
   if (e.code === 'Escape') {
     document.getElementById('help-overlay').style.display = 'none';
+    document.getElementById('recommend-panel').style.display = 'none';
     CommandPalette.close();
+    hideAntExplanation();
+    if (cinematicMode) toggleCinematic();
     if (lockedNodeId) { lockedNodeId = null; renderRightPanel(); renderActive(); }
     if (focusedAntId) { focusedAntId = null; document.getElementById('focus-input').value = ''; renderRightPanel(); renderActive(); }
   }
@@ -1507,6 +1591,11 @@ function animate() {
     }
     // Mini-graph update when ant is focused
     if (focusedAntId && currentMode === '2d') MiniGraph.render();
+    // Annotations + Waveform update
+    if (currentMode === '2d') {
+      Annotations.update();
+      Waveform.render();
+    }
   }
 
   // FPS calculation
@@ -1606,7 +1695,10 @@ function execFwd() {
   if (step >= moves.length-1) return false;
   step++; parseMoves(moves[step], true);
   addFlowParticles(moves[step]);
+  Patterns.track();
+  Patterns.detect();
   rebuildEdgeUsageUpTo(step); updateUI(); renderRightPanel(); renderActive();
+  Waveform.render();
   if (step === moves.length-1) {
     showToast('Simulation complete', 'success');
   }
@@ -1646,6 +1738,10 @@ window.resetAll = function() {
   GraphMetrics.clear();
   if (POD042) POD042.reset();
   if (POD042) POD042._solutionAnalyzed = false;
+  if (Annotations) Annotations.reset();
+  if (Patterns) Patterns.reset();
+  if (cinematicMode) toggleCinematic();
+  hideAntExplanation();
   globalAntJourneys.clear(); uniquePaths = []; lockedNodeId = null;
   roomVisits.clear(); particles.length = 0; startNode = null; endNode = null;
   step = -1; playing = false; totalAnts = 0; arrived = 0;
@@ -1842,6 +1938,8 @@ window.runSimulation = async function() {
     processUniquePaths();
     computePathAssignments();
     computeBFSDistances();
+    Waveform.compute();
+    Patterns.reset();
     const fr = new Set();
     if (moves.length > 0) for (const tok of moves[0].split(' ')) {
       const m = tok.match(/L\d+-(\S+)/); if (m) fr.add(m[1]);
@@ -2695,6 +2793,8 @@ const CommandPalette = {
     { section: 'Toggles', icon: 'T', label: 'Toggle Teams', hint: 'Color by path', action: () => window.toggleTeams() },
     { section: 'Toggles', icon: 'B', label: 'Toggle BFS', hint: 'Distance from start', action: () => window.toggleBFS() },
     { section: 'Toggles', icon: '⚠', label: 'Toggle Bottleneck', hint: 'Highlight hotspots', action: () => window.toggleBottleneck() },
+    { section: 'Toggles', icon: '◆', label: 'Toggle Cinematic', hint: 'Auto camera', action: () => window.toggleCinematic() },
+    { section: 'Toggles', icon: '★', label: 'Show Recommendations', hint: 'Suggest maps', action: () => window.showRecommendations() },
     // Help
     { section: 'Help', icon: '?', label: 'Show keyboard shortcuts', hint: '?', action: () => window.toggleHelp() },
     { section: 'Help', icon: '◐', label: 'Toggle dark/light theme', hint: 'Theme', action: () => window.toggleTheme() },
@@ -3400,6 +3500,349 @@ function updateMiniGraph() {
   if (focusedAntId && globalAntJourneys.has(focusedAntId)) MiniGraph.show();
   else MiniGraph.hide();
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   WAVEFORM — activity per step (ants moving count)
+   ═══════════════════════════════════════════════════════════════ */
+const Waveform = {
+  canvas: null, ctx: null, data: [], maxVal: 1,
+
+  init() {
+    this.canvas = document.getElementById('waveform');
+    this.ctx = this.canvas.getContext('2d');
+  },
+
+  /** Pre-compute activity per step from moves array */
+  compute() {
+    if (!this.canvas) this.init();
+    this.data = moves.map(m => (m.match(/L\d+-/g) || []).length);
+    this.maxVal = Math.max(1, ...this.data);
+    this.render();
+  },
+
+  render() {
+    if (!this.canvas || !this.data.length) { if (this.ctx) { this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height); } return; }
+    const ctx = this.ctx, w = this.canvas.width, h = this.canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const barW = w / this.data.length;
+    for (let i = 0; i < this.data.length; i++) {
+      const ratio = this.data[i] / this.maxVal;
+      const barH = ratio * (h - 4);
+      const isCurrent = i === step;
+      const isPast = i < step;
+      ctx.fillStyle = isCurrent ? '#e0c070' : isPast ? 'rgba(196,160,80,0.5)' : 'rgba(180,190,205,0.2)';
+      ctx.fillRect(i * barW, h - barH - 2, Math.max(1, barW - 0.5), barH);
+    }
+    // Current step marker
+    if (step >= 0 && step < this.data.length) {
+      ctx.strokeStyle = '#e0c070';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(step * barW + barW / 2, 0);
+      ctx.lineTo(step * barW + barW / 2, h);
+      ctx.stroke();
+    }
+  },
+};
+window.Waveform = Waveform;
+
+/* ═══════════════════════════════════════════════════════════════
+   ANNOTATIONS — floating contextual insights on the graph
+   ═══════════════════════════════════════════════════════════════ */
+const Annotations = {
+  layer: null,
+  active: [],
+
+  init() { this.layer = document.getElementById('annotations-layer'); },
+
+  clear() {
+    if (!this.layer) return;
+    this.layer.innerHTML = '';
+    this.active = [];
+  },
+
+  /** Add annotation at screen position */
+  add(x, y, text, type = 'info') {
+    if (!this.layer) this.init();
+    if (this.active.length > 5) return; // max 5 simultaneous
+    const el = document.createElement('div');
+    el.className = 'graph-annotation ' + (type !== 'info' ? type : '');
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    this.layer.appendChild(el);
+    this.active.push(el);
+    requestAnimationFrame(() => el.classList.add('visible'));
+    // Auto-remove after 4s
+    setTimeout(() => {
+      el.classList.remove('visible');
+      setTimeout(() => { el.remove(); this.active = this.active.filter(a => a !== el); }, 400);
+    }, 4000);
+  },
+
+  /** Generate contextual annotations during simulation */
+  update() {
+    if (!playing || !nodes.length || !moves.length) return;
+    // Throttle: only every 2s
+    if (this._lastUpdate && performance.now() - this._lastUpdate < 2000) return;
+    this._lastUpdate = performance.now();
+
+    // Find busiest node
+    if (roomVisits.size > 0) {
+      let maxVisits = 0, maxNode = null;
+      for (const [id, v] of roomVisits) {
+        if (v > maxVisits) { maxVisits = v; maxNode = nodeMap.get(id); }
+      }
+      if (maxNode && maxVisits > 3) {
+        const sx = transform.x + maxNode.x * transform.k;
+        const sy = transform.y + maxNode.y * transform.k;
+        this.add(sx + 20, sy - 10, `Hotspot: ${maxVisits} visits`, 'warn');
+      }
+    }
+
+    // First arrival annotation
+    if (arrived === 1 && !this._firstArrivalShown) {
+      this._firstArrivalShown = true;
+      if (endNode) {
+        const sx = transform.x + endNode.x * transform.k;
+        const sy = transform.y + endNode.y * transform.k;
+        this.add(sx + 20, sy - 30, 'First unit arrived!', 'success');
+      }
+    }
+    if (arrived === 0) this._firstArrivalShown = false;
+
+    // Halfway annotation
+    if (totalAnts > 4 && arrived === Math.floor(totalAnts / 2) && !this._halfwayShown) {
+      this._halfwayShown = true;
+      this.add(W / 2, H / 2 - 60, '50% units arrived', 'success');
+    }
+    if (arrived < Math.floor(totalAnts / 2)) this._halfwayShown = false;
+  },
+
+  reset() {
+    this.clear();
+    this._firstArrivalShown = false;
+    this._halfwayShown = false;
+    this._lastUpdate = 0;
+  },
+};
+window.Annotations = Annotations;
+
+/* ═══════════════════════════════════════════════════════════════
+   PATTERN DETECTION — deadlocks, convoys, oscillations
+   ═══════════════════════════════════════════════════════════════ */
+const Patterns = {
+  antHistory: new Map(), // antId → array of node ids visited
+
+  /** Track ant positions each step */
+  track() {
+    if (!moves.length || step < 0) return;
+    moves[step].split(' ').forEach(tok => {
+      if (!tok.startsWith('L')) return;
+      const d = tok.indexOf('-');
+      if (d < 0) return;
+      const id = tok.substring(1, d), tn = tok.substring(d + 1);
+      if (!this.antHistory.has(id)) this.antHistory.set(id, []);
+      this.antHistory.get(id).push(tn);
+    });
+  },
+
+  /** Detect patterns and report to POD 042 */
+  detect() {
+    if (!playing || step < 5) return;
+    let detected = false;
+
+    // Oscillation: ant visits same node 3+ times (back and forth)
+    for (const [id, hist] of this.antHistory) {
+      if (hist.length < 5) continue;
+      const last5 = hist.slice(-5);
+      const counts = {};
+      last5.forEach(n => counts[n] = (counts[n] || 0) + 1);
+      for (const n in counts) {
+        if (counts[n] >= 3 && parseInt(id) <= 20) { // limit to small ant IDs
+          POD042.say(`Oscillation detected: unit ${id} revisited ${n} ${counts[n]}x in 5 cycles.`, 'warn', 4000);
+          detected = true;
+          break;
+        }
+      }
+      if (detected) break;
+    }
+
+    // Convoy: 3+ ants on same node at same step
+    if (step >= 0 && moves[step]) {
+      const nodeAnts = {};
+      moves[step].split(' ').forEach(tok => {
+        if (!tok.startsWith('L')) return;
+        const d = tok.indexOf('-');
+        const tn = tok.substring(d + 1);
+        nodeAnts[tn] = (nodeAnts[tn] || 0) + 1;
+      });
+      for (const n in nodeAnts) {
+        if (nodeAnts[n] >= 5) {
+          POD042.say(`Convoy detected: ${nodeAnts[n]} units at ${n} this cycle.`, 'info', 3500);
+          break;
+        }
+      }
+    }
+  },
+
+  reset() { this.antHistory.clear(); },
+};
+window.Patterns = Patterns;
+
+/* ═══════════════════════════════════════════════════════════════
+   CINEMATIC MODE — autonomous camera
+   ═══════════════════════════════════════════════════════════════ */
+let cinematicMode = false;
+let cinematicTimer = null;
+
+window.toggleCinematic = function() {
+  cinematicMode = !cinematicMode;
+  document.getElementById('btn-cinematic').classList.toggle('active', cinematicMode);
+  document.getElementById('cinematic-indicator').classList.toggle('active', cinematicMode);
+  if (cinematicMode) {
+    if (POD042) POD042.say('Cinematic mode engaged. Camera is autonomous.', 'info', 3000);
+    cinematicLoop();
+  } else {
+    if (cinematicTimer) clearTimeout(cinematicTimer);
+  }
+  Logger.info('CINEMATIC', 'Mode: ' + (cinematicMode ? 'ON' : 'OFF'));
+};
+
+function cinematicLoop() {
+  if (!cinematicMode) return;
+  // Pick target: busiest node, or focus ant, or random active ant
+  let target = null;
+  if (focusedAntId && ants.has(focusedAntId)) {
+    target = ants.get(focusedAntId);
+  } else if (ants.size > 0) {
+    // Find the ant that moved most recently
+    const activeAnts = Array.from(ants.values()).filter(a => a.targetX !== undefined);
+    if (activeAnts.length > 0) target = activeAnts[Math.floor(Math.random() * activeAnts.length)];
+  }
+  if (target) {
+    if (currentMode === '2d') {
+      const nX = transform.x + ((W / 2 - target.x * transform.k) - transform.x) * 0.05;
+      const nY = transform.y + ((H / 2 - target.y * transform.k) - transform.y) * 0.05;
+      const targetScale = 0.8;
+      const nScale = transform.k + (targetScale - transform.k) * 0.03;
+      suppressZoom = true;
+      d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(nX, nY).scale(nScale));
+      suppressZoom = false;
+    } else if (mode3D) {
+      // 3D: slowly orbit
+      const t = performance.now() * 0.0002;
+      const dist = 3000;
+      const cx = controls.target.x, cy = controls.target.y, cz = controls.target.z;
+      camera.position.x = cx + Math.cos(t) * dist;
+      camera.position.z = cz + Math.sin(t) * dist;
+      camera.position.y = cy + 1500;
+      camera.lookAt(controls.target);
+    }
+  }
+  cinematicTimer = setTimeout(cinematicLoop, 50);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANT EXPLANATION — click on ant to get decision explanation
+   ═══════════════════════════════════════════════════════════════ */
+function showAntExplanation(antId, screenX, screenY) {
+  const el = document.getElementById('ant-explanation');
+  const journey = globalAntJourneys.get(antId);
+  if (!journey) { el.style.display = 'none'; return; }
+
+  const path = journey;
+  const hops = path.length - 1;
+  const pathKey = path.join(',');
+  const samePathCount = Array.from(globalAntJourneys.values()).filter(p => p.join(',') === pathKey).length;
+  const shortestPath = uniquePaths.length > 0 ? Math.min(...uniquePaths.map(p => p.length - 1)) : hops;
+  const isOptimal = hops <= shortestPath;
+
+  // Calculate when this ant starts and finishes
+  let startStep = -1, endStep = -1;
+  for (let i = 0; i < moves.length; i++) {
+    if (moves[i].includes(`L${antId}-`)) {
+      if (startStep === -1) startStep = i;
+      endStep = i;
+    }
+  }
+
+  el.innerHTML = `
+    <div class="exp-title">◆ UNIT ${antId} — ROUTE ANALYSIS</div>
+    <div class="exp-row">Route: <span>${hops} hops</span></div>
+    <div class="exp-row">Optimal: <span style="color:${isOptimal ? '#7aba5a' : 'var(--ember)'}">${isOptimal ? 'YES' : 'NO (shortest: ' + shortestPath + ')'}</span></div>
+    <div class="exp-row">Same route: <span>${samePathCount} unit${samePathCount > 1 ? 's' : ''}</span></div>
+    <div class="exp-row">Departure: <span>cycle ${startStep + 1}</span></div>
+    <div class="exp-row">Arrival: <span>cycle ${endStep + 1}</span></div>
+    <div class="exp-row">Duration: <span>${endStep - startStep + 1} cycles</span></div>
+    <div class="exp-row">Path: <span style="font-size:.5rem">${path.join(' → ')}</span></div>
+  `;
+  el.style.display = 'block';
+  // Position near cursor, clamped to viewport
+  let x = screenX + 15, y = screenY + 15;
+  if (x + 300 > window.innerWidth) x = screenX - 300;
+  if (y + 200 > window.innerHeight) y = screenY - 200;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  Logger.debug('ANT_EXP', `Explanation shown for unit ${antId}`);
+}
+
+function hideAntExplanation() {
+  document.getElementById('ant-explanation').style.display = 'none';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RECOMMENDATIONS — suggest similar maps based on current
+   ═══════════════════════════════════════════════════════════════ */
+window.showRecommendations = function() {
+  if (!nodes.length) {
+    if (POD042) POD042.say('Load a map first to get recommendations.', 'warn', 3000);
+    return;
+  }
+  const panel = document.getElementById('recommend-panel');
+  const content = document.getElementById('recommend-content');
+  const current = {
+    nodes: nodes.length,
+    links: links.length,
+    ants: totalAnts,
+    turns: moves.length,
+    paths: uniquePaths.length,
+  };
+  const density = current.nodes > 1 ? (2 * current.links) / (current.nodes * (current.nodes - 1)) : 0;
+
+  // Generate recommendations based on current map profile
+  let html = '<div style="color:var(--warm);margin-bottom:.5rem">CURRENT PROFILE</div>';
+  html += `<div style="color:var(--dim);margin-bottom:.8rem">${current.nodes} rooms · ${current.ants} units · ${current.turns} cycles</div>`;
+
+  html += '<div style="color:var(--warm);margin-bottom:.3rem">SUGGESTED MAPS</div>';
+  const recs = [];
+  if (current.turns < 10) {
+    recs.push({ map: 'flow-thousand', reason: 'More units for challenge' });
+    recs.push({ map: 'big', reason: 'Larger graph' });
+  } else if (current.ants > 500) {
+    recs.push({ map: 'big-superposition', reason: 'Test superposition' });
+    recs.push({ map: 'flow-ten', reason: 'Simpler to analyze' });
+  } else if (density > 0.3) {
+    recs.push({ map: 'flow-thousand', reason: 'Similar density, more flow' });
+    recs.push({ map: 'big', reason: 'Explore larger dense graph' });
+  } else {
+    recs.push({ map: 'flow-one', reason: 'Start simple' });
+    recs.push({ map: 'big-superposition', reason: 'Try superposition' });
+  }
+  recs.forEach(r => {
+    html += `<div style="margin-bottom:.4rem;cursor:pointer;color:var(--text);transition:color .2s" onmouseover="this.style.color='var(--warm)'" onmouseout="this.style.color='var(--text)'" onclick="genOfficial('${r.map}'); document.getElementById('recommend-panel').style.display='none'">→ ${r.map}<br><span style="color:var(--dim);font-size:.5rem">${r.reason}</span></div>`;
+  });
+
+  html += '<div style="color:var(--warm);margin:.6rem 0 .3rem">SUGGESTED ACTIONS</div>';
+  if (!isTeams) html += '<div style="margin-bottom:.3rem;cursor:pointer;color:var(--text)" onclick="toggleTeams(); document.getElementById(\'recommend-panel\').style.display=\'none\'">→ Enable TEAMS mode</div>';
+  if (!isBFS) html += '<div style="margin-bottom:.3rem;cursor:pointer;color:var(--text)" onclick="toggleBFS(); document.getElementById(\'recommend-panel\').style.display=\'none\'">→ Enable BFS coloring</div>';
+  if (!isBottleneck) html += '<div style="cursor:pointer;color:var(--text)" onclick="toggleBottleneck(); document.getElementById(\'recommend-panel\').style.display=\'none\'">→ Detect bottlenecks</div>';
+
+  content.innerHTML = html;
+  panel.style.display = 'block';
+  if (POD042) POD042.say('Suggestions generated based on current map.', 'info', 3000);
+  Logger.info('RECOMMEND', 'Recommendations shown');
+};
 
 /* ═══════════════════════════════════════════════════════════════
    MODE TOGGLE — switches the graph zone in-place, NO page navigation

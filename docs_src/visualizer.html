@@ -240,7 +240,6 @@ window.genOfficial = async function(opt, btn) {
     const lk = ls.filter(l => l.includes('-') && !l.startsWith('#') && !l.match(/^\S+ -?\d+ -?\d+$/)).length;
     const n = file.match(/_(\d+)\./)[1];
     document.getElementById('genInfo').textContent = `${a} fourmis · ${rm} salles · ${lk} liens · #${n}/10`;
-    runSimulation();
   } catch(e) { document.getElementById('genInfo').textContent = '❌ ' + e; }
 };
 

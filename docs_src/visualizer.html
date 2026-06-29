@@ -2186,6 +2186,7 @@ const mode3D = (() => {
   const HEATMAP_LEVELS = 10;
   let heatmapMaterials = [];
   let matRoom, matStart, matEnd, matRoomDim, matStartDim, matEndDim;
+  let matRoomTrans, matStartTrans, matEndTrans;  // semi-transparent versions (when ant is inside)
   let matLinkBase, matLinkDim, matLinkHover;
 
   const SCALES = { graphSize: 2000, nodeBase: 15, nodeStartEnd: 30, linkWidth: 2 };
@@ -2258,21 +2259,15 @@ const mode3D = (() => {
     labelsGroup = new THREE.Group();
     scene.add(nodesGroup, linksGroup, labelsGroup);
 
-    // Core ants — red, smooth spheres (moving = full opacity)
+    // Core ants — red, smooth spheres, full opacity always
     const MAX_ANTS = 100000;
     const antGeometry = new THREE.SphereGeometry(7, 20, 20);
-    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.35, metalness: 0.3, emissive: COL.ant, emissiveIntensity: 0.15 });
+    const antMaterial = new THREE.MeshStandardMaterial({ color: COL.ant, roughness: 0.35, metalness: 0.3, emissive: COL.ant, emissiveIntensity: 0.2 });
     antInstancedMesh = new THREE.InstancedMesh(antGeometry, antMaterial, MAX_ANTS);
     antInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(antInstancedMesh);
-    // Idle ants (parked in a node) — semi-transparent, rendered ON TOP of nodes
-    const idleGeometry = new THREE.SphereGeometry(6, 16, 16);
-    const idleMaterial = new THREE.MeshBasicMaterial({ color: COL.ant, transparent: true, opacity: 0.6, depthTest: false });
-    antIdleMesh = new THREE.InstancedMesh(idleGeometry, idleMaterial, MAX_ANTS);
-    antIdleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    antIdleMesh.renderOrder = 999;  // render after nodes, so always visible
-    scene.add(antIdleMesh);
     antGlowMesh = null;
+    antIdleMesh = null;  // not needed — we make NODES transparent instead
     dummyAnt = new THREE.Object3D();
 
     // Premium materials — MeshStandard for PBR shading (roughness/metalness)
@@ -2288,6 +2283,11 @@ const mode3D = (() => {
     matLinkBase = new THREE.MeshStandardMaterial({ color: COL.linkBase, roughness: 0.6, metalness: 0.35, transparent: true, opacity: 0.75 });
     matLinkDim = new THREE.MeshStandardMaterial({ color: COL.linkDim, roughness: 0.8, metalness: 0.1, transparent: true, opacity: 0.2 });
     matLinkHover = new THREE.MeshStandardMaterial({ color: COL.linkHover, roughness: 0.3, metalness: 0.5, emissive: COL.linkHover, emissiveIntensity: 0.1 });
+
+    // Semi-transparent node materials — used when an ant is parked inside the node
+    matRoomTrans = new THREE.MeshStandardMaterial({ color: COL.room, roughness: 0.55, metalness: 0.25, transparent: true, opacity: 0.25, depthWrite: false });
+    matStartTrans = new THREE.MeshStandardMaterial({ color: COL.start, roughness: 0.4, metalness: 0.2, emissive: COL.start, emissiveIntensity: 0.08, transparent: true, opacity: 0.25, depthWrite: false });
+    matEndTrans = new THREE.MeshStandardMaterial({ color: COL.end, roughness: 0.4, metalness: 0.2, emissive: COL.end, emissiveIntensity: 0.08, transparent: true, opacity: 0.25, depthWrite: false });
 
     // Heatmap — viridis-inspired scientific colormap (blue→green→yellow→red)
     heatmapMaterials = [];
@@ -2767,37 +2767,56 @@ const mode3D = (() => {
     if (!initialized || currentMode !== '3d') { animationRunning = false; return; }
     animationRunning = true;
 
-    let instanceCount = 0;   // moving ants (full opacity)
-    let idleCount = 0;       // parked ants (semi-transparent, on top of nodes)
+    let instanceCount = 0;
     let trackedPos = null;
+    // Track which nodes have parked ants (to make them transparent)
+    const nodesWithAnts = new Set();
     antsMap3D.forEach((ant, id) => {
       if (ant.targetPos) {
         ant.currentPos.lerp(ant.targetPos, 0.25);
-        // Check if ant is "parked" (very close to target = in a node)
         const dist = ant.currentPos.distanceTo(ant.targetPos);
         dummyAnt.position.copy(ant.currentPos);
-        // For idle ants: lift slightly above the node center so they're visible
-        if (dist < 5) {
-          // Parked — lift up by node radius so visible on top of the node
-          dummyAnt.position.y += 18;  // above the node surface
-          dummyAnt.updateMatrix();
-          antIdleMesh.setMatrixAt(idleCount, dummyAnt.matrix);
-          idleCount++;
-        } else {
-          // Moving — full opacity active mesh at actual position
-          dummyAnt.updateMatrix();
-          antInstancedMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
-          if (antGlowMesh) antGlowMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
-          instanceCount++;
+        dummyAnt.updateMatrix();
+        antInstancedMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
+        if (antGlowMesh) antGlowMesh.setMatrixAt(instanceCount, dummyAnt.matrix);
+        instanceCount++;
+        // If parked (close to target), mark the node as "has ant"
+        if (dist < 5 && ant.nodeId) {
+          nodesWithAnts.add(ant.nodeId);
         }
         if (id === focusedAntId) trackedPos = dummyAnt.position.clone();
       }
     });
     antInstancedMesh.count = instanceCount;
     antInstancedMesh.instanceMatrix.needsUpdate = true;
-    antIdleMesh.count = idleCount;
-    antIdleMesh.instanceMatrix.needsUpdate = true;
     if (antGlowMesh) { antGlowMesh.count = instanceCount; antGlowMesh.instanceMatrix.needsUpdate = true; }
+
+    // Make nodes semi-transparent when they contain a parked ant
+    // so the ant (full opacity red) is visible THROUGH the node
+    if (nodesWithAnts.size > 0) {
+      nodesGroup.children.forEach(node => {
+        const id = node.userData.id;
+        const isStart = node.userData.type === 'start';
+        const isEnd = node.userData.type === 'end';
+        if (nodesWithAnts.has(id)) {
+          // Node contains an ant → make transparent
+          node.material = isStart ? matStartTrans : (isEnd ? matEndTrans : matRoomTrans);
+        } else {
+          // No ant → restore opaque (respect isolation state)
+          // Only update if currently transparent (avoid overwriting isolation logic every frame)
+          if (node.material === matRoomTrans || node.material === matStartTrans || node.material === matEndTrans) {
+            node.material = isStart ? matStart : (isEnd ? matEnd : matRoom);
+          }
+        }
+      });
+    } else {
+      // No ants anywhere — restore all transparent nodes to opaque
+      nodesGroup.children.forEach(node => {
+        if (node.material === matRoomTrans) node.material = matRoom;
+        else if (node.material === matStartTrans) node.material = matStart;
+        else if (node.material === matEndTrans) node.material = matEnd;
+      });
+    }
 
     if (trackedPos && isCameraTrackingAnt && !isDragging3D) {
       smoothPanCamera(trackedPos);

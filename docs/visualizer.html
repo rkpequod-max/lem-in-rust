@@ -965,17 +965,17 @@ const mode3D = (() => {
   let initialized = false;
   let animationRunning = false;
 
-  // NieR Automata palette
+  // NieR Automata palette — brightened for visibility on dark bg
   const COL = {
     bg: 0x0a0c0f,
-    room: 0x1a1f26, roomEmissive: 0x000000,
-    start: 0x4a7a3a, startEmissive: 0x1a2a14,
-    end: 0x8b2020, endEmissive: 0x2a0a0a,
-    roomDim: 0x05070a, roomDimEmissive: 0x000000,
-    startDim: 0x1a2a14, endDim: 0x2a0a0a,
-    linkBase: 0x2a3038, linkDim: 0x0f1318,
-    linkHover: 0xc4a050,
-    ant: 0xc4a050,
+    room: 0x6a7280, roomEmissive: 0x1a1f26,         // was 0x1a1f26 — now warm gray with subtle glow
+    start: 0x5a9a4a, startEmissive: 0x2a4a1a,        // was 0x4a7a3a — brighter green
+    end: 0xb03030, endEmissive: 0x4a1010,            // was 0x8b2020 — brighter red
+    roomDim: 0x2a3038, roomDimEmissive: 0x000000,    // was 0x05070a — visible but muted
+    startDim: 0x2a3a1a, endDim: 0x3a1010,            // was 0x1a2a14 / 0x2a0a0a
+    linkBase: 0x8a9098, linkDim: 0x3a4048,           // was 0x2a3038 / 0x0f1318 — much brighter
+    linkHover: 0xe0c070,                             // was 0xc4a050 — brighter gold
+    ant: 0xe0c070,                                   // was 0xc4a050 — brighter gold
     fog: 0x0a0c0f
   };
 
@@ -992,7 +992,7 @@ const mode3D = (() => {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(COL.bg);
-    scene.fog = new THREE.FogExp2(COL.fog, 0.00015);
+    scene.fog = new THREE.FogExp2(COL.fog, 0.00008);  // was 0.00015 — less dense so distant nodes stay visible
 
     camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 10, 50000);
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
@@ -1013,19 +1013,22 @@ const mode3D = (() => {
     controls.dampingFactor = 0.05;
     controls.maxDistance = 15000;
 
-    // Lights — NieR warm tones
-    scene.add(new THREE.AmbientLight(0x1a1a1a, 1.5));
-    const mainLight = new THREE.DirectionalLight(0xfff4d0, 1.5);
+    // Lights — NieR warm tones, boosted for visibility
+    scene.add(new THREE.AmbientLight(0x4a4a55, 2.0));
+    const mainLight = new THREE.DirectionalLight(0xfff4d0, 2.2);
     mainLight.position.set(1000, 2000, 1000);
     scene.add(mainLight);
-    const rimLight = new THREE.PointLight(0xc4a050, 1.0, 4000);
+    const rimLight = new THREE.PointLight(0xc4a050, 1.5, 6000);
     rimLight.position.set(-1000, 500, -1000);
     scene.add(rimLight);
+    const fillLight = new THREE.DirectionalLight(0x8a9098, 1.0);
+    fillLight.position.set(-500, -800, 500);
+    scene.add(fillLight);
 
     // Post-processing — bloom for the warm gold glow
     const renderScene = new RenderPass(scene, camera);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.8, 0.4, 0.2);
-    bloomPass.threshold = 0.25; bloomPass.strength = 0.7; bloomPass.radius = 0.5;
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.9, 0.5, 0.15);
+    bloomPass.threshold = 0.2; bloomPass.strength = 0.85; bloomPass.radius = 0.6;
     composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
@@ -1045,24 +1048,24 @@ const mode3D = (() => {
     scene.add(antInstancedMesh);
     dummyAnt = new THREE.Object3D();
 
-    // Materials
-    matRoom = new THREE.MeshStandardMaterial({ color: COL.room, roughness: 0.4, metalness: 0.7, flatShading: true });
-    matStart = new THREE.MeshStandardMaterial({ color: COL.start, emissive: COL.startEmissive, roughness: 0.3, metalness: 0.5, flatShading: true });
-    matEnd = new THREE.MeshStandardMaterial({ color: COL.end, emissive: COL.endEmissive, roughness: 0.3, metalness: 0.5, flatShading: true });
-    matRoomDim = new THREE.MeshStandardMaterial({ color: COL.roomDim, roughness: 0.8, metalness: 0.2, flatShading: true });
+    // Materials — emissive added to rooms so they glow on dark bg
+    matRoom = new THREE.MeshStandardMaterial({ color: COL.room, emissive: COL.roomEmissive, emissiveIntensity: 0.4, roughness: 0.35, metalness: 0.6, flatShading: true });
+    matStart = new THREE.MeshStandardMaterial({ color: COL.start, emissive: COL.startEmissive, emissiveIntensity: 0.7, roughness: 0.3, metalness: 0.4, flatShading: true });
+    matEnd = new THREE.MeshStandardMaterial({ color: COL.end, emissive: COL.endEmissive, emissiveIntensity: 0.7, roughness: 0.3, metalness: 0.4, flatShading: true });
+    matRoomDim = new THREE.MeshStandardMaterial({ color: COL.roomDim, emissive: 0x000000, roughness: 0.8, metalness: 0.2, flatShading: true });
     matStartDim = new THREE.MeshStandardMaterial({ color: COL.startDim, emissive: 0x000000, roughness: 0.8, flatShading: true });
     matEndDim = new THREE.MeshStandardMaterial({ color: COL.endDim, emissive: 0x000000, roughness: 0.8, flatShading: true });
 
-    matLinkBase = new THREE.MeshBasicMaterial({ color: COL.linkBase, transparent: true, opacity: 0.45 });
-    matLinkDim = new THREE.MeshBasicMaterial({ color: COL.linkDim, transparent: true, opacity: 0.08 });
+    matLinkBase = new THREE.MeshBasicMaterial({ color: COL.linkBase, transparent: true, opacity: 0.7 });
+    matLinkDim = new THREE.MeshBasicMaterial({ color: COL.linkDim, transparent: true, opacity: 0.2 });
     matLinkHover = new THREE.MeshBasicMaterial({ color: COL.linkHover });
 
-    // Heatmap — gold to ember spectrum
+    // Heatmap — gold to ember spectrum, brightened base
     heatmapMaterials = [];
     for (let i = 1; i <= HEATMAP_LEVELS; i++) {
       const ratio = i / HEATMAP_LEVELS;
-      const c = new THREE.Color(0xc4a050).lerp(new THREE.Color(0xd06030), ratio);
-      if (ratio > 0.7) c.multiplyScalar(1.0 + ratio * 0.5);
+      const c = new THREE.Color(0xe0c070).lerp(new THREE.Color(0xe07030), ratio);
+      if (ratio > 0.5) c.multiplyScalar(1.0 + ratio * 0.6);
       heatmapMaterials.push(new THREE.MeshBasicMaterial({ color: c }));
     }
 
@@ -1155,17 +1158,17 @@ const mode3D = (() => {
 
       if (isStart || isEnd) {
         const color = isStart ? COL.start : COL.end;
-        const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.35 });
+        const wireMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.5 });
         const wireSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(SCALES.nodeStartEnd * 1.4, 1), wireMat);
         mesh.add(wireSphere);
-        const pl = new THREE.PointLight(color, 1.8, SCALES.graphSize * 0.5);
+        const pl = new THREE.PointLight(color, 2.2, SCALES.graphSize * 0.6);
         mesh.add(pl);
         specialAnimations.push({ mesh: wireSphere, speedX: 0.005, speedY: 0.01 });
       }
 
       const div = document.createElement('div');
       div.textContent = n.id; div.className = 'label-3d';
-      div.style.color = isStart ? '#6a9a5a' : (isEnd ? '#ab3030' : 'rgba(212,216,220,0.6)');
+      div.style.color = isStart ? '#8acb7a' : (isEnd ? '#d05050' : 'rgba(220,225,235,0.95)');
       const label = new CSS2DObject(div);
       const yOffset = (isStart || isEnd) ? SCALES.nodeStartEnd * 2 : SCALES.nodeBase * 2;
       label.position.set(n.x3d, n.y3d + yOffset, n.z3d);

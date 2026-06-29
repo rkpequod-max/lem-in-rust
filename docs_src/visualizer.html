@@ -301,7 +301,9 @@ function render() {
   if (gs > 10) { ctx.fillStyle = CC.grid; const ox = transform.x % gs, oy = transform.y % gs; ctx.beginPath(); for (let x = ox-gs; x < W+gs; x += gs) for (let y = oy-gs; y < H+gs; y += gs) ctx.fillRect(x, y, 1, 1); }
   ctx.translate(transform.x, transform.y);
   ctx.scale(transform.k, transform.k);
-  const rRoom = Math.max(4, 11/transform.k), rSpecial = Math.max(8, 18/transform.k), lw = 1/transform.k;
+  // Rayons adaptatifs : plus petits pour les grandes maps
+  const sizeFactor = nodes.length > 1500 ? 0.6 : nodes.length > 500 ? 0.8 : 1;
+  const rRoom = Math.max(3, 11*sizeFactor/transform.k), rSpecial = Math.max(6, 18*sizeFactor/transform.k), lw = 1/transform.k;
   const vL=(-transform.x)/transform.k, vR=(W-transform.x)/transform.k, vT=(-transform.y)/transform.k, vB=(H-transform.y)/transform.k, pad=50/transform.k;
   const vis = (x,y) => x>=vL-pad && x<=vR+pad && y>=vT-pad && y<=vB+pad;
   let isoN = new Set(), isoL = new Set(), iso = false;
@@ -316,7 +318,7 @@ function render() {
     if (iso) { if (isoL.has(k) || hov) { ctx.strokeStyle = 'rgba(196,160,80,0.8)'; ctx.lineWidth = 2.5/transform.k; ctx.shadowColor = 'rgba(196,160,80,0.5)'; ctx.shadowBlur = 6/transform.k; ctx.stroke(); ctx.shadowBlur = 0; } else { ctx.strokeStyle = CC.dimmed; ctx.lineWidth = lw; ctx.stroke(); } }
     else if (hov) { ctx.strokeStyle = 'rgba(196,160,80,0.7)'; ctx.lineWidth = 2.5/transform.k; ctx.stroke(); }
     else if (isHeatmap && globalEdgeUsage.has(k)) { const i = Math.min(1, globalEdgeUsage.get(k)/maxEdgeUsage); ctx.strokeStyle = `hsla(${30+i*10},60%,${30+i*40}%,${0.3+i*0.7})`; ctx.lineWidth = lw*1.5 + i*4/transform.k; if (i > 0.7) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 4/transform.k; } ctx.stroke(); ctx.shadowBlur = 0; }
-    else { ctx.strokeStyle = CC.link; ctx.lineWidth = lw; ctx.stroke(); }
+    else { const linkAlpha = nodes.length > 1500 ? 0.06 : nodes.length > 500 ? 0.1 : 0.15; ctx.strokeStyle = `rgba(160,168,176,${linkAlpha})`; ctx.lineWidth = lw; ctx.stroke(); }
   });
   ctx.lineCap = 'butt';
   nodes.forEach(n => {
@@ -332,16 +334,23 @@ function render() {
     ctx.globalAlpha = 1;
     if (n.id === hoveredNodeId && (!iso || isoN.has(n.id))) { ctx.beginPath(); ctx.arc(n.x, n.y, r*2.2, 0, Math.PI*2); ctx.fillStyle = isS ? 'rgba(74,122,58,0.15)' : isE ? 'rgba(139,32,32,0.15)' : 'rgba(196,160,80,0.15)'; ctx.fill(); }
   });
-  if (transform.k > 0.15) {
-    const fs = Math.max(8, 10/transform.k), ga = Math.min(1, (transform.k-0.15)/0.1);
+  // Labels : adaptatifs selon densité + zoom
+  // - Petites maps (<=200) : toujours afficher
+  // - Grandes maps : seulement au zoom suffisant ou au survol/isolation
+  const showAllLabels = nodes.length <= 200;
+  const labelZoomThreshold = nodes.length > 1500 ? 0.8 : nodes.length > 500 ? 0.5 : 0.25;
+  if (showAllLabels || transform.k > labelZoomThreshold) {
+    const fs = Math.max(7, 9/transform.k), ga = showAllLabels ? Math.min(1, (transform.k-0.1)/0.1) : Math.min(1, (transform.k-labelZoomThreshold)/0.2);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     nodes.forEach(n => {
       if (!vis(n.x, n.y)) return;
+      // En mode dense, ne montrer que les nœuds survolés/isolés/start/end
+      if (!showAllLabels && n.id !== hoveredNodeId && !iso?.has?.(n.id) && n.type === 'room' && !(iso && isoN.has(n.id))) return;
       const r = n.type === 'room' ? rRoom : rSpecial, y = n.y + r + fs * 0.75;
       const tgt = iso && isoN.has(n.id), dim = iso && !isoN.has(n.id);
       if (dim) { ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = CC.text+`${ga*0.06})`; ctx.fillText(n.id, n.x, y); }
       else if (tgt) { ctx.font = `500 ${fs*1.05}px 'JetBrains Mono',monospace`; const tw = ctx.measureText(n.id).width; ctx.fillStyle = CC.hlBg; ctx.strokeStyle = CC.hlBorder; ctx.lineWidth = 0.8/transform.k; ctx.beginPath(); ctx.rect(n.x-tw/2-4/transform.k, y-fs/2-1/transform.k, tw+8/transform.k, fs+2/transform.k); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#c4a050'; ctx.fillText(n.id, n.x, y); }
-      else { ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = n.id === hoveredNodeId ? CC.text+'0.8)' : CC.text+`${ga*0.4})`; ctx.fillText(n.id, n.x, y); }
+      else { ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = n.id === hoveredNodeId ? CC.text+'0.85)' : n.type !== 'room' ? CC.text+`${ga*0.7})` : CC.text+`${ga*0.4})`; ctx.fillText(n.id, n.x, y); }
     });
   }
   for (let i = particles.length-1; i >= 0; i--) { const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vx *= .92; p.vy *= .92; p.life -= .03; if (p.life <= 0) { particles.splice(i, 1); continue; } ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 2.5/transform.k, 2.5/transform.k); } ctx.globalAlpha = 1;
@@ -457,8 +466,21 @@ window.runSimulation = async function() {
     if (endNode) { endNode.x = 500; endNode.y = 0; endNode.fx = 500; endNode.fy = 0; }
     const nR = nodes.filter(n => n !== startNode && n !== endNode).length; let idx = 0;
     nodes.forEach(n => { if (n === startNode || n === endNode) return; const a = (idx/nR)*Math.PI*2; n.x = Math.cos(a)*(200+Math.random()*200); n.y = Math.sin(a)*(150+Math.random()*150); idx++; });
-    const sim = d3.forceSimulation(nodes).force('link', d3.forceLink(links).id(d=>d.id).distance(50).strength(0.15)).force('charge', d3.forceManyBody().strength(-150)).force('center', d3.forceCenter(0,0)).force('collide', d3.forceCollide().radius(d => d.type==='start'||d.type==='end' ? 35 : 16)).force('x', d3.forceX(0).strength(0.03)).force('y', d3.forceY(0).strength(0.03)).stop();
-    const ticks = nodes.length > 1000 ? 200 : 500;
+    // Adaptive force parameters based on graph size
+    const isLarge = nodes.length > 200;
+    const isHuge = nodes.length > 1500;
+    const chargeStr = isHuge ? -300 : isLarge ? -200 : -150;
+    const linkDist = isHuge ? 80 : isLarge ? 60 : 50;
+    const collideR = isHuge ? 12 : isLarge ? 14 : 16;
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d=>d.id).distance(linkDist).strength(0.12))
+      .force('charge', d3.forceManyBody().strength(chargeStr))
+      .force('center', d3.forceCenter(0,0))
+      .force('collide', d3.forceCollide().radius(d => d.type==='start'||d.type==='end' ? 35 : collideR))
+      .force('x', d3.forceX(0).strength(0.02))
+      .force('y', d3.forceY(0).strength(0.02))
+      .stop();
+    const ticks = nodes.length > 1500 ? 300 : nodes.length > 500 ? 400 : 500;
     for (let i = 0; i < ticks; i++) sim.tick();
     nodes.forEach(n => { delete n.fx; delete n.fy; });
     document.getElementById('s-ants').textContent = totalAnts;

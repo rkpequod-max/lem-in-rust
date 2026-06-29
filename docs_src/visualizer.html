@@ -235,9 +235,9 @@ input[type=range]{width:100%;accent-color:var(--warm);cursor:pointer;height:2px;
 import init, { parse_and_solve } from './lem_in_rust.js';
 
 const CC = {
-  bg:'#0a0c0f', grid:'rgba(180,190,200,0.06)', text:'rgba(212,216,220,',
-  link:'rgba(160,168,176,0.12)', roomFill:'#14181e', roomStroke:'rgba(160,168,176,0.35)',
-  dimmed:'rgba(255,255,255,0.03)', hlBg:'rgba(12,15,20,0.9)', hlBorder:'#c4a050'
+  bg:'#0a0c0f', grid:'rgba(180,190,200,0.04)', text:'rgba(212,216,220,',
+  link:'rgba(140,150,165,0.18)', roomFill:'#181c22', roomStroke:'rgba(140,150,165,0.45)',
+  dimmed:'rgba(255,255,255,0.025)', hlBg:'rgba(12,15,20,0.92)', hlBorder:'#c4a050'
 };
 
 let wasmReady = false;
@@ -312,29 +312,100 @@ function render() {
   if (focusedAntId && currentTrackedAntPath.length > 0) { iso = true; for (let i = 0; i < currentTrackedAntPath.length; i++) { isoN.add(currentTrackedAntPath[i]); if (i > 0) isoL.add([currentTrackedAntPath[i-1],currentTrackedAntPath[i]].sort().join('~')); } }
   else if (lockedNodeId) { iso = true; const pp = uniquePaths.filter(p => p.includes(lockedNodeId)); if (pp.length > 0) { const p = pp[currentPathDisplayIndex]; for (let i = 0; i < p.length; i++) { isoN.add(p[i]); if (i > 0) isoL.add([p[i-1],p[i]].sort().join('~')); } } else { isoN.add(lockedNodeId); links.forEach(l => { const k = [l.source.id,l.target.id].sort().join('~'); if (l.source.id === lockedNodeId || l.target.id === lockedNodeId) { isoL.add(k); isoN.add(l.source.id); isoN.add(l.target.id); } }); } }
   ctx.lineCap = 'round';
+  // Pré-calculer les centroïdes pour les liens courbes
   links.forEach(l => {
     if (!vis(l.source.x, l.source.y) && !vis(l.target.x, l.target.y)) return;
     const k = [l.source.id,l.target.id].sort().join('~');
     const hov = hoveredNodeId && (l.source.id === hoveredNodeId || l.target.id === hoveredNodeId);
-    ctx.beginPath(); ctx.moveTo(l.source.x, l.source.y); ctx.lineTo(l.target.x, l.target.y);
-    if (iso) { if (isoL.has(k) || hov) { ctx.strokeStyle = 'rgba(196,160,80,0.8)'; ctx.lineWidth = 2.5/transform.k; ctx.shadowColor = 'rgba(196,160,80,0.5)'; ctx.shadowBlur = 6/transform.k; ctx.stroke(); ctx.shadowBlur = 0; } else { ctx.strokeStyle = CC.dimmed; ctx.lineWidth = lw; ctx.stroke(); } }
-    else if (hov) { ctx.strokeStyle = 'rgba(196,160,80,0.7)'; ctx.lineWidth = 2.5/transform.k; ctx.stroke(); }
-    else if (isHeatmap && globalEdgeUsage.has(k)) { const i = Math.min(1, globalEdgeUsage.get(k)/maxEdgeUsage); ctx.strokeStyle = `hsla(${30+i*10},60%,${30+i*40}%,${0.3+i*0.7})`; ctx.lineWidth = lw*1.5 + i*4/transform.k; if (i > 0.7) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 4/transform.k; } ctx.stroke(); ctx.shadowBlur = 0; }
-    else { const linkAlpha = nodes.length > 1500 ? 0.06 : nodes.length > 500 ? 0.1 : 0.15; ctx.strokeStyle = `rgba(160,168,176,${linkAlpha})`; ctx.lineWidth = lw; ctx.stroke(); }
+    // Lien courbe (Bézier quadratique) pour éviter superposition visuelle
+    const mx = (l.source.x + l.target.x) / 2;
+    const my = (l.source.y + l.target.y) / 2;
+    const dx = l.target.x - l.source.x;
+    const dy = l.target.y - l.source.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    // Perpendiculaire pour courbure subtile
+    const curve = Math.min(dist * 0.08, 15);
+    const cx = mx + (-dy / dist) * curve;
+    const cy = my + (dx / dist) * curve;
+
+    ctx.beginPath();
+    ctx.moveTo(l.source.x, l.source.y);
+    ctx.quadraticCurveTo(cx, cy, l.target.x, l.target.y);
+
+    if (iso) {
+      if (isoL.has(k) || hov) {
+        ctx.strokeStyle = 'rgba(196,160,80,0.85)'; ctx.lineWidth = 2.5/transform.k;
+        ctx.shadowColor = 'rgba(196,160,80,0.4)'; ctx.shadowBlur = 6/transform.k;
+        ctx.stroke(); ctx.shadowBlur = 0;
+      } else { ctx.strokeStyle = CC.dimmed; ctx.lineWidth = lw; ctx.stroke(); }
+    }
+    else if (hov) {
+      ctx.strokeStyle = 'rgba(196,160,80,0.75)'; ctx.lineWidth = 2.5/transform.k;
+      ctx.shadowColor = 'rgba(196,160,80,0.3)'; ctx.shadowBlur = 4/transform.k;
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    else if (isHeatmap && globalEdgeUsage.has(k)) {
+      const i = Math.min(1, globalEdgeUsage.get(k)/maxEdgeUsage);
+      const hue = 25 + i * 15;
+      ctx.strokeStyle = `hsla(${hue},65%,${35+i*40}%,${0.35+i*0.65})`;
+      ctx.lineWidth = lw*1.5 + i*4/transform.k;
+      if (i > 0.6) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5/transform.k; }
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    else {
+      const linkAlpha = nodes.length > 1500 ? 0.08 : nodes.length > 500 ? 0.12 : 0.2;
+      ctx.strokeStyle = `rgba(140,150,165,${linkAlpha})`;
+      ctx.lineWidth = lw; ctx.stroke();
+    }
   });
   ctx.lineCap = 'butt';
   nodes.forEach(n => {
     if (!vis(n.x, n.y)) return;
     const isS = n.type === 'start', isE = n.type === 'end';
     const r = (isS || isE ? rSpecial : rRoom) * (1 + Math.min((n.degree||1)-1, 8) * 0.035);
-    let a = 1; if (iso && !isoN.has(n.id)) a = 0.04;
+    let a = 1; if (iso && !isoN.has(n.id)) a = 0.03;
     ctx.globalAlpha = a;
+
+    // Ombre portée douce sous le nœud
+    if (a > 0.5) { ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 4/transform.k; ctx.shadowOffsetY = 2/transform.k; }
+
     ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2);
-    if (isS) { ctx.fillStyle = '#4a7a3a'; ctx.fill(); ctx.strokeStyle = 'rgba(74,122,58,0.7)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, r*1.4, 0, Math.PI*2); ctx.strokeStyle = 'rgba(74,122,58,0.3)'; ctx.stroke(); }
-    else if (isE) { ctx.fillStyle = '#8b2020'; ctx.fill(); ctx.strokeStyle = 'rgba(139,32,32,0.7)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, r*1.4, 0, Math.PI*2); ctx.strokeStyle = 'rgba(139,32,32,0.3)'; ctx.stroke(); }
-    else { ctx.fillStyle = CC.roomFill; ctx.fill(); ctx.strokeStyle = CC.roomStroke; ctx.lineWidth = 0.8/transform.k; ctx.stroke(); }
+    if (isS) {
+      // Start : dégradé vert radial
+      const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
+      grad.addColorStop(0, '#6a9a5a'); grad.addColorStop(1, '#3a6a2a');
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = 'rgba(106,154,90,0.8)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
+      // Halo
+      ctx.beginPath(); ctx.arc(n.x, n.y, r*1.5, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(74,122,58,0.25)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
+    }
+    else if (isE) {
+      // End : dégradé rouge radial
+      const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
+      grad.addColorStop(0, '#ab3030'); grad.addColorStop(1, '#6b1818');
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = 'rgba(171,48,48,0.8)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke();
+      ctx.beginPath(); ctx.arc(n.x, n.y, r*1.5, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(139,32,32,0.25)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
+    }
+    else {
+      // Room : dégradé subtil
+      const grad = ctx.createRadialGradient(n.x - r*0.3, n.y - r*0.3, 0, n.x, n.y, r);
+      grad.addColorStop(0, '#222831'); grad.addColorStop(1, '#131720');
+      ctx.fillStyle = grad; ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = 'rgba(140,150,165,0.5)'; ctx.lineWidth = 1/transform.k; ctx.stroke();
+    }
     ctx.globalAlpha = 1;
-    if (n.id === hoveredNodeId && (!iso || isoN.has(n.id))) { ctx.beginPath(); ctx.arc(n.x, n.y, r*2.2, 0, Math.PI*2); ctx.fillStyle = isS ? 'rgba(74,122,58,0.15)' : isE ? 'rgba(139,32,32,0.15)' : 'rgba(196,160,80,0.15)'; ctx.fill(); }
+    // Highlight au survol
+    if (n.id === hoveredNodeId && (!iso || isoN.has(n.id))) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, r*2, 0, Math.PI*2);
+      ctx.fillStyle = isS ? 'rgba(74,122,58,0.12)' : isE ? 'rgba(139,32,32,0.12)' : 'rgba(196,160,80,0.12)';
+      ctx.fill();
+    }
   });
   // Labels : adaptatifs selon densité + zoom
   // - Petites maps (<=200) : toujours afficher
@@ -350,9 +421,19 @@ function render() {
       if (!showAllLabels && n.id !== hoveredNodeId && !iso?.has?.(n.id) && n.type === 'room' && !(iso && isoN.has(n.id))) return;
       const r = n.type === 'room' ? rRoom : rSpecial, y = n.y + r + fs * 0.75;
       const tgt = iso && isoN.has(n.id), dim = iso && !isoN.has(n.id);
-      if (dim) { ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = CC.text+`${ga*0.06})`; ctx.fillText(n.id, n.x, y); }
+      if (dim) { ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = CC.text+`${ga*0.05})`; ctx.fillText(n.id, n.x, y); }
       else if (tgt) { ctx.font = `500 ${fs*1.05}px 'JetBrains Mono',monospace`; const tw = ctx.measureText(n.id).width; ctx.fillStyle = CC.hlBg; ctx.strokeStyle = CC.hlBorder; ctx.lineWidth = 0.8/transform.k; ctx.beginPath(); ctx.rect(n.x-tw/2-4/transform.k, y-fs/2-1/transform.k, tw+8/transform.k, fs+2/transform.k); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#c4a050'; ctx.fillText(n.id, n.x, y); }
-      else { ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`; ctx.fillStyle = n.id === hoveredNodeId ? CC.text+'0.85)' : n.type !== 'room' ? CC.text+`${ga*0.7})` : CC.text+`${ga*0.4})`; ctx.fillText(n.id, n.x, y); }
+      else {
+        // Fond semi-transparent pour lisibilité
+        if (n.type !== 'room' || n.id === hoveredNodeId) {
+          const tw = ctx.measureText(n.id).width;
+          ctx.fillStyle = 'rgba(8,10,14,0.6)';
+          ctx.fillRect(n.x-tw/2-2/transform.k, y-fs/2-0.5/transform.k, tw+4/transform.k, fs+1/transform.k);
+        }
+        ctx.font = `400 ${fs}px 'JetBrains Mono',monospace`;
+        ctx.fillStyle = n.id === hoveredNodeId ? CC.text+'0.9)' : n.type !== 'room' ? CC.text+`${ga*0.75})` : CC.text+`${ga*0.45})`;
+        ctx.fillText(n.id, n.x, y);
+      }
     });
   }
   for (let i = particles.length-1; i >= 0; i--) { const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vx *= .92; p.vy *= .92; p.life -= .03; if (p.life <= 0) { particles.splice(i, 1); continue; } ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 2.5/transform.k, 2.5/transform.k); } ctx.globalAlpha = 1;
@@ -360,10 +441,21 @@ function render() {
   ants.forEach((ant, id) => {
     if (!vis(ant.x, ant.y)) return;
     const f = id === focusedAntId, r = f ? ar*1.4 : ar;
+    const hue = antHue(id);
+    // Glow
+    ctx.shadowColor = f ? 'rgba(196,160,80,0.6)' : `hsla(${hue},80%,60%,0.4)`;
+    ctx.shadowBlur = (f ? 8 : 4) / transform.k;
+    // Cercle avec dégradé
     ctx.beginPath(); ctx.arc(ant.x, ant.y, r, 0, Math.PI*2);
-    ctx.fillStyle = f ? '#c4a050' : `hsl(${antHue(id)},75%,60%)`; ctx.fill();
-    if (!isMassive || f) { ctx.beginPath(); ctx.arc(ant.x, ant.y, r*0.3, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill(); }
-    if (f) { ctx.beginPath(); ctx.arc(ant.x, ant.y, r*2, 0, Math.PI*2); ctx.strokeStyle = 'rgba(196,160,80,0.5)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke(); }
+    const grad = ctx.createRadialGradient(ant.x - r*0.3, ant.y - r*0.3, 0, ant.x, ant.y, r);
+    if (f) { grad.addColorStop(0, '#e0c070'); grad.addColorStop(1, '#a08030'); }
+    else { grad.addColorStop(0, `hsl(${hue},85%,70%)`); grad.addColorStop(1, `hsl(${hue},65%,45%)`); }
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.shadowBlur = 0;
+    // Point blanc central
+    if (!isMassive || f) { ctx.beginPath(); ctx.arc(ant.x - r*0.2, ant.y - r*0.2, r*0.25, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill(); }
+    // Ring pour focus
+    if (f) { ctx.beginPath(); ctx.arc(ant.x, ant.y, r*2, 0, Math.PI*2); ctx.strokeStyle = 'rgba(196,160,80,0.4)'; ctx.lineWidth = 1.5/transform.k; ctx.stroke(); }
   });
   ctx.restore();
 }

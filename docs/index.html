@@ -642,9 +642,10 @@
             <li>5. <a href="#algorithmes">Algorithmes (BFS, Flux, Optimisation)</a></li>
             <li>6. <a href="#simulation">Simulation des fourmis</a></li>
             <li>7. <a href="#modules">Architecture des modules</a></li>
-            <li>8. <a href="#exemple">Exemple complet</a></li>
-            <li>9. <a href="#build">Compilation & Build WASM</a></li>
-            <li>10. <a href="#comparison">⚡ Comparaison C vs Rust</a></li>
+            <li>8. <a href="#format">Format des maps</a></li>
+            <li>9. <a href="#exemple">Exemple complet</a></li>
+            <li>10. <a href="#build">Compilation & Build WASM</a></li>
+            <li>11. <a href="#comparison">⚡ Comparaison C vs Rust</a></li>
         </ul>
     </div>
 
@@ -883,6 +884,106 @@ send_ants[i+1] = (send_ants[i] - abs(path_size[i+1] - path_size[i])).max(0);
             <h3>lib.rs + main.rs</h3>
             <p><code>lib.rs</code> : entry WASM (<code>parse_and_solve</code>). <code>main.rs</code> : entry CLI (stdin → stdout).</p>
         </div>
+    </div>
+
+    <!-- ==================== FORMAT MAP ==================== -->
+    <h2 id="format">📋 Format des maps — Règles de conformité</h2>
+    <div class="card">
+        <p>Le visualiseur valide chaque map avant l'exécution. Une map non conforme affiche un message d'erreur détaillé. Les règles suivantes sont issues du sujet officiel Lem-in :</p>
+
+        <h3>Structure d'une map</h3>
+        <pre><code>nombre_de_fourmis
+#commentaire optionnel
+##start
+nom_salle coord_x coord_y
+##end
+nom_salle coord_x coord_y
+nom_salle coord_x coord_y
+...
+nom_salle1-nom_salle2
+nom_salle3-nom_salle4
+...</code></pre>
+
+        <h3>Règles de validation (10 contrôles)</h3>
+        <table style="width:100%; border-collapse:collapse; margin:1rem 0;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border);">
+                    <th style="text-align:left; padding:.5rem; color:var(--accent);">N°</th>
+                    <th style="text-align:left; padding:.5rem; color:var(--accent);">Règle</th>
+                    <th style="text-align:left; padding:.5rem; color:var(--accent);">Détail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>1</code></td>
+                    <td style="padding:.5rem;">Première ligne</td>
+                    <td style="padding:.5rem;">Doit être un entier positif (nombre de fourmis)</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>2</code></td>
+                    <td style="padding:.5rem;">Noms de salles</td>
+                    <td style="padding:.5rem;">Ne peuvent pas commencer par <code>L</code> ou <code>#</code>, ni contenir <code>-</code></td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>3</code></td>
+                    <td style="padding:.5rem;">Unicité des noms</td>
+                    <td style="padding:.5rem;">Chaque nom de salle doit être unique</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>4</code></td>
+                    <td style="padding:.5rem;">Unicité des coordonnées</td>
+                    <td style="padding:.5rem;">Deux salles ne peuvent pas partager les mêmes <code>(x, y)</code></td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>5</code></td>
+                    <td style="padding:.5rem;"><code>##start</code></td>
+                    <td style="padding:.5rem;">Doit être présent exactement une fois, suivi d'une salle</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>6</code></td>
+                    <td style="padding:.5rem;"><code>##end</code></td>
+                    <td style="padding:.5rem;">Doit être présent exactement une fois, suivi d'une salle</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>7</code></td>
+                    <td style="padding:.5rem;">Au moins une salle</td>
+                    <td style="padding:.5rem;">La map doit contenir au minimum une salle (start + end)</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>8</code></td>
+                    <td style="padding:.5rem;">Au moins un lien</td>
+                    <td style="padding:.5rem;">Si >1 salle, au moins un lien doit exister</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:.5rem;"><code>9</code></td>
+                    <td style="padding:.5rem;">Format des liens</td>
+                    <td style="padding:.5rem;"><code>name1-name2</code> — un seul <code>-</code>, deux salles existantes</td>
+                </tr>
+                <tr>
+                    <td style="padding:.5rem;"><code>10</code></td>
+                    <td style="padding:.5rem;">Pas de lien vers soi-même</td>
+                    <td style="padding:.5rem;">Un lien <code>A-A</code> est invalide</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Commentaires autorisés</h3>
+        <ul style="margin-left:1.5rem; line-height:1.8;">
+            <li><code>#commentaire</code> — ignoré par le parseur</li>
+            <li><code>##start</code> — marque la salle suivante comme départ</li>
+            <li><code>##end</code> — marque la salle suivante comme arrivée</li>
+            <li><code>#Here is the number of lines required: N</code> — généré par le générateur officiel</li>
+        </ul>
+
+        <h3>Exemple de map invalide</h3>
+        <pre><code>-5          ❌ nombre négatif
+##start
+1 0 0
+##end
+1 0 0       ❌ doublon de nom ET de coordonnées
+1-1         ❌ lien vers soi-même
+2-3         ❌ salles 2 et 3 inexistantes</code></pre>
+        <p>Le visualiseur affichera : <code>⚠ MAP INVALIDE — 5 erreur(s)</code> avec le détail de chaque erreur.</p>
     </div>
 
     <!-- ==================== EXEMPLE ==================== -->

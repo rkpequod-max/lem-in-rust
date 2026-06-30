@@ -2205,8 +2205,8 @@ const mode3D = (() => {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;  // cinematic tone mapping
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.7;  // reduced from 1.1
     renderer.outputEncoding = THREE.sRGBEncoding;  // correct color space
     document.getElementById('canvas-3d-container').appendChild(renderer.domElement);
 
@@ -2223,27 +2223,24 @@ const mode3D = (() => {
     controls.dampingFactor = 0.05;
     controls.maxDistance = 15000;
 
-    // Premium studio lighting — 3-point setup for depth without glow
-    // Key + Fill + Rim = professional product visualization
-    scene.add(new THREE.AmbientLight(0x404858, 0.45));  // very subtle ambient
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    // Reduced lighting for scientific dark view
+    scene.add(new THREE.AmbientLight(0x202830, 0.25));  // very dim ambient
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.4);  // reduced from 0.9
     keyLight.position.set(600, 1200, 800);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0x8090a0, 0.35);
+    const fillLight = new THREE.DirectionalLight(0x607080, 0.15);  // reduced from 0.35
     fillLight.position.set(-800, 400, -600);
     scene.add(fillLight);
-    const rimLight = new THREE.DirectionalLight(0xa0b8d0, 0.5);
+    const rimLight = new THREE.DirectionalLight(0x506880, 0.2);  // reduced from 0.5
     rimLight.position.set(200, -600, 1200);
     scene.add(rimLight);
-    // No PointLights — they create uneven hotspots
 
-    // Post-processing — minimal bloom for scientific clarity
-    // Bloom creates halos that obscure data; keep it very subtle
+    // Bloom — minimal, only for ant emissive (not nodes)
     const renderScene = new RenderPass(scene, camera);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.5, 0.6, 0.1);
-    bloomPass.threshold = 0.15;  // lower threshold to allow strong neon red glow
-    bloomPass.strength = 1.4;    // strong neon bloom
-    bloomPass.radius = 0.6;
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.2, 0.4, 0.1);
+    bloomPass.threshold = 0.8;   // high threshold = only brightest (ants) bloom
+    bloomPass.strength = 0.2;    // minimal
+    bloomPass.radius = 0.4;
     composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);

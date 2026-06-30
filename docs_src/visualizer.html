@@ -419,7 +419,16 @@ button:focus:not(:focus-visible), input:focus:not(:focus-visible) {
 .exp-title { color: var(--warm); font-weight: 700; margin-bottom: .3rem; letter-spacing: .05em; }
 .exp-row { display: flex; justify-content: space-between; gap: .5rem; color: var(--dim); }
 .exp-row span { color: var(--text); }
-
+        /* ══ CUSTOM CURSOR (NIER AUTOMATA RED RETICLE) ══ */
+        body, canvas, #canvas-3d-container canvas {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='3' x2='12' y2='9' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='12' y1='15' x2='12' y2='21' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='12' x2='9' y2='12' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='15' y1='12' x2='21' y2='12' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='5' stroke='%23C4362B' stroke-width='1' fill='none'/%3E%3Ccircle cx='12' cy='12' r='1' fill='%23C4362B'/%3E%3C/svg%3E") 12 12, crosshair !important;
+        }
+        a, button, select, input, textarea, .tool-btn, .btn-solve, .mode-toggle button, .path-node, .pod042-header, .pod042-hint-action, .onboarding-btn {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='3' x2='12' y2='9' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='12' y1='15' x2='12' y2='21' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='3' y1='12' x2='9' y2='12' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='15' y1='12' x2='21' y2='12' stroke='%23C4362B' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='5' stroke='%23C4362B' stroke-width='1' fill='none'/%3E%3Ccircle cx='12' cy='12' r='1' fill='%23C4362B'/%3E%3C/svg%3E") 12 12, crosshair !important;
+        }
+        canvas:active, #canvas-3d-container canvas:active {
+            cursor: grabbing !important;
+        }
 </style>
 </head>
 <body>

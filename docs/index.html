@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lem-in Rust — Guide Complet, Visualiseur & Comparaison C vs Rust</title>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('lem-in-theme') || 'ame';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600;700&display=swap');
 
         :root {
             /* ══ L'ÂME DANS L'EAU — Mylène Farmer · Theme Colors ══ */
@@ -597,18 +603,356 @@
             50% { opacity: 0.6; box-shadow: 0 0 12px var(--glow-color), 0 0 24px var(--glow-color); }
         }
 
-        /* ══ 3D WebGL Canvas ══ */
-        #ame-3d-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -2; pointer-events: none;
+        /* ══ THEME SELECTOR BUTTONS ══ */
+        .theme-selector {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 100001; /* Above cursor and everything */
+        }
+        .theme-selector button {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
-        /* Suppress CSS duplicates when WebGL is active */
-        body::before { background: none !important; animation: none !important; }
-        #god-rays { display: none !important; }
+        /* Theme button style under L'Âme dans l'eau */
+        html[data-theme="ame"] .theme-selector button {
+            background: rgba(6,12,30,0.7);
+            border: 1px solid rgba(74, 144, 226, 0.15);
+            color: var(--cyan);
+        }
+        html[data-theme="ame"] .theme-selector button.active {
+            background: rgba(0,206,209,0.15);
+            border-color: var(--cyan);
+            box-shadow: 0 0 10px rgba(0,206,209,0.3);
+        }
+        html[data-theme="ame"] .theme-selector button:hover {
+            color: var(--ivory);
+            border-color: var(--cyan);
+        }
+
+        /* Theme button style under Doc theme */
+        html[data-theme="doc"] .theme-selector button {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.85);
+        }
+        html[data-theme="doc"] .theme-selector button.active {
+            background: #ffffff;
+            border-color: #ffffff;
+            color: #159957;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        html[data-theme="doc"] .theme-selector button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* ══ DOC THEME (CAYMAN JEKYLL STYLE) ══ */
+        html[data-theme="doc"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f6fa;
+            --bg-tertiary: #eaeef2;
+            --text-primary: #606c71;
+            --text-secondary: #586069;
+            --accent: #1e6bb8;
+            --accent-c: #cb2431;
+            --accent-rust: #d15704;
+            --success: #28a745;
+            --warning: #ffd33d;
+            --danger: #d73a49;
+            --border: #d8e2eb;
+            --sans: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        html[data-theme="doc"] body {
+            background-color: #ffffff;
+            color: #606c71;
+            font-family: var(--sans);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        html[data-theme="doc"] body::before,
+        html[data-theme="doc"] body::after {
+            display: none !important;
+            background: none !important;
+            animation: none !important;
+        }
+
+        html[data-theme="doc"] #starfield,
+        html[data-theme="doc"] #film-grain,
+        html[data-theme="doc"] #scan-lines,
+        html[data-theme="doc"] #god-rays,
+        html[data-theme="doc"] #bubble-container,
+        html[data-theme="doc"] #biolum-container {
+            display: none !important;
+        }
+
+        html[data-theme="doc"] *,
+        html[data-theme="doc"] body,
+        html[data-theme="doc"] a,
+        html[data-theme="doc"] button,
+        html[data-theme="doc"] select,
+        html[data-theme="doc"] input,
+        html[data-theme="doc"] textarea,
+        html[data-theme="doc"] code,
+        html[data-theme="doc"] pre,
+        html[data-theme="doc"] .card,
+        html[data-theme="doc"] .toc,
+        html[data-theme="doc"] .feature-item {
+            cursor: auto !important;
+        }
+
+        html[data-theme="doc"] a,
+        html[data-theme="doc"] button,
+        html[data-theme="doc"] select {
+            cursor: pointer !important;
+        }
+
+        html[data-theme="doc"] header {
+            padding: 5rem 6rem;
+            text-align: center;
+            background-color: #159957;
+            background-image: linear-gradient(120deg, #155799, #159957);
+            color: #ffffff;
+            margin-bottom: 2rem;
+            border-bottom: none;
+        }
+
+        html[data-theme="doc"] header h1 {
+            color: #ffffff !important;
+            font-size: 3.25rem;
+            font-weight: 700;
+            text-shadow: none !important;
+            margin-bottom: 0.5rem;
+            font-family: var(--sans);
+        }
+
+        html[data-theme="doc"] header p {
+            color: rgba(255, 255, 255, 0.7) !important;
+            font-size: 1.15rem;
+            margin-bottom: 2rem;
+        }
+
+        html[data-theme="doc"] header .badge {
+            display: none !important;
+        }
+
+        html[data-theme="doc"] header .nav-links a {
+            display: inline-block;
+            margin: 0 0.5rem 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.3rem;
+            transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+            text-shadow: none;
+            font-family: var(--sans);
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+            font-weight: normal;
+        }
+
+        html[data-theme="doc"] header .nav-links a:hover {
+            color: #ffffff;
+            text-decoration: none;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: none;
+        }
+
+        html[data-theme="doc"] h2 {
+            font-size: 2rem;
+            font-weight: normal;
+            color: #159957;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            letter-spacing: normal;
+        }
+
+        html[data-theme="doc"] h2::after {
+            display: none !important;
+        }
+
+        html[data-theme="doc"] h3 {
+            font-size: 1.5rem;
+            font-weight: normal;
+            color: #159957;
+            text-shadow: none;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            letter-spacing: normal;
+        }
+
+        html[data-theme="doc"] a {
+            color: #1e6bb8;
+            text-decoration: none;
+        }
+
+        html[data-theme="doc"] a:hover {
+            text-decoration: underline;
+            color: #1e6bb8;
+            text-shadow: none;
+        }
+
+        html[data-theme="doc"] .card,
+        html[data-theme="doc"] .toc,
+        html[data-theme="doc"] .feature-item {
+            background-color: #f3f6fa;
+            border: 1px solid #d8e2eb;
+            border-left: 1px solid #d8e2eb !important;
+            border-radius: 6px;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            color: #606c71;
+            transform: none !important;
+        }
+
+        html[data-theme="doc"] .card:hover,
+        html[data-theme="doc"] .toc:hover,
+        html[data-theme="doc"] .feature-item:hover {
+            box-shadow: none !important;
+            border-color: #d8e2eb;
+            transform: none !important;
+        }
+
+        html[data-theme="doc"] .feature-item h3 {
+            color: #159957;
+        }
+
+        html[data-theme="doc"] .toc ul li {
+            padding-left: 0;
+        }
+
+        html[data-theme="doc"] .info {
+            background-color: #f1f8ff;
+            border-left: 4px solid #0366d6;
+            color: #24292e;
+            box-shadow: none;
+        }
+
+        html[data-theme="doc"] .warn {
+            background-color: #fffdef;
+            border-left: 4px solid #ffd33d;
+            color: #24292e;
+            box-shadow: none;
+        }
+
+        html[data-theme="doc"] .danger {
+            background-color: #ffeef0;
+            border-left: 4px solid #d73a49;
+            color: #24292e;
+            box-shadow: none;
+        }
+
+        html[data-theme="doc"] code {
+            background-color: #f6f8fa;
+            color: #24292e;
+            text-shadow: none;
+            font-family: var(--mono);
+            border: 1px solid #eaecef;
+            padding: 0.2rem 0.4rem;
+        }
+
+        html[data-theme="doc"] pre {
+            background-color: #f6f8fa;
+            border: 1px solid #eaecef;
+            border-radius: 6px;
+            box-shadow: none;
+            padding: 1rem;
+        }
+
+        html[data-theme="doc"] pre::before {
+            display: none !important;
+        }
+
+        html[data-theme="doc"] pre code {
+            background-color: transparent;
+            border: none;
+            color: #24292e;
+            padding: 0;
+            text-shadow: none;
+        }
+
+        html[data-theme="doc"] ul {
+            list-style: disc;
+            margin-left: 2rem;
+        }
+
+        html[data-theme="doc"] ul li {
+            padding-left: 0;
+        }
+
+        html[data-theme="doc"] ul li::before {
+            content: none !important;
+        }
+
+        html[data-theme="doc"] table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        html[data-theme="doc"] th,
+        html[data-theme="doc"] td {
+            border: 1px solid #eaecef;
+            padding: 0.8rem;
+            color: #606c71;
+        }
+
+        html[data-theme="doc"] th {
+            background-color: #f6f8fa;
+            color: #24292e;
+            font-weight: bold;
+        }
+
+        html[data-theme="doc"] tr:nth-child(even) td {
+            background-color: #fdfdfd;
+        }
+
+        html[data-theme="doc"] tr:hover td {
+            background-color: #f6f8fa;
+        }
+
+        html[data-theme="doc"] footer {
+            border-top: 1px solid #eaecef;
+            color: #606c71;
+            padding: 2rem 0;
+        }
+
+        html[data-theme="doc"] footer a {
+            color: #1e6bb8;
+        }
+
+        html[data-theme="doc"] .container {
+            max-width: 64rem;
+            padding: 2rem 4rem;
+        }
+
+        @media (max-width: 50rem) {
+            html[data-theme="doc"] .container {
+                padding: 1rem 2rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Theme Switcher -->
+    <div class="theme-selector">
+        <button id="btn-theme-ame" onclick="setTheme('ame')">💧 L'Âme dans l'eau</button>
+        <button id="btn-theme-doc" onclick="setTheme('doc')">📄 Doc Classique</button>
+    </div>
     <!-- Background immersive overlays (L'Âme dans l'eau theme) -->
     <div id="starfield"></div>
     <div id="film-grain"></div>
@@ -1428,6 +1772,25 @@ python3 -m http.server 8000</code></pre>
         obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
         
         if (document.documentElement.getAttribute('data-theme') === 'ame') startParticles();
+    })();
+
+    // ── Theme Switcher Logic ──
+    window.setTheme = function(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('lem-in-theme', theme);
+        
+        document.querySelectorAll('.theme-selector button').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        const activeBtn = document.getElementById('btn-theme-' + theme);
+        if (activeBtn) activeBtn.classList.add('active');
+    };
+    
+    // Set active button state on page load
+    (function() {
+        const savedTheme = localStorage.getItem('lem-in-theme') || 'ame';
+        const activeBtn = document.getElementById('btn-theme-' + savedTheme);
+        if (activeBtn) activeBtn.classList.add('active');
     })();
     </script>
 </div>

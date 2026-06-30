@@ -1,50 +1,54 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="ame">
+<html lang="fr" data-theme="nier">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lem-in Rust — Guide Complet, Visualiseur & Comparaison C vs Rust</title>
     <script>
         (function() {
-            const savedTheme = localStorage.getItem('lem-in-theme') || 'ame';
+            const savedTheme = localStorage.getItem('lem-in-theme') || 'nier';
             document.documentElement.setAttribute('data-theme', savedTheme);
         })();
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600;700&display=swap');
+        /* IBM Plex Mono + Open Sans kept as fallback for ame/doc themes */
 
         :root {
-            /* ══ L'ÂME DANS L'EAU — Mylène Farmer · Theme Colors ══ */
-            --bg: #070B1A;          /* Abyss — deeper than midnight */
-            --bg2: #0A0F2C;         /* Indigo depths */
-            --card: rgba(8,14,38,0.88);
-            --card2: #0D1535;
-            --border: #152A55;
-            --border-light: #1E4080;
-            --text: #C8DAF0;        /* Pale moonlight on water */
-            --text-dim: #8BB4E8;
-            --ray: #1E5BD8;         /* Azur beam */
-            --ray-dim: rgba(30,91,216,0.10);
-            --ray-glow: rgba(30,91,216,0.45);
-            --pink: #990000;        /* Ruby red soul color */
-            --pink-dim: rgba(153,0,0,0.08);
-            --pink-glow: rgba(153,0,0,0.30);
-            --electric: #00CED1;    /* Cyan caustic */
-            --electric-dim: rgba(0,206,209,0.08);
-            --electric-glow: rgba(0,206,209,0.30);
-            --violet: #2E4A8B;
-            --blue: #1E5BD8;
-            --blue-deep: #0A0F2C;
-            --red: #990000;
-            --green: #00CED1;
-            --yellow: #D4A050;
-            --purple: #1A2A6C;
-            --orange: #D4A050;
-            --ivory: #E0EAF8;
-            --cyan: #00CED1;
-            --silver: #A0B8D0;
+            /* ══ NIER AUTOMATA — YoRHa Palette ══ */
+            --bg:            #F5F0E8;   /* Decotora cream */
+            --bg2:           #EDE8DF;   /* Parchment surface */
+            --card:          #FFFFFF;
+            --card2:         #EDE8DF;
+            --border:        #D4CFC6;
+            --border-light:  #C8C2B8;
+            --text:          #1A1A1A;
+            --text-dim:      #6B6560;
+            --ray:           #C4362B;
+            --ray-dim:       rgba(196,54,43,0.10);
+            --ray-glow:      rgba(196,54,43,0.25);
+            --pink:          #C4362B;   /* YoRHa red */
+            --pink-dim:      rgba(196,54,43,0.10);
+            --pink-glow:     rgba(196,54,43,0.30);
+            --electric:      #C4362B;
+            --electric-dim:  rgba(196,54,43,0.10);
+            --electric-glow: rgba(196,54,43,0.25);
+            --violet:        #7B5EA7;
+            --blue:          #3A6EA5;
+            --blue-deep:     #1A1A1A;
+            --red:           #C4362B;
+            --green:         #4A7C59;
+            --yellow:        #B8860B;
+            --purple:        #7B5EA7;
+            --orange:        #C47025;
+            --ivory:         #F5F0E8;
+            --cyan:          #C4362B;
+            --silver:        #8A847C;
 
-            /* Mapping to local variables */
+            /* Mapping */
             --bg-primary: var(--bg);
             --bg-secondary: var(--bg2);
             --bg-tertiary: var(--card2);
@@ -53,13 +57,22 @@
             --accent: var(--cyan);
             --accent-c: var(--pink);
             --accent-rust: var(--orange);
-            --success: var(--blue);
-            --warning: var(--orange);
+            --success: var(--green);
+            --warning: var(--yellow);
             --danger: var(--red);
             --border: var(--border);
 
-            --mono: 'IBM Plex Mono', 'Courier New', monospace;
+            --mono: 'JetBrains Mono', 'IBM Plex Mono', 'Courier New', monospace;
             --sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+            /* NieR-specific fonts */
+            --nier-heading: 'Cinzel', 'Playfair Display', serif;
+            --nier-subheading: 'EB Garamond', 'Georgia', serif;
+            --nier-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+
+            --radius: 0px;       /* NieR uses sharp corners */
+            --maxw: 1180px;
+            --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -84,34 +97,47 @@
 
         body {
             font-family: var(--sans);
-            background: linear-gradient(180deg, #070B1A 0%, #050B18 40%, #030812 70%, #020510 100%);
-            color: var(--text-primary);
+            background: #F5F0E8;
+            color: #1A1A1A;
             line-height: 1.7;
             position: relative;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
         body::before {
             content: '';
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
+            z-index: 0;
             pointer-events: none;
             background:
-                radial-gradient(ellipse at 15% 30%, rgba(30,91,216,0.06) 0%, transparent 55%),
-                radial-gradient(ellipse at 85% 20%, rgba(0,206,209,0.05) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 70%, rgba(153,0,0,0.03) 0%, transparent 40%),
-                radial-gradient(ellipse at 70% 55%, rgba(26,42,108,0.04) 0%, transparent 45%),
-                radial-gradient(ellipse at 30% 80%, rgba(0,206,209,0.03) 0%, transparent 50%),
-                radial-gradient(ellipse at 90% 75%, rgba(212,160,80,0.02) 0%, transparent 40%);
-            animation: causticDrift 20s ease-in-out infinite;
+                radial-gradient(ellipse at 20% 50%, rgba(196,54,43,0.03) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 25%, rgba(58,110,165,0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 85%, rgba(196,54,43,0.02) 0%, transparent 45%);
         }
         body::after {
             content: '';
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
+            z-index: 1;
             pointer-events: none;
-            background: radial-gradient(ellipse at center, transparent 30%, rgba(7,11,26,0.8) 100%);
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            opacity: 0.5;
         }
+        html { scrollbar-color: #8B2519 #EDE8DF; scrollbar-width: thin; }
+        html::after {
+            content: ''; position: fixed; inset: 0; z-index: 2; pointer-events: none;
+            background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.02) 3px, rgba(0,0,0,0.02) 4px);
+        }
+        ::selection { background: rgba(196,54,43,0.25); color: #1A1A1A; }
+        :focus-visible { outline: 2px solid #C4362B; outline-offset: 2px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #EDE8DF; }
+        ::-webkit-scrollbar-thumb { background: #8B2519; border-radius: 0; }
+        a { color: #C4362B; }
+        a:hover { color: #A02E24; }
+        /* Padding to clear fixed topbar */
+        body { padding-top: 64px; }
 
         /* ── Starfield → floating light particles & bubbles ── */
         #starfield {
@@ -621,6 +647,7 @@
             transition: all 0.3s ease;
         }
         
+
         /* Theme button style under L'Âme dans l'eau */
         html[data-theme="ame"] .theme-selector button {
             background: rgba(6,12,30,0.7);
@@ -635,6 +662,25 @@
         html[data-theme="ame"] .theme-selector button:hover {
             color: var(--ivory);
             border-color: var(--cyan);
+        }
+
+        /* Theme button style under NieR Automata */
+        html[data-theme="nier"] .theme-selector button {
+            background: #1A1A1A;
+            border: 1px solid #3A3A3A;
+            color: #D4CFC6;
+            border-radius: 0;
+            font-family: var(--nier-mono);
+        }
+        html[data-theme="nier"] .theme-selector button.active {
+            background: #C4362B;
+            border-color: #C4362B;
+            color: #F5F0E8;
+            box-shadow: 0 0 10px rgba(196,54,43,0.4);
+        }
+        html[data-theme="nier"] .theme-selector button:hover {
+            color: #C4362B;
+            border-color: #C4362B;
         }
 
         /* Theme button style under Doc theme */
@@ -945,11 +991,431 @@
                 padding: 1rem 2rem;
             }
         }
+
+/* Suppress CSS duplicates when WebGL is active */
+        body::before { background: none !important; animation: none !important; }
+        #god-rays { display: none !important; }
+    
+        /* ══ NIER MODE: Disable ame-specific background layers ══ */
+        [data-theme="nier"] #starfield,
+        [data-theme="nier"] #starfield::before,
+        [data-theme="nier"] #starfield::after,
+        [data-theme="nier"] #film-grain,
+        [data-theme="nier"] #scan-lines,
+        [data-theme="nier"] #god-rays,
+        [data-theme="nier"] #bubble-container,
+        [data-theme="nier"] #biolum-container,
+        [data-theme="nier"] .water-ripple,
+        [data-theme="nier"] .water-ripple-mid,
+        [data-theme="nier"] .water-ripple-inner,
+        [data-theme="nier"] .ame-bubble,
+        [data-theme="nier"] .biolum-particle {
+            display: none !important;
+            animation: none !important;
+        }
+        [data-theme="nier"] .container {
+            max-width: var(--maxw) !important;
+            padding: 0 24px !important;
+        }
+        
+    
+        /* ════════════════════════════════════════════════════════════════
+           NIER STRUCTURAL OVERRIDES — Topbar + Sidebar TOC + Layout
+           ════════════════════════════════════════════════════════════════ */
+
+        /* Topbar (fixed, YoRHa style) */
+        .topbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(26,26,26,0.95);
+            border-bottom: 1px solid #C4362B;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        .topbar-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            height: 64px; max-width: var(--maxw); margin: 0 auto;
+            padding: 0 24px;
+        }
+        .topbar .brand {
+            display: flex; align-items: center; gap: 12px;
+            color: #EDE8DF; text-decoration: none;
+            font-family: var(--nier-heading);
+            letter-spacing: 0.12em; text-transform: uppercase;
+        }
+        .topbar .brand .logo {
+            width: 34px; height: 34px; border-radius: 0;
+            background: #C4362B; color: #F5F0E8;
+            display: grid; place-items: center;
+            font-family: var(--nier-heading); font-weight: 700;
+            font-size: 0.95rem; letter-spacing: 0;
+        }
+        .topbar .brand .name {
+            font-size: 1.02rem; color: #EDE8DF;
+        }
+        .topbar .brand .name .accent { color: #C4362B; }
+        .topbar .brand small {
+            color: #8A847C; font-weight: 400; font-size: 0.72rem;
+            display: block; letter-spacing: 0.04em;
+            font-family: var(--nier-mono);
+        }
+        .nav-actions {
+            display: flex; align-items: center; gap: 18px;
+        }
+        .nav-actions a.github-link {
+            color: #D4CFC6; font-size: 0.9rem; font-weight: 500;
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 7px 12px; text-decoration: none;
+            font-family: var(--nier-mono); letter-spacing: 0.04em;
+            transition: color .2s var(--ease);
+        }
+        .nav-actions a.github-link:hover { color: #C4362B; }
+        .nav-actions a.github-link i { color: #C4362B; font-size: 13px; }
+        .lang-toggle {
+            display: inline-flex; gap: 2px;
+            border: 1px solid #4A4A4A; border-radius: 0; overflow: hidden;
+        }
+        .lang-toggle button {
+            background: transparent; border: 0; cursor: pointer;
+            color: #D4CFC6; font-family: var(--nier-mono); font-weight: 600;
+            font-size: 12px; padding: 6px 12px; transition: all .15s;
+            letter-spacing: 0.05em;
+        }
+        .lang-toggle button.active {
+            background: #C4362B; color: #F5F0E8;
+        }
+        .lang-toggle button:not(.active):hover {
+            color: #C4362B; background: transparent;
+        }
+        .toc-toggle {
+            display: none; background: transparent; border: 1px solid #4A4A4A;
+            color: #D4CFC6; width: 40px; height: 40px; border-radius: 0;
+            cursor: pointer; font-size: 1rem;
+            align-items: center; justify-content: center;
+        }
+        .toc-toggle:hover { border-color: #C4362B; color: #C4362B; }
+        @media (max-width: 860px) {
+            .toc-toggle { display: inline-flex; }
+            .nav-actions .github-link span { display: none; }
+        }
+
+        /* Layout grid: sidebar + main */
+        .layout {
+            display: grid; grid-template-columns: 248px 1fr; gap: 56px;
+            max-width: var(--maxw); margin: 0 auto; padding: 0 24px;
+            position: relative; z-index: 10;
+        }
+        .toc-sidebar {
+            position: sticky; top: 88px; align-self: start;
+            max-height: calc(100vh - 110px); overflow-y: auto;
+            padding: 32px 0 8px 0;
+        }
+        .toc-sidebar h5 {
+            font-family: var(--nier-heading); font-size: 11px;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: #8A847C; margin: 0 0 14px 4px;
+        }
+        .toc-list {
+            list-style: none; padding: 0; margin: 0;
+            border-left: 1px solid #D4CFC6;
+        }
+        .toc-list li { margin: 0; padding: 0; }
+        .toc-list li::before { content: none !important; }
+        .toc-list a {
+            display: block; padding: 7px 14px; font-size: 0.85rem;
+            color: #6B6560; text-decoration: none;
+            border-left: 2px solid transparent; margin-left: -1px;
+            line-height: 1.4; transition: all .2s var(--ease);
+            font-family: var(--sans);
+            position: relative;
+        }
+        .toc-list a::after {
+            content: ''; position: absolute; bottom: 0; left: 0;
+            width: 0; height: 1px; background: #C4362B;
+            transition: width 0.3s ease;
+        }
+        .toc-list a:hover {
+            color: #C4362B; border-left-color: #C4362B;
+            background: transparent;
+        }
+        .toc-list a:hover::after { width: 100%; }
+        .toc-list a.active {
+            color: #C4362B; border-left-color: #C4362B;
+            background: rgba(196,54,43,0.05); font-weight: 600;
+        }
+        .toc-list a .toc-num {
+            font-family: var(--nier-mono); color: #8A847C;
+            margin-right: 8px; font-size: 0.82em;
+        }
+        .toc-list a.active .toc-num { color: #C4362B; }
+        @media (max-width: 1024px) {
+            .layout { grid-template-columns: 1fr; }
+            .toc-sidebar { display: none; }
+        }
+        .toc-mobile {
+            display: none; position: fixed; top: 64px; left: 0; right: 0; z-index: 99;
+            background: #1A1A1A; border-bottom: 1px solid #C4362B;
+            max-height: 70vh; overflow-y: auto; padding: 16px 24px;
+        }
+        .toc-mobile.open { display: block; }
+        .toc-mobile .toc-list { border-left: none; }
+        .toc-mobile .toc-list a { color: #D4CFC6; font-family: var(--nier-mono); }
+        .toc-mobile .toc-list a:hover { color: #C4362B; background: rgba(196,54,43,0.1); }
+        @media (max-width: 860px) { .toc-mobile.show { display: block; } }
+
+        /* Hero (top of page, before sidebar layout) */
+        .hero-nier {
+            padding: 88px 0 48px;
+            max-width: var(--maxw); margin: 0 auto; padding-left: 24px; padding-right: 24px;
+            position: relative; z-index: 10;
+        }
+        .hero-nier .eyebrow {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: var(--nier-mono); font-size: 12px;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            color: #C4362B; padding: 6px 12px;
+            border: 1px solid #D4CFC6;
+            background: #EDE8DF;
+            margin-bottom: 20px;
+        }
+        .hero-nier h1 {
+            font-family: var(--nier-heading) !important;
+            font-size: clamp(2.2rem, 4.5vw, 3.4rem) !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            font-weight: 600 !important;
+            color: #1A1A1A !important;
+            text-shadow: 1px 1px 0 rgba(196,54,43,0.15) !important;
+            margin-bottom: 16px !important;
+        }
+        .hero-nier h1 .grad {
+            background: none; -webkit-background-clip: initial;
+            background-clip: initial; -webkit-text-fill-color: initial;
+            color: #C4362B; text-shadow: 1px 1px 0 rgba(196,54,43,0.2);
+        }
+        .hero-nier h1 .badge {
+            background: rgba(196,54,43,0.1); color: #C4362B;
+            border: 1px solid rgba(196,54,43,0.3);
+            border-radius: 0; font-family: var(--nier-mono);
+            font-size: 0.55em; vertical-align: middle;
+            padding: 4px 10px; letter-spacing: 0.04em;
+            margin-left: 12px; text-shadow: none;
+        }
+        .hero-nier .lead {
+            font-size: 1.1rem; color: #6B6560;
+            max-width: 720px; margin-bottom: 24px;
+            font-family: var(--nier-subheading);
+        }
+
+        /* Override default header/h1/h2/h3 styles for NieR */
+        [data-theme="nier"] header:not(.topbar) { text-align: left; padding: 0; border: 0; margin: 0; }
+        [data-theme="nier"] h1, [data-theme="nier"] h2 {
+            font-family: var(--nier-heading) !important;
+            letter-spacing: 0.12em !important;
+            text-transform: uppercase !important;
+            text-shadow: 1px 1px 0 rgba(196,54,43,0.15) !important;
+            color: #1A1A1A !important;
+        }
+        [data-theme="nier"] h1 {
+            font-weight: 600 !important;
+            font-size: 2.5rem !important;
+        }
+        [data-theme="nier"] h2 {
+            font-size: clamp(1.6rem, 3vw, 2.1rem) !important;
+            font-weight: 500 !important;
+            border-bottom: 1px solid #D4CFC6 !important;
+            padding-bottom: 0.5rem !important;
+            margin: 2.5rem 0 1rem !important;
+        }
+        [data-theme="nier"] h2::after {
+            background: #C4362B !important;
+            box-shadow: none !important;
+            height: 2px !important;
+            width: 60px !important;
+            margin-top: 0.5rem !important;
+        }
+        [data-theme="nier"] h3 {
+            font-family: var(--nier-subheading) !important;
+            color: #1A1A1A !important;
+            text-shadow: none !important;
+            font-weight: 500 !important;
+            letter-spacing: 0.04em !important;
+        }
+        [data-theme="nier"] h4 {
+            color: #6B6560 !important;
+            font-family: var(--nier-subheading) !important;
+        }
+        [data-theme="nier"] p, [data-theme="nier"] ul, [data-theme="nier"] ol, [data-theme="nier"] li {
+            color: #1A1A1A !important;
+        }
+        [data-theme="nier"] strong { color: #1A1A1A !important; font-weight: 700 !important; }
+        [data-theme="nier"] em { color: #C4362B !important; font-style: normal !important; font-weight: 500 !important; }
+        [data-theme="nier"] a { color: #C4362B !important; }
+        [data-theme="nier"] a:hover { color: #A02E24 !important; }
+        [data-theme="nier"] li::marker { color: #C4362B !important; }
+
+        /* Cards */
+        [data-theme="nier"] .card,
+        [data-theme="nier"] .toc {
+            background: #FFFFFF !important;
+            border: 1px solid #D4CFC6 !important;
+            border-left: 3px solid #C4362B !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            transition: border-color .2s var(--ease), box-shadow .2s var(--ease) !important;
+        }
+        [data-theme="nier"] .card:hover,
+        [data-theme="nier"] .toc:hover {
+            border-color: rgba(196,54,43,0.3) !important;
+            border-left-color: #C4362B !important;
+            box-shadow: -4px 0 12px rgba(196,54,43,0.15), 0 8px 30px rgba(0,0,0,0.08) !important;
+            transform: translateY(-2px) !important;
+        }
+        [data-theme="nier"] .feature-item {
+            background: #FFFFFF !important;
+            border: 1px solid #D4CFC6 !important;
+            border-left: 3px solid #C4362B !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+        }
+        [data-theme="nier"] .feature-item:hover {
+            border-color: rgba(196,54,43,0.3) !important;
+            border-left-color: #C4362B !important;
+            box-shadow: -4px 0 12px rgba(196,54,43,0.15), 0 8px 30px rgba(0,0,0,0.08) !important;
+        }
+        [data-theme="nier"] .feature-item h3 { color: #C4362B !important; }
+
+        /* Callouts */
+        [data-theme="nier"] .info {
+            background: #FFFFFF !important;
+            border: 1px solid #D4CFC6 !important;
+            border-left: 4px solid #4A7C59 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+        [data-theme="nier"] .warn {
+            background: #FFFFFF !important;
+            border: 1px solid #D4CFC6 !important;
+            border-left: 4px solid #B8860B !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+        [data-theme="nier"] .danger {
+            background: #FFFFFF !important;
+            border: 1px solid #D4CFC6 !important;
+            border-left: 4px solid #C4362B !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        /* Code blocks */
+        [data-theme="nier"] code {
+            background: #EDE8DF !important;
+            color: #1A1A1A !important;
+            border: 1px solid #D4CFC6 !important;
+            border-radius: 0 !important;
+            padding: 2px 7px !important;
+            font-family: var(--nier-mono) !important;
+            font-size: 0.88em !important;
+            text-shadow: none !important;
+        }
+        [data-theme="nier"] pre {
+            background: #1A1A1A !important;
+            border: 1px solid #3A3A3A !important;
+            border-left: 2px solid #C4362B !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            color: #D4CFC6 !important;
+        }
+        [data-theme="nier"] pre::before { display: none !important; }
+        [data-theme="nier"] pre code {
+            background: transparent !important;
+            color: #D4CFC6 !important;
+            border: none !important;
+            padding: 0 !important;
+            text-shadow: none !important;
+            font-family: var(--nier-mono) !important;
+        }
+
+        /* Tables */
+        [data-theme="nier"] table {
+            border: 1px solid #D4CFC6 !important;
+            border-radius: 0 !important;
+        }
+        [data-theme="nier"] th {
+            background: #EDE8DF !important;
+            color: #C4362B !important;
+            border-bottom: 1px solid #D4CFC6 !important;
+            font-family: var(--nier-mono) !important;
+            font-size: 0.82rem !important;
+            letter-spacing: 0.04em !important;
+            text-transform: uppercase !important;
+        }
+        [data-theme="nier"] td {
+            border-bottom: 1px solid #C8C2B8 !important;
+            color: #1A1A1A !important;
+        }
+        [data-theme="nier"] tr:nth-child(even) td { background: rgba(0,0,0,0.015) !important; }
+        [data-theme="nier"] tr:hover td { background: rgba(196,54,43,0.04) !important; }
+
+        /* Comparison table colors */
+        [data-theme="nier"] .compare-c { color: #C4362B !important; }
+        [data-theme="nier"] .compare-rust { color: #C47025 !important; }
+        [data-theme="nier"] .check { color: #4A7C59 !important; }
+        [data-theme="nier"] .cross { color: #C4362B !important; }
+
+        /* Footer */
+        [data-theme="nier"] footer {
+            background: #1A1A1A !important;
+            border-top: 1px solid #C4362B !important;
+            color: #D4CFC6 !important;
+            text-align: center !important;
+            padding: 2rem !important;
+            margin-top: 3rem !important;
+        }
+        [data-theme="nier"] footer a { color: #D4CFC6 !important; }
+        [data-theme="nier"] footer a:hover { color: #C4362B !important; }
+        [data-theme="nier"] .section-divider {
+            color: #8A847C !important;
+            letter-spacing: 0.3rem !important;
+        }
+
+        /* List bullets */
+        [data-theme="nier"] ul li::before {
+            content: '·' !important;
+            color: #C4362B !important;
+            text-shadow: none !important;
+            font-size: 1.4rem !important;
+            top: -4px !important;
+        }
+
+        /* Cursor — keep system cursor */
+        [data-theme="nier"] body,
+        [data-theme="nier"] a,
+        [data-theme="nier"] button,
+        [data-theme="nier"] select,
+        [data-theme="nier"] input,
+        [data-theme="nier"] textarea,
+        [data-theme="nier"] code,
+        [data-theme="nier"] pre,
+        [data-theme="nier"] .card,
+        [data-theme="nier"] .toc,
+        [data-theme="nier"] .feature-item {
+            cursor: auto !important;
+        }
+
+        /* Disable ame bubble/biolum containers in nier mode (visual) */
+        [data-theme="nier"] #bubble-container,
+        [data-theme="nier"] #biolum-container { display: none !important; }
+
+
     </style>
 </head>
 <body>
     <!-- Theme Switcher -->
     <div class="theme-selector">
+        <button id="btn-theme-nier" onclick="setTheme('nier')" class="active">⚔️ NieR Automata</button>
         <button id="btn-theme-ame" onclick="setTheme('ame')">💧 L'Âme dans l'eau</button>
         <button id="btn-theme-doc" onclick="setTheme('doc')">📄 Doc Classique</button>
     </div>
@@ -964,34 +1430,81 @@
     </div>
     <div id="bubble-container"></div>
     <div id="biolum-container"></div>
-<div class="container">
-    <header>
-        <h1>🐜 Lem-in Rust <span class="badge">WASM Ready</span></h1>
-        <p>Traduction complète du projet Lem-in (42 School) en Rust — avec algorithmes Edmonds-Karp, path_config, et compilation WebAssembly</p>
-        <div class="nav-links">
-            <a href="visualizer.html">🚀 Visualiseur</a>
-            <a href="https://github.com/rkpequod-max/lem-in-rust" target="_blank">📂 GitHub</a>
-            <a href="https://rkpequod-max.github.io/lem-in/" target="_blank">📘 Guide Version C</a>
-        </div>
-    </header>
+<!-- ============================================================
+     TOP NAV (NieR YoRHa style)
+     ============================================================ -->
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a href="#top" class="brand">
+      <div class="logo">li</div>
+      <div class="name">Lem-in<span class="accent"> · Rust</span>
+        <small>WASM · École 42</small>
+      </div>
+    </a>
+    <nav class="nav-actions">
+      <a class="github-link" href="visualizer.html">
+        <i class="fa-solid fa-rocket"></i>
+        <span>Visualiseur</span>
+      </a>
+      <a class="github-link" href="https://github.com/rkpequod-max/lem-in-rust" target="_blank" rel="noopener">
+        <i class="fa-brands fa-github"></i>
+        <span>GitHub</span>
+      </a>
+      <a class="github-link" href="https://rkpequod-max.github.io/lem-in/" target="_blank" rel="noopener">
+        <i class="fa-solid fa-book"></i>
+        <span>Guide C</span>
+      </a>
+      <button aria-label="Toggle contents" class="toc-toggle" id="tocToggle">
+        <i class="fa-solid fa-list"></i>
+      </button>
+    </nav>
+  </div>
+</header>
+<div class="toc-mobile" id="tocMobile">
+  <ul class="toc-list" style="border-left:none"></ul>
+</div>
 
-    <!-- ==================== SOMMAIRE ==================== -->
-    <div class="toc">
-        <h3>📋 Sommaire</h3>
-        <ul>
-            <li>1. <a href="#about">À propos du projet</a></li>
-            <li>2. <a href="#visualiseur">🎨 Visualiseur Web & Optimisations</a></li>
-            <li>3. <a href="#structures">Structures de données</a></li>
-            <li>4. <a href="#parsing">Parsing et validation</a></li>
-            <li>5. <a href="#algorithmes">Algorithmes (BFS, Flux, Optimisation)</a></li>
-            <li>6. <a href="#simulation">Simulation des fourmis</a></li>
-            <li>7. <a href="#modules">Architecture des modules</a></li>
-            <li>8. <a href="#format">Format des maps</a></li>
-            <li>9. <a href="#exemple">Exemple complet</a></li>
-            <li>10. <a href="#build">Compilation & Build WASM</a></li>
-            <li>11. <a href="#comparison">⚡ Comparaison C vs Rust</a></li>
-        </ul>
-    </div>
+<div id="top"></div>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<section class="hero-nier">
+  <span class="eyebrow">
+    <i class="fa-solid fa-graduation-cap"></i>
+    École 42 · Algorithm Project
+  </span>
+  <h1>Lem-in <span class="grad">Rust</span><span class="badge">WASM Ready</span></h1>
+  <p class="lead">
+    Traduction complète du projet Lem-in (École 42) en Rust — avec algorithmes
+    Edmonds-Karp, path_config, et compilation WebAssembly. Même nombre de tours
+    que la version C, validé par stress test sur 20 maps aléatoires.
+  </p>
+</section>
+
+<!-- ============================================================
+     MAIN LAYOUT WITH STICKY TOC
+     ============================================================ -->
+<div class="layout">
+  <!-- Sticky TOC -->
+  <aside class="toc-sidebar">
+    <h5>Sommaire</h5>
+    <ul class="toc-list" id="tocList">
+      <li><a href="#about"><span class="toc-num">01</span>À propos du projet</a></li>
+      <li><a href="#visualiseur"><span class="toc-num">02</span>Visualiseur Web &amp; Optimisations</a></li>
+      <li><a href="#structures"><span class="toc-num">03</span>Structures de données</a></li>
+      <li><a href="#parsing"><span class="toc-num">04</span>Parsing et validation</a></li>
+      <li><a href="#algorithmes"><span class="toc-num">05</span>Algorithmes (BFS, Flux)</a></li>
+      <li><a href="#simulation"><span class="toc-num">06</span>Simulation des fourmis</a></li>
+      <li><a href="#modules"><span class="toc-num">07</span>Architecture des modules</a></li>
+      <li><a href="#format"><span class="toc-num">08</span>Format des maps</a></li>
+      <li><a href="#exemple"><span class="toc-num">09</span>Exemple complet</a></li>
+      <li><a href="#build"><span class="toc-num">10</span>Compilation &amp; WASM</a></li>
+      <li><a href="#comparison"><span class="toc-num">11</span>Comparaison C vs Rust</a></li>
+    </ul>
+  </aside>
+  <!-- Main column -->
+  <main>
 
     <!-- ==================== ABOUT ==================== -->
     <h2 id="about">📖 À propos du projet</h2>
@@ -1599,18 +2112,90 @@ python3 -m http.server 8000</code></pre>
         <strong>Conclusion :</strong> Les deux implémentations sont <strong>fonctionnellement équivalentes</strong> (même nombre de tours sur tous les tests). La version Rust est plus concise, plus sûre, et plus performante sur le parsing/BFS grâce aux HashMap/HashSet. La version C reste l'implémentation de référence à 42 et le choix par défaut. La version Rust est une alternative moderne qui offre des garanties de sécurité et de performance, au prix d'une courbe d'apprentissage plus raide.
     </div>
 
-    <footer>
-        <p>Projet Lem-in Rust par <a href="https://github.com/rkpequod-max" style="color: var(--accent);">@rkpequod-max</a></p>
-        <p style="margin-top: 0.5rem;">
-            <a href="visualizer.html" style="color: var(--accent);">Visualiseur</a> |
-            <a href="https://github.com/rkpequod-max/lem-in-rust" style="color: var(--accent);">GitHub Rust</a> |
-            <a href="https://github.com/rkpequod-max/lem-in" style="color: var(--accent-c);">GitHub C</a> |
-            <a href="https://rkpequod-max.github.io/lem-in/" style="color: var(--accent-c);">Guide C</a>
-        </p>
-    </footer>
-    <!-- ══ Immersive Three.js Background & Custom Effects (L'Âme dans l'eau theme) ══ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="ame-immersive.js"></script>
+  </main>
+</div>
+<!-- /.layout -->
+
+<footer>
+  <div class="wrap" style="max-width: var(--maxw); margin: 0 auto; padding: 0 24px;">
+    <p>Projet Lem-in Rust par <a href="https://github.com/rkpequod-max">@rkpequod-max</a></p>
+    <p style="margin-top: 0.5rem;">
+      <a href="visualizer.html">Visualiseur</a> |
+      <a href="https://github.com/rkpequod-max/lem-in-rust" target="_blank" rel="noopener">GitHub Rust</a> |
+      <a href="https://github.com/rkpequod-max/lem-in" target="_blank" rel="noopener">GitHub C</a> |
+      <a href="https://rkpequod-max.github.io/lem-in/" target="_blank" rel="noopener">Guide C</a>
+    </p>
+  </div>
+</footer>
+    <!-- ══ Immersive Three.js Background disabled in NieR mode ══ -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script> -->
+    <!-- ame-immersive.js disabled in NieR mode -->
+
+    <script>
+    // ── NieR: TOC mobile toggle + scrollspy ──
+    (function() {
+        var tocToggle = document.getElementById('tocToggle');
+        var tocMobile = document.getElementById('tocMobile');
+        var sidebarList = document.getElementById('tocList');
+        if (tocToggle && tocMobile && sidebarList) {
+            tocMobile.querySelector('ul').innerHTML = sidebarList.innerHTML;
+            tocToggle.addEventListener('click', function () {
+                tocMobile.classList.toggle('show');
+            });
+            tocMobile.addEventListener('click', function (e) {
+                if (e.target.tagName === 'A' || e.target.closest('a')) {
+                    tocMobile.classList.remove('show');
+                }
+            });
+        }
+
+        // Scrollspy
+        var tocLinks = document.querySelectorAll('.toc-list a[href^="#"]');
+        var tocSections = [];
+        tocLinks.forEach(function (l) {
+            var id = l.getAttribute('href');
+            if (id.length > 1) {
+                var s = document.querySelector(id);
+                if (s) tocSections.push({ link: l, el: s });
+            }
+        });
+        if (tocSections.length) {
+            var tocSpy = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        tocSections.forEach(function (s) { s.link.classList.remove('active'); });
+                        var match = tocSections.find(function (s) { return s.el === entry.target; });
+                        if (match) match.link.classList.add('active');
+                    }
+                });
+            }, { rootMargin: '-40% 0px -55% 0px' });
+            tocSections.forEach(function (s) { tocSpy.observe(s.el); });
+        }
+
+        // Topbar shadow on scroll
+        var topbar = document.getElementById('topbar');
+        if (topbar) {
+            window.addEventListener('scroll', function () {
+                if (window.scrollY > 10) topbar.classList.add('scrolled');
+                else topbar.classList.remove('scrolled');
+            }, { passive: true });
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+            a.addEventListener('click', function (e) {
+                var id = a.getAttribute('href');
+                if (id.length <= 1) return;
+                var target = document.querySelector(id);
+                if (target) {
+                    e.preventDefault();
+                    var top = target.getBoundingClientRect().top + window.pageYOffset - 80;
+                    window.scrollTo({ top: top, behavior: 'smooth' });
+                }
+            });
+        });
+    })();
+    </script>
 
     <script>
     // ── Âme: Interactive Water Ripple ──
@@ -1788,11 +2373,11 @@ python3 -m http.server 8000</code></pre>
     
     // Set active button state on page load
     (function() {
-        const savedTheme = localStorage.getItem('lem-in-theme') || 'ame';
+        const savedTheme = localStorage.getItem('lem-in-theme') || 'nier';
         const activeBtn = document.getElementById('btn-theme-' + savedTheme);
         if (activeBtn) activeBtn.classList.add('active');
     })();
     </script>
-</div>
+
 </body>
 </html>

@@ -2026,10 +2026,134 @@ function solveWithWorker(input) {
 
 // Worker is initialized from the main WASM init IIFE above (initWasmWorker called after init() completes)
 
+/* ═══════════════════════════════════════════════════════════════
+   MAP VALIDATION — check conformity to Lem-in subject rules
+   Returns array of error strings (empty = valid)
+   ═══════════════════════════════════════════════════════════════ */
+function validateMap(input) {
+  const errors = [];
+  const lines = input.split('\n').map(l => l.trim());
+  let lineIdx = 0;
+
+  // 1. First line must be a positive integer (ant count)
+  if (lines.length === 0 || lines[0] === '') {
+    errors.push('Map vide — aucune donnée.');
+    return errors;
+  }
+  const antCount = parseInt(lines[0]);
+  if (isNaN(antCount) || antCount <= 0) {
+    errors.push(`Ligne 1: "${lines[0]}" n'est pas un nombre de fourmis valide (entier positif requis).`);
+  }
+
+  // 2. Parse rooms and links
+  let hasStart = false, hasEnd = false;
+  let nextIsStart = false, nextIsEnd = false;
+  const roomNames = new Set();
+  const roomCoords = new Set(); // "x y" to detect duplicate coords
+  let roomCount = 0, linkCount = 0;
+  let inLinksSection = false;
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line === '' || line.startsWith('#Here')) continue;
+
+    // Comments
+    if (line === '##start') { nextIsStart = true; continue; }
+    if (line === '##end') { nextIsEnd = true; continue; }
+    if (line.startsWith('#')) continue;
+
+    // Try room format: name x y
+    const roomMatch = line.match(/^(\S+)\s+(-?\d+)\s+(-?\d+)$/);
+    if (roomMatch && !inLinksSection) {
+      const [, name, x, y] = roomMatch;
+      // Check room name doesn't start with 'L' or contain '-'
+      if (name.startsWith('L') || name.startsWith('#')) {
+        errors.push(`Ligne ${i+1}: nom de salle "${name}" invalide (ne peut pas commencer par 'L' ou '#').`);
+      }
+      if (name.includes('-')) {
+        errors.push(`Ligne ${i+1}: nom de salle "${name}" invalide (ne peut pas contenir '-').`);
+      }
+      // Check duplicate name
+      if (roomNames.has(name)) {
+        errors.push(`Ligne ${i+1}: salle "${name}" déjà définie (doublon).`);
+      }
+      // Check duplicate coords
+      const coordKey = x + ' ' + y;
+      if (roomCoords.has(coordKey)) {
+        errors.push(`Ligne ${i+1}: coordonnées (${x}, ${y}) déjà utilisées par une autre salle.`);
+      }
+      roomNames.add(name);
+      roomCoords.add(coordKey);
+      roomCount++;
+      if (nextIsStart) { hasStart = true; nextIsStart = false; }
+      if (nextIsEnd) { hasEnd = true; nextIsEnd = false; }
+      continue;
+    }
+
+    // Try link format: name1-name2
+    if (line.includes('-') && !roomMatch) {
+      inLinksSection = true;
+      const parts = line.split('-');
+      if (parts.length !== 2) {
+        errors.push(`Ligne ${i+1}: lien "${line}" invalide (format attendu: name1-name2).`);
+        continue;
+      }
+      const [src, dst] = parts;
+      if (!roomNames.has(src)) {
+        errors.push(`Ligne ${i+1}: lien vers salle inconnue "${src}".`);
+      }
+      if (!roomNames.has(dst)) {
+        errors.push(`Ligne ${i+1}: lien vers salle inconnue "${dst}".`);
+      }
+      if (src === dst) {
+        errors.push(`Ligne ${i+1}: lien vers soi-même ("${src}-${dst}").`);
+      }
+      linkCount++;
+      continue;
+    }
+
+    // If we get here, it's an unrecognized line
+    if (line.length > 0) {
+      errors.push(`Ligne ${i+1}: "${line}" — format non reconnu (ni salle, ni lien, ni commentaire).`);
+    }
+  }
+
+  // 3. Must have exactly one start and one end
+  if (!hasStart) errors.push('Aucune salle ##start définie.');
+  if (!hasEnd) errors.push('Aucune salle ##end définie.');
+
+  // 4. Must have at least one room
+  if (roomCount === 0) errors.push('Aucune salle définie dans la map.');
+
+  // 5. Must have at least one link (otherwise no path possible)
+  if (roomCount > 1 && linkCount === 0) errors.push('Aucun lien défini — le graphe est déconnecté.');
+
+  // 6. ##start or ##end without a room following
+  if (nextIsStart) errors.push('##start non suivi d\'une salle.');
+  if (nextIsEnd) errors.push('##end non suivi d\'une salle.');
+
+  return errors;
+}
+
 window.runSimulation = async function() {
   if (!wasmReady) { alert('WASM en chargement…'); return; }
   const input = document.getElementById('inputMap').value;
   const out = document.getElementById('output'); out.innerHTML = '';
+
+  // ═══ MAP VALIDATION — check conformity to subject rules ═══
+  const errors = validateMap(input);
+  if (errors.length > 0) {
+    let html = '<div style="color:var(--red);font-family:JetBrains Mono,monospace;font-size:.6rem;line-height:1.6;padding:.5rem">';
+    html += '<div style="font-weight:700;margin-bottom:.3rem;color:var(--red)">⚠ MAP INVALIDE — ' + errors.length + ' erreur(s)</div>';
+    errors.forEach((e, i) => { html += `<div style="margin-bottom:.2rem">${i+1}. ${e}</div>`; });
+    html += '</div>';
+    out.innerHTML = html;
+    showToast('Map invalide — voir les erreurs', 'error');
+    if (POD042) POD042.say('Map rejected: ' + errors.length + ' error(s) found.', 'warn', 4000);
+    Logger.error('VALIDATE', 'Map invalid: ' + errors.join('; '));
+    return;
+  }
+
   try {
     // Offload WASM parsing to Web Worker (non-blocking for large maps)
     if (input.length > 5000) {
